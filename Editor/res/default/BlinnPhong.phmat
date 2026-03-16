@@ -1,0 +1,118 @@
+UUID: 215919182
+references:
+  - BlinnPhong
+  - default_material
+Asset:
+  FragmentShader:
+    Source: |
+      #version 450
+
+      layout (location = 0) in vec3 FragPosition;
+      layout (location = 1) in vec2 UV;
+      layout (location = 2) in vec3 Normal;
+
+      layout (location = 0) out vec4 outColor;
+
+      layout (binding = 1, set = 1) uniform sampler2D albedoSampler;
+      layout (binding = 2, set = 1) uniform sampler2D roughnessSampler;
+      layout (binding = 3, set = 1) uniform sampler2D normalSampler;
+
+      struct Light {
+      	vec3 position;
+      	vec3 tint;
+      	float padding1;
+      	float brightness;
+      	float linear;
+      	float quadratic;
+      	float padding;
+      };
+
+      struct DirLight {
+      	vec3 direction;
+      	vec3 tint;
+      };
+
+      #define MAX_LIGHTS 12
+
+      layout(std140, set = 0, binding = 0) uniform SceneData {
+      	mat4 projection;
+      	mat4 view;
+      	Light lights[12];
+      	DirLight dirlight;
+      	uint lightcount;
+      } scene; 
+
+      void main() {
+      	vec3 albedo = texture(albedoSampler, UV).xyz;
+      	float diff = max(dot(-normalize(scene.dirlight.direction), Normal),0.0);	
+      	float amb = 0.2;
+      	float exposure = 0.9;
+      	
+      	outColor =   vec4(exposure * (diff + amb) * scene.dirlight.tint * albedo, 1.0);
+      }
+
+    BinDir: res/materialbinaries/BlinnPhong_fs.spv
+  VertexShader:
+    Source: |
+      #version 450
+
+      layout(location = 0) in vec3 inPosition;
+      layout(location = 1) in vec3 inNormal;
+      layout(location = 2) in vec2 inUV;
+
+      layout(location = 3) in vec4 inTv1;
+      layout(location = 4) in vec4 inTv2;
+      layout(location = 5) in vec4 inTv3;
+      layout(location = 6) in vec4 inColor;
+      layout(location = 7) in uint inID;
+
+      layout(location = 0) out vec3 FragPosition;
+      layout(location = 1) out vec2 UV;
+      layout(location = 2) out vec3 Normal;
+
+      layout(std140, set = 0, binding = 0) uniform SceneData {
+      	mat4 projection;
+      	mat4 view;
+      } scene; 
+
+
+      void main() {
+      	
+      	mat4 transform = transpose(mat4(inTv1, inTv2, inTv3, vec4(0.0, 0.0, 0.0, 1.0)));
+
+      	FragPosition =  vec3(scene.view * transform * vec4(inPosition, 1.0));
+      	gl_Position = scene.projection * vec4(FragPosition, 1.0);
+      	Normal = normalize(mat3(transpose(inverse(transform))) * inNormal);
+      	UV = inUV;
+      }
+
+    BinDir: res/materialbinaries/BlinnPhong_vs.spv
+  DepthTest: true
+  CullMode: 1
+  Instances:
+    - 1779063674
+    - 1970820625
+    - 955950412
+    - 2998464055
+    - 844794384
+    - 2622872020
+    - 384289137
+    - 2813741182
+    - 1829722535
+    - 927500365
+    - 2163106573
+    - 1772633913
+    - 2494464991
+    - 4238271738
+    - 2836035284
+    - 3293542637
+    - 4209106109
+    - 325511571
+    - 1913958103
+    - 3689324424
+    - 2042545632
+    - 1240665022
+    - 1209768532
+    - 2099460743
+    - 1353425977
+    - 34739476

@@ -1,0 +1,29 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\ProjectPhysica\\Editor\\src\\**",
+                "C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\ProjectPhysica\\Engine\\src\\**",
+                "C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\ProjectPhysica\\Platform\\src\\**",
+                "C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\ProjectPhysica\\Base\\src\\**",
+                "C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\ProjectPhysica\\dep\\imgui\\**",
+                "C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\ProjectPhysica\\dep\\yaml-cpp\\include",
+                "C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\ProjectPhysica\\dep\\entt\\src",
+                "C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\ProjectPhysica\\dep\\glm\\include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "windowsSdkVersion": "10.0.22000.0",
+            "compilerPath": "cl.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
+        }
+    ],
+    "version": 4
+}

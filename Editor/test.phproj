@@ -1,0 +1,84 @@
+Views:
+  - Title: ComponentView
+    InstanceID: 3806706692
+    SourceID: 1
+    ViewData: false
+  - Title: SceneView
+    InstanceID: 2357658168
+    SourceID: 2
+    ViewData:
+      Type: SCENE_VIEW
+      EditorCamera:
+        Position: [1.41672361, 5.9465189, 0.0359380208]
+        Direction: [-0.926723778, -0.27562052, 0.255157232]
+        Perspective: true
+        FOV: 70
+        Farclip: 100
+        Nearclip: 0.100000001
+  - Title: InspectorView
+    InstanceID: 3631528952
+    SourceID: 3
+    ViewData: false
+  - Title: MaterialView
+    InstanceID: 680044260
+    SourceID: 4
+    ViewData: false
+Assets:
+  Materials:
+    - res/default/BlinnPhong.phmat
+    - res/default/SkyBoxShader.phmat
+  Textures:
+    - res/assets/models/beetle/textures/beetle_Base_Color_1.phtex
+    - res/assets/models/beetle/textures/beetle_Base_Color_2.phtex
+    - res/assets/models/beetle/textures/beetle_Base_Color_3.phtex
+    - res/assets/models/beetle/textures/beetle_Base_Color_4.phtex
+    - res/assets/models/old sponza/Background_Albedo_.phtex
+    - res/assets/models/old sponza/Lion_Albedo_.phtex
+    - res/assets/models/old sponza/Sponza_Arch_diffuseu.phtex
+    - res/assets/models/old sponza/Sponza_Bricks_a_Albedoe.phtex
+    - res/assets/models/old sponza/Sponza_Ceiling_diffusee.phtex
+    - res/assets/models/old sponza/Sponza_Column_a_diffuse.phtex
+    - res/assets/models/old sponza/Sponza_Column_b_diffuses.phtex
+    - res/assets/models/old sponza/Sponza_Column_c_diffuses.phtex
+    - res/assets/models/old sponza/Sponza_Curtain_Red_diffuse.phtex
+    - res/assets/models/old sponza/Sponza_Details_diffusee.phtex
+    - res/assets/models/old sponza/Sponza_Fabric_Red_diffuse.phtex
+    - res/assets/models/old sponza/Sponza_FlagPole_diffuses.phtex
+    - res/assets/models/old sponza/Sponza_Floor_diffuse.phtex
+    - res/assets/models/old sponza/Sponza_Roof_diffusef.phtex
+    - res/assets/models/porsch911/textures/wunderbaum.phtex
+    - res/default/default_texture.phtex
+  MaterialInstances:
+    - res/assets/models/old sponza/materials/sponza_arch1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_bricks1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_ceiling1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_chain1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_column_a1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_column_b1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_column_c1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_details1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_fabric_a1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_fabric_c1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_fabric_d1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_fabric_e1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_fabric_f1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_fabric_g1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_flagpole1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_floor1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_leaf1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_Material__299.phmatinst
+    - res/assets/models/old sponza/materials/sponza_Material__300.phmatinst
+    - res/assets/models/old sponza/materials/sponza_Material__301.phmatinst
+    - res/assets/models/old sponza/materials/sponza_Material__58.phmatinst
+    - res/assets/models/old sponza/materials/sponza_roof1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_vase1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_vase_hanging1.phmatinst
+    - res/assets/models/old sponza/materials/sponza_vase_round1.phmatinst
+    - res/default/BlinnPhong_default.phmatinst
+    - res/default/SkyBoxShader_base.phmatinst
+  Meshes:
+    - res/assets/models/beetle/source/beetle.phmesh
+    - res/assets/models/old sponza/Sponza.phmesh
+  Scenes:
+    - res/assets/scenes/newScene.phscene
+ActiveScene: 1025647831

@@ -1,0 +1,4 @@
+AssetType: TEXTURE_IMAGE
+references:
+  - container
+Sourcefile: res/textures/container.png

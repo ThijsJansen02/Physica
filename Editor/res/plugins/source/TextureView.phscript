@@ -1,0 +1,8 @@
+UUID: 2011074811
+references:
+  - TextureView
+Asset:
+  SourcePath: C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/plugins/source/TextureView.cpp
+  BinPath: C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/scriptbinaries/TextureView.dll
+  Language: 0
+  ScriptType: 1

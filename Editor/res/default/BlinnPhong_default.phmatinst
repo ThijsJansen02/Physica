@@ -1,0 +1,18 @@
+UUID: 1779063674
+references:
+  - BlinnPhong_default
+Asset:
+  ParentMaterial: 215919182
+  UniformResources:
+    - Type: UNIFORM_SAMPLER
+      Binding: 2
+      Textures:
+        - 1122007910
+    - Type: UNIFORM_SAMPLER
+      Binding: 1
+      Textures:
+        - 1122007910
+    - Type: UNIFORM_SAMPLER
+      Binding: 3
+      Textures:
+        - 1122007910

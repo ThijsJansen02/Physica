@@ -1,0 +1,24 @@
+Views:
+  - Name: sceneview
+    Type: SCENE_VIEW
+    EditorCamera:
+      Position: [0, 0, 0]
+      Direction: [0, 0, 1]
+      Perspective: true
+      FOV: 70
+      Farclip: 100
+      Nearclip: 0.100000001
+Assets:
+  Materials:
+    - res/materials/LightMaterial.phmat
+    - C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/assets/materials/testmaterial.phmat
+  Textures:
+    - C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/textures/container.phtex
+    - C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/textures/checkerboard.phtex
+    - C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/models/backpack/1001_albedo.phtex
+    - C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/models/backpack/1001_normal.phtex
+  MaterialInstances:
+    - C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/assets/materials/testmatinst.phmatinst
+  Meshes:
+    - C:/Users/Thijs/OneDrive/Documenten/programming/ProjectPhysica/Editor/res/models/backpack/backpack.phmesh
+ActiveScene: res/assets/scenes/testscene.phscene
