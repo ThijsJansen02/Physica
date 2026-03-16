@@ -418,11 +418,13 @@ void initImGui(HWND windowhandle, const PH::Vulkan::VulkanAppContext& vulkancont
 	init_info.Queue = vulkancontext.graphicsqueue;
 	init_info.PipelineCache = VK_NULL_HANDLE;
 	init_info.DescriptorPool = vulkancontext.descriptorpool;
-	init_info.RenderPass = vulkancontext.renderpasses[vulkancontext.finalrenderpass].renderpass;
-	init_info.Subpass = 0;
+
+	init_info.PipelineInfoMain.RenderPass = vulkancontext.renderpasses[vulkancontext.finalrenderpass].renderpass;
+	init_info.PipelineInfoMain.Subpass = 0;
+	init_info.PipelineInfoMain.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
 	init_info.MinImageCount = 2;
 	init_info.ImageCount = vulkancontext.swapchainimages.getCapacity();
-	init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 	init_info.Allocator = nullptr;
 	init_info.CheckVkResultFn = vkImGuiCheckResult;
 	ImGui_ImplVulkan_Init(&init_info);
