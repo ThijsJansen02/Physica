@@ -22,7 +22,7 @@ group "core"
 group ""
 
 group "dependencies"
-    --include "dep/imgui"
+    include "dep/imgui"
     --include "dep/stb"
     --include "dep/entt"
     --include "dep/yaml-cpp"

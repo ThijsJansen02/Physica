@@ -76,6 +76,7 @@ namespace PH::Platform {
 		PH::sizeptr appmemsize;
 		void* appmemory;
 
+		//why does the imgui context need to be stored here? well, the imgui context needs to be created on the same thread as the rendering context, which is the main thread. but the application entry point is called from a different thread, so we need to store the imgui context here so that it can be accessed from the application entry point.
 		ImGuiContext* imguicontext;
 
 		//the ellapsed time of the program since startup in seconds
