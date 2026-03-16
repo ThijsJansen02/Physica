@@ -1,0 +1,12 @@
+bin/
+
+mydaqfeedback/
+
+.vs/
+*.cap
+
+Editor/res/assets/
+*.vcxproj.user
+*.vcxproj.filters
+*.vcxproj
+*.slnx
