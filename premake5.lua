@@ -26,7 +26,7 @@ group "dependencies"
     --include "dep/stb"
     --include "dep/entt"
     --include "dep/yaml-cpp"
-    --include "dep/assimp"
+    include "dep/assimp"
     --include "dep/ImGuizmo"
 group ""
 
