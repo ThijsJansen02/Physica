@@ -11,3 +11,6 @@
 [submodule "dep/yaml"]
 	path = dep/yaml
 	url = https://github.com/ThijsJansen02/yaml-cpp-premake.git
+[submodule "dep/entt"]
+	path = dep/entt
+	url = https://github.com/skypjack/entt.git
