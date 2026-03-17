@@ -14,6 +14,6 @@
 [submodule "dep/entt"]
 	path = dep/entt
 	url = https://github.com/skypjack/entt.git
-[submodule "dep/stb"]
-	path = dep/stb
+[submodule "dep/stb_/stb"]
+	path = dep/stb_/stb
 	url = https://github.com/nothings/stb.git

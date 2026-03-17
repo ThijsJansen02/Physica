@@ -13,13 +13,15 @@ namespace PH::Engine::Assets {
 		/// a linked list that can hold assets of any type
 		/// </summary>
 		struct LList {
+		public:
+
 			template<typename type>
 			struct Link {
 				static_assert(std::is_base_of<Asset, type>::value,
 					"type is not an asset");
 
-				Link<Asset>* next;
-				Link<Asset>* prev;
+				Link<type>* next;
+				Link<type>* prev;
 
 				type storage;
 			};
@@ -47,16 +49,16 @@ namespace PH::Engine::Assets {
 				Link<type>* newnodeptr = (Link<type>*)allocator::alloc(sizeof(Link<type>));
 				*newnodeptr = newnode;
 
-				if (tail) { tail->next = (Link<Asset>*)newnodeptr };
+				if (tail) { tail->next = (Link<Asset>*)newnodeptr; };
 
 				tail = (Link<Asset>)newnodeptr;
-				if (!head) { head = (Link<Asset>*)newnodeptr };
+				if (!head) { head = (Link<Asset>*)newnodeptr; };
 			}
 
 
 			void removeNode(Link<Asset>* node) {
-				if (node->prev) { node->prev->next = node->next }
-				if (node->next) { node->next.prev = node->prev }
+				if (node->prev) { node->prev->next = node->next; }
+				if (node->next) { node->next.prev = node->prev; }
 
 				allocator::dealloc(node);
 			}
@@ -165,6 +167,7 @@ namespace PH::Engine::Assets {
 
 			*this = newstorage;
 		}
+		
 
 		uint64 getIndex(UUID id) {
 			return hash(id) % table.getCapacity();
@@ -172,6 +175,8 @@ namespace PH::Engine::Assets {
 
 		template<typename type>
 		type* add(UUID id, const type& asset) {
+
+			static_assert(std::is_base_of<Asset, type>::value, "type is not an asset");
 
 			if (count >= (real32)table.getCapacity() * 0.75f) {
 				resize(count * 3);

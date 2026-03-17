@@ -4,7 +4,6 @@
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_cross.hpp>
 
-
 #include "../YamlExtensions.h"
 
 #include "../Display.h"
@@ -883,7 +882,7 @@ namespace PH::Engine::Assets {
 
 		if (mat.status == AssetStatus::LOADED) {
 			uint32 index = 0;
-			for (auto& res : root["UniformResources"]) {
+			for (const auto& res : root["UniformResources"]) {
 				if (!res) {
 					continue;
 				}

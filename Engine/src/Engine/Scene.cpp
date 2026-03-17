@@ -456,7 +456,7 @@ namespace PH::Engine::Assets {
 	MeshComponent deserializeMeshComponent(YAML::Node node, Assets::Library* lib) {
 
 		MeshComponent result{};
-		auto& mesh = node["Mesh"];
+		const auto& mesh = node["Mesh"];
 		if (mesh) { 
 			UUID meshid = mesh.as<UUID>();
 			result.mesh = lib->getLazyLoaded<Engine::Assets::Mesh>(meshid);
@@ -471,7 +471,7 @@ namespace PH::Engine::Assets {
 			result.materials[i] = nullptr;
 		}
 
-		auto& materials = node["Materials"];
+		const auto& materials = node["Materials"];
 		if (materials) {
 			uint32 index = 0;
 			for (auto& mat : materials) {

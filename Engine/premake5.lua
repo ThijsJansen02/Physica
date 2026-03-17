@@ -22,6 +22,7 @@ project "Engine"
 		"%{IncludeDir.yaml}",
 		"%{IncludeDir.dep}",
 		"%{IncludeDir.assimp}",
+		"%{IncludeDir.stb}",
 		"%{prj.location}/dep/include",
 		"%{IncludeDir.vulkanSDK}",
 		"%{IncludeDir.imguizmo}",
@@ -31,7 +32,7 @@ project "Engine"
 	
 	libdirs
 	{
-		"%{wks.location}/dep/bin/win32-release/assimp",
+		--"%{wks.location}/dep/bin/win32-release/assimp",
 		"%{LibraryDir.vulkanSDK}"
 	}
 
@@ -41,8 +42,7 @@ project "Engine"
 		"Base",
 		"Imgui",
 		"yaml-cpp",
-		"assimp",
-		"ImGuizmo"
+		"assimp"
 	}
 
 

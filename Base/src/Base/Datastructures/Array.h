@@ -412,7 +412,7 @@ namespace PH::Base {
 				m_Storage.m_Data = newarray;
 				m_Storage.m_Count = newcapacity;
 
-;				m_end = m_Storage.begin() + count + 1;
+				m_End = m_Storage.begin() + count + 1;
 			}
 			else {
 				PH::Base::copyMemoryReverse(m_Storage.raw(), m_Storage.raw() + 1, count);

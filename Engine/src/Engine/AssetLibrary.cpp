@@ -163,7 +163,7 @@ namespace PH::Engine::Assets {
 	}
 
 	template<typename type>
-	void includeAssetType(YAML::Node& r, Library* lib) {
+	void includeAssetType(const YAML::Node& r, Library* lib) {
 		for (auto a : r) {
 			String filepath = a.as<String>();
 			lib->include<type>(filepath.getC_Str());

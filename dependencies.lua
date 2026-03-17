@@ -15,6 +15,7 @@ IncludeDir["vulkanSDK"] = "%{VULKAN_SDK}/Include"
 IncludeDir["imguizmo"] = "%{wks.location}/dep/ImGuizmo"
 IncludeDir["zep"] = "%{wks.location}/dep/zep/include"
 IncludeDir["editor"] = "%{wks.location}/Editor/src"
+IncludeDir["stb"] = "%{wks.location}/dep/stb_"
 
 LibraryDir = {}
 LibraryDir["vulkanSDK"] = "%{VULKAN_SDK}/Lib"
