@@ -8,3 +8,6 @@
 [submodule "dep/assimp"]
 	path = dep/assimp
 	url = https://github.com/ThijsJansen02/assimp-premake.git
+[submodule "dep/yaml"]
+	path = dep/yaml
+	url = https://github.com/ThijsJansen02/yaml-cpp-premake.git
