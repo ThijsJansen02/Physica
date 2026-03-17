@@ -110,7 +110,7 @@ namespace PH::Base {
 			char* str = m_Str;
 			char* lastfound = m_Str + m_Length;
 
-			while (*str != 0 && (str - m_Str) < m_Length) {
+			while (*str != 0 && (str - m_Str) < (PH::int64)m_Length) {
 				if (*str == c) {
 					lastfound = str;
 				}

@@ -2,3 +2,6 @@
 	path = dep/imgui
 	url = https://github.com/ThijsJansen02/imgui-premake.git
 	branch = docking
+[submodule "dep/glm"]
+	path = dep/glm
+	url = https://github.com/g-truc/glm.git
