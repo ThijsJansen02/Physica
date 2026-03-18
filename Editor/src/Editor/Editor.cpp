@@ -1,4 +1,4 @@
-#define PH_SCENE_IMPLEMENTATION
+	#define PH_SCENE_IMPLEMENTATION
 
 #include "Editor.h"
 #include "Engine/Components.h"

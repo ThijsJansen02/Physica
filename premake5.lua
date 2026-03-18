@@ -21,6 +21,10 @@ group "core"
     include "Editor"
 group ""
 
+group "projects"
+    include "projects/RP-Gui"
+group ""
+
 group "dependencies"
     include "dep/imgui"
     --include "dep/stb"
