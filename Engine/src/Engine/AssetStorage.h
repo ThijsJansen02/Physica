@@ -17,11 +17,10 @@ namespace PH::Engine::Assets {
 
 			template<typename type>
 			struct Link {
-				static_assert(std::is_base_of<Asset, type>::value,
-					"type is not an asset");
+				static_assert(std::is_base_of<Asset, type>::value, "type is not an asset");
 
-				Link<type>* next;
-				Link<type>* prev;
+				Link<Asset>* next;
+				Link<Asset>* prev;
 
 				type storage;
 			};
@@ -138,7 +137,7 @@ namespace PH::Engine::Assets {
 		};
 
 
-
+		//the table that holds the linked lists of assets, is not of standard form because the linked lists can hold assets of any type, so the table is just an array of linked lists
 		using Table = Base::DynamicArray<LList, allocator>;
 		using GroupsMap = Base::ChainedHashMap<uint64, Base::ArrayList<Asset*, allocator>, Base::uint64Hash, Base::uint64Compare, allocator>;
 
@@ -151,19 +150,40 @@ namespace PH::Engine::Assets {
 			return result;
 		}
 
+	private:
+		void release() {
+			for (LList& list : table) {
+				list.release();
+			}
+			
+			groups.forEach([](Base::ArrayList<Asset*, allocator>& group, const uint64& id, void* userdata) {
+				
+				group.release();
+
+				}, nullptr);
+
+
+			table.release();
+			GroupsMap::destroy(&groups);
+			*this = {};
+		}
+
+		static typename LList::template Link<Asset>* castAssetToLink(Asset* asset) {
+			return (typename LList::template Link<Asset>*)((uint8*)asset - (sizeof(typename LList::template Link<Asset>*) * 2));
+		}
+
+	public:
+
 		void resize(sizeptr newcapacity) {
 
-			AssetStorage newstorage = AssetStorage::create(newcapacity);
+			AssetStorage newstorage = create(newcapacity);
 
-			for (LList& ll : table) {
-				while (ll.head != ll.tail) {
-					LList::Link<Asset>* head = ll.head;
-					ll.head = ll.head->next;
-
-					newstorage.addLink(head, head->storage.id);
-				}
-			}
-			table.release();
+			this->forEach([](UUID id, Asset* asset, void* userdata) {
+				AssetStorage* storage = (AssetStorage*)userdata;
+				storage->addLink(castAssetToLink(asset), id);
+			}, &newstorage);
+			
+			release();
 
 			*this = newstorage;
 		}
@@ -259,7 +279,7 @@ namespace PH::Engine::Assets {
 		sizeptr count;
 		
 	private:
-		void addLink(LList::Link<Asset>* link, UUID id) {
+		void addLink(typename LList::template Link<Asset>* link, UUID id) {
 			
 			uint64 tableindex = getIndex(id);
 			LList* list = &table[tableindex];
