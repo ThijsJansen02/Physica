@@ -4,9 +4,12 @@
 #include <Base/Base.h>
 #include <Base/Basetypes.h>
 
+#include <imgui.h>
+
 #include "Events.h"
 #include "enums.h"
 
+/*
 struct ImDrawChannel;               // Temporary storage to output draw commands out of order, used by ImDrawListSplitter and ImDrawList::ChannelsSplit()
 struct ImDrawCmd;                   // A single draw command within a parent ImDrawList (generally maps to 1 GPU draw call, unless it is a callback)
 struct ImDrawData;                  // All draw command lists required to render the frame + pos/size coordinates to use for the projection matrix.
@@ -58,6 +61,8 @@ typedef unsigned long long ImU64;	// 64-bit unsigned integer
 #ifndef ImTextureID
 typedef ImU64 ImTextureID;      // Default: store up to 64-bits (any pointer or integer). A majority of backends are ok with that.
 #endif
+
+*/
 
 //should be removed in the future once threads are moved to the platform side
 #include <Windows.h>
@@ -411,7 +416,6 @@ namespace PH::Platform {
 #define PH_GFX_CREATE_GRAPHICS_PIPELINES(name) PH::bool32 name(PH::Platform::GFX::GraphicsPipelineCreateinfo* createinfos, PH::Platform::GFX::GraphicsPipeline* graphicspipelines, PH::uint32 count)
 #define PH_GFX_BIND_GRAPHICS_PIPELINE(name) PH::bool32 name(PH::Platform::GFX::GraphicsPipeline pipeline)
 
-struct ImDrawData;
 
 #define PH_GFX_CREATE_IMGUI_IMAGE(name) ImTextureID name(PH::Platform::GFX::Texture texture)
 #define PH_GFX_DRAW_IMGUI_WIDGETS(name) PH::bool32 name(ImDrawData* drawdata)

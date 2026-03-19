@@ -45,12 +45,12 @@ project "RP-GUI"
 	links
 	{
 		"base",
-		--"Engine"
+		"Engine"
 	}
 
 	postbuildcommands 
 	{
-		"{COPYFILE} %{cfg.buildtarget.abspath} %{wks.location}bin/" .. outputdir .. "/platform",
+		"{COPYFILE} '%{cfg.buildtarget.abspath}' '%{wks.location}bin/" .. outputdir .. "/platform'",
 	}
 
 	filter "system:windows"

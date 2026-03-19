@@ -25,7 +25,7 @@ namespace PH::Engine {
 
 	extern PH::Base::LogStream<Intern::ConsoleWrite> INFO;
 	extern PH::Base::LogStream<Intern::ConsoleWrite> WARN;
-	extern PH::Base::LogStream<Intern::ConsoleWrite> ERR;
+	extern PH::Base::LogStream<Intern::ConsoleWrite> ERR;	
 
 	class Allocator {
 	public:

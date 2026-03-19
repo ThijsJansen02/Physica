@@ -4,7 +4,7 @@
 
 namespace PH::Base {
 
-	#define CONSOLE_WRITE(name) void name(const PH::Base::SubString& str)
+#define CONSOLE_WRITE(name) void name(const PH::Base::SubString& str)
 	typedef CONSOLE_WRITE(logfunc);
 
 	extern logfunc* base_log;
@@ -14,9 +14,20 @@ namespace PH::Base {
 		}
 	}
 
+	struct Flush { 
+		uint32 dummy;
+	};
+
 	template<logfunc log>
 	class LogStream {
 	public:
+
+		using Flush = Flush;
+
+		LogStream& operator<<(const Flush& str) {
+			return *this;
+		}
+
 		LogStream& operator<<(const SubString& str) {
 			log(str);
 			return *this;
