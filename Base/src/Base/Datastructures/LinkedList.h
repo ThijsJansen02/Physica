@@ -101,15 +101,15 @@ namespace PH::Base {
 			Node* newnodeptr = (Node*)allocator::alloc(sizeof(Node));
 			*newnodeptr = newnode;
 
-			if (lastnode) { lastnode->next = newnodeptr };
+			if (lastnode) { lastnode->next = newnodeptr; }
 
 			lastnode = newnodeptr;
-			if (!firstnode) { firstnode = newnodeptr };
+			if (!firstnode) { firstnode = newnodeptr; };
 		}
 
 		void removeNode(Node* node) {
-			if (node->prev) { node->prev->next = node->next }
-			if (node->next) { node->next.prev = node->prev }
+			if (node->prev) { node->prev->next = node->next; }
+			if (node->next) { node->next.prev = node->prev; }
 
 			allocator::dealloc(node);
 		}

@@ -405,6 +405,7 @@ void initImGui(HWND windowhandle, const PH::Vulkan::VulkanAppContext& vulkancont
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;   // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;    // Enable Gamepad Controls
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	io.BackendFlags &= ~ImGuiBackendFlags_PlatformHasViewports;
 
 	// Setup Dear ImGui style
 	ImGui::StyleColorsDark();
@@ -427,6 +428,9 @@ void initImGui(HWND windowhandle, const PH::Vulkan::VulkanAppContext& vulkancont
 	init_info.ImageCount = vulkancontext.swapchainimages.getCapacity();
 	init_info.Allocator = nullptr;
 	init_info.CheckVkResultFn = vkImGuiCheckResult;
+
+	//imGui_ImplVulkan_LoadFunctions();
+
 	ImGui_ImplVulkan_Init(&init_info);
 }
 
@@ -624,7 +628,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	//loading the application;
 	Application app;
-	if (!win32_loadApplication(windowhandle, "Editor.dll", &app)) {
+	if (!win32_loadApplication(windowhandle, "RP-GUI.dll", &app)) {
 		PH_DEBUG_BREAK();
 	}
 

@@ -36,7 +36,7 @@ namespace PH::Base {
 		using ValueType = Value;
 		using KeyType = Key;
 
-		struct KeyValuePair {
+		struct KeyValuePair {	
 			Key key;
 			Value value;
 		};
@@ -211,7 +211,7 @@ namespace PH::Base {
 			return &chain->firstnode->element.value;
 		}
 
-		inline void forEach(void (*method)(const Value&, const Key&, void*), void* userdata) {
+		inline void forEach(void (*method)(Value&, const Key&, void*), void* userdata) {
 
 			for (auto chain : table) {
 				for (auto& [key, value] : chain) {

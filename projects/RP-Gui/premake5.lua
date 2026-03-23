@@ -1,9 +1,11 @@
-project "Platform"
-	kind "WindowedApp"
+project "RP-GUI"
+	kind "SharedLib"
 	language "C++"
 	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/int")
-	debugdir "%{wks.location}/Editor"
+
+	--ignoredefaultlibraries { "libraries" }
+	staticruntime "Off"
 
 	files
 	{
@@ -12,40 +14,47 @@ project "Platform"
 		"res/**"
 	}
 
+	removefiles 
+	{
+		"res/plugins/source/**"
+	}
+
 	includedirs
 	{
 		"%{IncludeDir.platform}",
-        "%{IncludeDir.base}",
+		"%{IncludeDir.base}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.imgui}",
-		"%{IncludeDir.vulkanSDK}"
-	}
+		"%{IncludeDir.entt}",
+		"%{IncludeDir.engine}",
+		"%{IncludeDir.yaml}",
+		--"%{IncludeDir.imguizmo}",
+		"%{IncludeDir.editor}",
 
-	libdirs
-	{
-		"dep/lib",
-		"%{LibraryDir.vulkanSDK}"
-	}
-
-	links 
-	{
-		"Base",
-		"Imgui",
-		"%{Library.vulkan}"
-	}
-
-	dependson {
-		--'RP-GUI'
 	}
 
 	defines 
 	{
-		"PH_STATIC_BUILD"
+		"PH_SCENE_IMPLEMENT",
+		"IMGUI_API=__declspec(dllexport)",
+		"PH_SHARED_BUILD",
+		"PH_ENGINE_EXPORT",
+		"YAML_CPP_STATIC_DEFINE"
+	}
+
+	links
+	{
+		"base",
+		"Engine"
+	}
+
+	postbuildcommands 
+	{
+		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{cfg.buildtarget.name} %{wks.location}/bin/" .. outputdir .. "/Platform",
 	}
 
 	filter "system:windows"
 		cppdialect "C++17"
-		staticruntime "On"
 		systemversion "latest"
 
 		defines
@@ -58,35 +67,14 @@ project "Platform"
 		runtime "Debug"
 		symbols "on"
 
-		links
-		{
-			"%{Library.shaderC_Debug}",
-			"%{Library.SPIRV_Cross_Debug}",
-			"%{Library.SPIRV_Cross_GLSL_Debug}"
-		}
-
 	filter "configurations:Release"
 		defines "PH_RELEASE"
 		runtime "Release"
 		optimize "on"
 
-		links
-		{
-			"%{Library.shaderC_Release}",
-			"%{Library.SPIRV_Cross_Release}",
-			"%{Library.SPIRV_Cross_GLSL_Release}"
-		}
-
 	filter "configurations:Dist"
 		defines "PH_DIST"
 		runtime "Release"
 		optimize "on"
-
-		links
-		{
-			"%{Library.shaderC_Release}",
-			"%{Library.SPIRV_Cross_Release}",
-			"%{Library.SPIRV_Cross_GLSL_Release}"
-		}
 
     

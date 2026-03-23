@@ -21,12 +21,16 @@ group "core"
     include "Editor"
 group ""
 
+group "projects"
+    include "projects/RP-Gui"
+group ""
+
 group "dependencies"
     include "dep/imgui"
     --include "dep/stb"
     --include "dep/entt"
-    --include "dep/yaml-cpp"
-    --include "dep/assimp"
+    include "dep/yaml"
+    include "dep/assimp"
     --include "dep/ImGuizmo"
 group ""
 

@@ -22,6 +22,7 @@ project "Engine"
 		"%{IncludeDir.yaml}",
 		"%{IncludeDir.dep}",
 		"%{IncludeDir.assimp}",
+		"%{IncludeDir.stb}",
 		"%{prj.location}/dep/include",
 		"%{IncludeDir.vulkanSDK}",
 		"%{IncludeDir.imguizmo}",
@@ -31,7 +32,7 @@ project "Engine"
 	
 	libdirs
 	{
-		"%{wks.location}/dep/bin/win32-release/assimp",
+		--"%{wks.location}/dep/bin/win32-release/assimp",
 		"%{LibraryDir.vulkanSDK}"
 	}
 
@@ -41,8 +42,7 @@ project "Engine"
 		"Base",
 		"Imgui",
 		"yaml-cpp",
-		"assimp",
-		"ImGuizmo"
+		"assimp"
 	}
 
 
@@ -52,11 +52,11 @@ project "Engine"
 		"IMGUI_API=__declspec(dllexport)",
 		"PH_ENGINE_EXPORT",
 		"PH_STATIC_BUILD",
-		"YAML_CPP_STATIC_DEFINE"
+		"YAML_CPP_STATIC_DEFINE"	
 	}
 
 	filter "system:windows"
-		cppdialect "C++17"
+		cppdialect "C++20"
 		systemversion "latest"
 
 		defines

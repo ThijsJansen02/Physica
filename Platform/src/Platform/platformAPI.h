@@ -4,10 +4,65 @@
 #include <Base/Base.h>
 #include <Base/Basetypes.h>
 
+#include <imgui.h>
+
 #include "Events.h"
 #include "enums.h"
 
-#include <imgui.h>
+/*
+struct ImDrawChannel;               // Temporary storage to output draw commands out of order, used by ImDrawListSplitter and ImDrawList::ChannelsSplit()
+struct ImDrawCmd;                   // A single draw command within a parent ImDrawList (generally maps to 1 GPU draw call, unless it is a callback)
+struct ImDrawData;                  // All draw command lists required to render the frame + pos/size coordinates to use for the projection matrix.
+struct ImDrawList;                  // A single draw command list (generally one per window, conceptually you may see this as a dynamic "mesh" builder)
+struct ImDrawListSharedData;        // Data shared among multiple draw lists (typically owned by parent ImGui context, but you may create one yourself)
+struct ImDrawListSplitter;          // Helper to split a draw list into different layers which can be drawn into out of order, then flattened back.
+struct ImDrawVert;                  // A single vertex (pos + uv + col = 20 bytes by default. Override layout with IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT)
+struct ImFont;                      // Runtime data for a single font within a parent ImFontAtlas
+struct ImFontAtlas;                 // Runtime data for multiple fonts, bake multiple fonts into a single texture, TTF/OTF font loader
+struct ImFontAtlasBuilder;          // Opaque storage for building a ImFontAtlas
+struct ImFontAtlasRect;             // Output of ImFontAtlas::GetCustomRect() when using custom rectangles.
+struct ImFontBaked;                 // Baked data for a ImFont at a given size.
+struct ImFontConfig;                // Configuration data when adding a font or merging fonts
+struct ImFontGlyph;                 // A single font glyph (code point + coordinates within in ImFontAtlas + offset)
+struct ImFontGlyphRangesBuilder;    // Helper to build glyph ranges from text/string data
+struct ImFontLoader;                // Opaque interface to a font loading backend (stb_truetype, FreeType etc.).
+struct ImTextureData;               // Specs and pixel storage for a texture used by Dear ImGui.
+struct ImTextureRect;               // Coordinates of a rectangle within a texture.
+struct ImColor;                     // Helper functions to create a color that can be converted to either u32 or float4 (*OBSOLETE* please avoid using)
+
+// Forward declarations: ImGui layer
+struct ImGuiContext;                // Dear ImGui context (opaque structure, unless including imgui_internal.h)
+struct ImGuiIO;                     // Main configuration and I/O between your application and ImGui (also see: ImGuiPlatformIO)
+struct ImGuiInputTextCallbackData;  // Shared state of InputText() when using custom ImGuiInputTextCallback (rare/advanced use)
+struct ImGuiKeyData;                // Storage for ImGuiIO and IsKeyDown(), IsKeyPressed() etc functions.
+struct ImGuiListClipper;            // Helper to manually clip large list of items
+struct ImGuiMultiSelectIO;          // Structure to interact with a BeginMultiSelect()/EndMultiSelect() block
+struct ImGuiOnceUponAFrame;         // Helper for running a block of code not more than once a frame
+struct ImGuiPayload;                // User data payload for drag and drop operations
+struct ImGuiPlatformIO;             // Interface between platform/renderer backends and ImGui (e.g. Clipboard, IME, Multi-Viewport support). Extends ImGuiIO.
+struct ImGuiPlatformImeData;        // Platform IME data for io.PlatformSetImeDataFn() function.
+struct ImGuiPlatformMonitor;        // Multi-viewport support: user-provided bounds for each connected monitor/display. Used when positioning popups and tooltips to avoid them straddling monitors
+struct ImGuiSelectionBasicStorage;  // Optional helper to store multi-selection state + apply multi-selection requests.
+struct ImGuiSelectionExternalStorage;//Optional helper to apply multi-selection requests to existing randomly accessible storage.
+struct ImGuiSelectionRequest;       // A selection request (stored in ImGuiMultiSelectIO)
+struct ImGuiSizeCallbackData;       // Callback data when using SetNextWindowSizeConstraints() (rare/advanced use)
+struct ImGuiStorage;                // Helper for key->value storage (container sorted by key)
+struct ImGuiStoragePair;            // Helper for key->value storage (pair)
+struct ImGuiStyle;                  // Runtime data for styling/colors
+struct ImGuiTableSortSpecs;         // Sorting specifications for a table (often handling sort specs for a single column, occasionally more)
+struct ImGuiTableColumnSortSpecs;   // Sorting specification for one column of a table
+struct ImGuiTextBuffer;             // Helper to hold and append into a text buffer (~string builder)
+struct ImGuiTextFilter;             // Helper to parse and apply text filters (e.g. "aaaaa[,bbbbb][,ccccc]")
+struct ImGuiViewport;               // A Platform Window (always 1 unless multi-viewport are enabled. One per platform window to output to). In the future may represent Platform Monitor
+struct ImGuiWindowClass;            // Window class (rare/advanced uses: provide hints to the platform backend via altered viewport flags and parent/child info)
+
+typedef unsigned long long ImU64;	// 64-bit unsigned integer
+
+#ifndef ImTextureID
+typedef ImU64 ImTextureID;      // Default: store up to 64-bits (any pointer or integer). A majority of backends are ok with that.
+#endif
+
+*/
 
 //should be removed in the future once threads are moved to the platform side
 #include <Windows.h>
@@ -38,9 +93,9 @@
 //
 //
 ///////////////////////////
-#define PH_APPLICATION_UPDATE(name) bool __cdecl name(PH::Platform::Context context)
-#define PH_APPLICATION_INITIALIZE(name) bool __cdecl name(PH::Platform::Context context)
-#define PH_APPLICATION_DESTROY(name) bool __cdecl name(PH::Platform::Context context)
+#define PH_APPLICATION_UPDATE(name) bool name(PH::Platform::Context context)
+#define PH_APPLICATION_INITIALIZE(name) bool name(PH::Platform::Context context)
+#define PH_APPLICATION_DESTROY(name) bool name(PH::Platform::Context context)
 
 
 namespace PH::Platform {
@@ -360,6 +415,7 @@ namespace PH::Platform {
 #define PH_GFX_DESTROY_SHADERS(name) PH::bool32 name(PH::Platform::GFX::Shader* shaders, PH::uint32 count)
 #define PH_GFX_CREATE_GRAPHICS_PIPELINES(name) PH::bool32 name(PH::Platform::GFX::GraphicsPipelineCreateinfo* createinfos, PH::Platform::GFX::GraphicsPipeline* graphicspipelines, PH::uint32 count)
 #define PH_GFX_BIND_GRAPHICS_PIPELINE(name) PH::bool32 name(PH::Platform::GFX::GraphicsPipeline pipeline)
+
 
 #define PH_GFX_CREATE_IMGUI_IMAGE(name) ImTextureID name(PH::Platform::GFX::Texture texture)
 #define PH_GFX_DRAW_IMGUI_WIDGETS(name) PH::bool32 name(ImDrawData* drawdata)

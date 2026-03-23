@@ -283,7 +283,10 @@ namespace PH::Vulkan {
 			swapchaindetails.presentmodes.release();
 		}
 
-		return properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && features.samplerAnisotropy && swapchainadequate && extensionssupported && queuefamiliessupported;
+		//we want a discrete gpu but if there is no discrete gpu we will take whatever we can get as long as it supports the features we need
+		//TODO: we should probably make the device selection a bit more sophisticated and not just check if it is a discrete gpu or not but also check for other features and properties that might be important for our application
+		//return properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU && features.samplerAnisotropy && swapchainadequate && extensionssupported && queuefamiliessupported;
+		return properties.deviceType == features.samplerAnisotropy && swapchainadequate && extensionssupported && queuefamiliessupported;
 	}
 
 	VkPhysicalDevice pickPhysicalDevice(VulkanAppContext* context) {
