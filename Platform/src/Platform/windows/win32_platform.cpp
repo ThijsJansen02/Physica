@@ -438,7 +438,6 @@ PH_GFX_DRAW_IMGUI_WIDGETS(vulkan_draw_imgui_widgets) {
 }
 
 PH_GFX_CREATE_IMGUI_IMAGE(vulkan_create_imgui_image) {
-
 	PH::Vulkan::TextureImage vktexture = PH::Vulkan::context_s->textureimages[texture];
 	return (ImTextureID)ImGui_ImplVulkan_AddTexture(vktexture.sampler, vktexture.view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }

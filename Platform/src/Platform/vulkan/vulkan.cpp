@@ -3,13 +3,13 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include "vulkan.h"
 
-#include "Base/utils.h"
+#include <Base/utils.h>
 #include <Base/Memory.h>
 #include <Base/Datastructures/Array.h>
 #include <Base/Datastructures/String.h>
-
 #include <Base/base.h>
-#include "Base/Datastructures/Set.h"
+#include <Base/Datastructures/Set.h>
+
 #include "Platform/platformAPI.h"
 
 PH::Platform::FileBuffer win32_readFile(const char* filepath);
@@ -116,14 +116,16 @@ namespace PH::Vulkan {
 		return availableformats[0];
 	}
 
+	//chooses present mode, if PRESENT_MODE_MAILBOX is available it returns this, otherwise PRESENTMODE_FIFO is chosen
 	VkPresentModeKHR choosePresentMode(Array<VkPresentModeKHR> availablemodes) {
-		return VK_PRESENT_MODE_FIFO_KHR;
 		for (const auto& mode : availablemodes) {
 			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
 				return mode;
 			}
 		}
+		return VK_PRESENT_MODE_FIFO_KHR;
 	}
+
 
 	VkExtent2D chooseSwapChainExtend(const VkSurfaceCapabilitiesKHR& capabilities, uint32 windowwidth, uint32 windowheight) {
 		if (capabilities.currentExtent.width != 0xFFFFFFFF) {
