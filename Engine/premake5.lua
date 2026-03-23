@@ -52,7 +52,7 @@ project "Engine"
 		"IMGUI_API=__declspec(dllexport)",
 		"PH_ENGINE_EXPORT",
 		"PH_STATIC_BUILD",
-		"YAML_CPP_STATIC_DEFINE"
+		"YAML_CPP_STATIC_DEFINE"	
 	}
 
 	filter "system:windows"

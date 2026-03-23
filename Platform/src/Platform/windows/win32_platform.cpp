@@ -629,7 +629,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	//loading the application;
 	Application app;
-	if (!win32_loadApplication(windowhandle, "Editor.dll", &app)) {
+	if (!win32_loadApplication(windowhandle, "RP-GUI.dll", &app)) {
 		PH_DEBUG_BREAK();
 	}
 

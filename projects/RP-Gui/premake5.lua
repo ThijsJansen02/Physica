@@ -1,11 +1,11 @@
 project "RP-GUI"
 	kind "SharedLib"
 	language "C++"
-	targetdir ("%{wks.location}bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("%{wks.location}bin/" .. outputdir .. "/%{prj.name}/int")
+	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/int")
 
-	ignoredefaultlibraries { "libraries" }
-	staticruntime "off"
+	--ignoredefaultlibraries { "libraries" }
+	staticruntime "Off"
 
 	files
 	{
@@ -50,7 +50,7 @@ project "RP-GUI"
 
 	postbuildcommands 
 	{
-		"{COPYFILE} '%{cfg.buildtarget.abspath}' '%{wks.location}bin/" .. outputdir .. "/platform'",
+		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{cfg.buildtarget.name} %{wks.location}/bin/" .. outputdir .. "/Platform",
 	}
 
 	filter "system:windows"

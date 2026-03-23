@@ -93,9 +93,9 @@ typedef ImU64 ImTextureID;      // Default: store up to 64-bits (any pointer or 
 //
 //
 ///////////////////////////
-#define PH_APPLICATION_UPDATE(name) bool __cdecl name(PH::Platform::Context context)
-#define PH_APPLICATION_INITIALIZE(name) bool __cdecl name(PH::Platform::Context context)
-#define PH_APPLICATION_DESTROY(name) bool __cdecl name(PH::Platform::Context context)
+#define PH_APPLICATION_UPDATE(name) bool name(PH::Platform::Context context)
+#define PH_APPLICATION_INITIALIZE(name) bool name(PH::Platform::Context context)
+#define PH_APPLICATION_DESTROY(name) bool name(PH::Platform::Context context)
 
 
 namespace PH::Platform {
