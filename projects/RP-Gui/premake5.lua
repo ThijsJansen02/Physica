@@ -54,7 +54,7 @@ project "RP-GUI"
 	}
 
 	filter "system:windows"
-		cppdialect "C++17"
+		cppdialect "C++20"
 		systemversion "latest"
 
 		defines

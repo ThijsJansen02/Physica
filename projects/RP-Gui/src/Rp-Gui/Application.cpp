@@ -89,12 +89,15 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 	PH::Engine::beginNewFrame();	
 
-	PH::Engine::INFO << "time passed since last frame" << PH::Engine::getTimeStep() << "\n";
+	//PH::Engine::INFO << "time passed since last frame" << PH::Engine::getTimeStep() << "\n";
 
 
 	PH::RpGui::beginFinalRenderpass(context.windowwidth, context.windowheight);
 	bool open = true;
-	ImGui::ShowDemoWindow(&open);
+	if(ImGui::Begin("renderstats", &open)) {
+		ImGui::Text("Frame time (ms): %f", PH::Engine::getTimeStep());
+	} ImGui::End();
+
 	ImGui::Render();
 	PH::Platform::GFX::drawImguiWidgets(ImGui::GetDrawData());
 	PH::RpGui::endFinalRenderpass();
