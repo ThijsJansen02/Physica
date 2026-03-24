@@ -2,6 +2,7 @@
 #include "Engine/Engine.h"
 #include "Engine/assets/Mesh.h"
 #include "Engine/assets/Material.h"
+#include "Engine/Display.h"
 
 namespace PH::Engine {
 
@@ -56,13 +57,13 @@ namespace PH::Engine {
 
 		struct InitInfo {
 			
-			//default shader setup
-			Platform::GFX::GraphicsPipeline defaultpipeline;
+			//currently used pipeline
+			Platform::GFX::GraphicsPipeline currentpipeline;
+			Base::Array<Platform::GFX::DescriptorSetLayout> descriptorsetlayouts;
 
 			//create pipeline when no default pipeline is setup
 			const char* defaultfragpath;
 			const char* defaultvertpath;
-			Base::Array<Platform::GFX::DescriptorSetLayout> descriptorsetlayouts;
 			Platform::GFX::RenderpassDescription renderpass;
 
 			uint32 shadowmapdimensions;
@@ -76,6 +77,8 @@ namespace PH::Engine {
 		bool32 flush(Context* context, Base::Array<Platform::GFX::DescriptorSet> globaldescriptorsets);
 
 		bool32 drawTexturedQuad(const glm::mat4& transform, Platform::GFX::Texture texture, Renderer2D::Context* context);
+
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath);
 
 		bool32 drawColoredQuad(const glm::mat4& transform, glm::vec4 color, Renderer2D::Context* context);
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, real32 rotation, glm::vec4 color, Renderer2D::Context* context);

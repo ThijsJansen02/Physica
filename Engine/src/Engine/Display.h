@@ -11,15 +11,19 @@ namespace PH::Engine {
 
 		PH::Platform::GFX::Framebuffer fb;
 		PH::Platform::GFX::Texture colorattachment;
-
 		PH::Platform::GFX::Texture depthattachment;
 
-		//the static display renderpass
-		static PH::Platform::GFX::RenderpassDescription renderpass;
+		PH::Platform::GFX::RenderpassDescription renderpass;
 
 		glm::uvec2 framebuffersize;
 		glm::vec2 viewport;
+
+		//the static display renderpass
+		static PH::Platform::GFX::RenderpassDescription defaultrenderpassdescription;
 	};
+
+	
+	
 
 	inline real32 getDisplayAspectRatio(const Display& display) {
 		return display.viewport.x / display.viewport.y;

@@ -27,6 +27,8 @@ namespace PH::Engine {
 	extern PH::Base::LogStream<Intern::ConsoleWrite> WARN;
 	extern PH::Base::LogStream<Intern::ConsoleWrite> ERR;	
 
+	struct Display;
+
 	class Allocator {
 	public:
 
@@ -110,14 +112,19 @@ namespace PH::Engine {
 	typedef uint64 UUID;
 	
 	struct EngineInitInfo {
+		PH::Platform::Context* platformcontext;
 		sizeptr memorysize;
 		void* memory;
 	};
 
 	bool32 init(const EngineInitInfo& init);
-	bool32 beginNewFrame();
 
+	//should always be called at the the start of a new frame, updates parameters
+	bool32 beginNewFrame(PH::Platform::Context* c);
 	real32 getTimeStep();
+	
+	//returns the parent display, the parentdisplay is the display created by the platform which is blitted to the screen
+	Display* getParentDisplay();
 
 	PH::Platform::GFX::Buffer createDynamicUniformBuffer(sizeptr size);
 }

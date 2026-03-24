@@ -3,6 +3,9 @@
 #include "Platform/platformAPI.h"
 #include "assets/Mesh.h"
 
+#include <shaderc/shaderc.hpp>
+#include <spirv_cross/spirv_cross.hpp>
+
 using namespace PH::Platform;
 
 
@@ -97,6 +100,7 @@ namespace PH::Engine {
 			return true;
 		}
 
+		Platform::GFX::DescriptorSetLayout textureDescriptorSetLayout = PH_GFX_NULL;
 
 		Platform::GFX::DescriptorSetLayout createTextureDescriptorSetLayout() {
 
@@ -132,6 +136,131 @@ namespace PH::Engine {
 			return tex;
 		}
 
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource) {
+
+			//create the shader modules
+			Platform::GFX::ShaderCreateinfo vertcreate{};
+			vertcreate.chachedir = nullptr;
+			vertcreate.size = vertsource.count;
+			vertcreate.sourcecode = (void*)vertsource.data;
+			vertcreate.stage = GFX::SHADER_STAGE_VERTEX_BIT;
+			vertcreate.sourcetype = Platform::GFX::ShaderSourceType::VULKAN_BINARIES;
+
+			Platform::GFX::ShaderCreateinfo fragcreate{};
+			fragcreate.chachedir = nullptr;
+			fragcreate.size = fragsource.count;
+			fragcreate.sourcecode = (void*)fragsource.data;
+			fragcreate.stage = GFX::SHADER_STAGE_FRAGMENT_BIT;
+			fragcreate.sourcetype = Platform::GFX::ShaderSourceType::VULKAN_BINARIES;
+
+			Platform::GFX::ShaderCreateinfo infos[2] = { vertcreate, fragcreate };
+			Platform::GFX::Shader shaders[2];
+
+			if (!GFX::createShaders(infos, shaders, 2)) {
+				Engine::WARN << "failed to create shaders!\n";
+			}
+
+			if (textureDescriptorSetLayout == PH_GFX_NULL) {
+				textureDescriptorSetLayout = createTextureDescriptorSetLayout();
+			}
+
+			//adding the scene layout and the renderer layout together
+			auto layouts = Engine::ArrayList<GFX::DescriptorSetLayout>::create(1);
+			layouts.pushBack(textureDescriptorSetLayout);
+
+			//TODO add ability to have clobal descriptors
+			/*
+			for (auto layout : initinfo.descriptorsetlayouts) {
+				layouts.pushBack(layout);
+			}
+			*/
+
+
+			//adding it all together in the pipeline create;
+			PH::Platform::GFX::GraphicsPipelineCreateinfo pipelinecreate{};
+			pipelinecreate.layouts = layouts.getArray();
+			pipelinecreate.renderpass = target->renderpass;
+			pipelinecreate.shaderstages = { shaders, 2 };
+			pipelinecreate.topology = Platform::GFX::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+			pipelinecreate.vertexbindingdescriptions = { quadvertexbindingdescription, ARRAY_LENGTH(quadvertexbindingdescription) };
+			pipelinecreate.vertexattributedescriptions = { quadvertexinputattributes, ARRAY_LENGTH(quadvertexinputattributes) };
+			pipelinecreate.depthtest = true;
+
+			Platform::GFX::GraphicsPipeline pipeline;
+
+			if (Platform::GFX::createGraphicsPipelines(&pipelinecreate, &pipeline, 1)) {
+				Engine::WARN << "failed to create graphicspipeline!\n";
+			}
+
+			//destroying the layouts array
+			layouts.release();
+
+			return pipeline;
+		}
+
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource) {
+
+			//setup the shaderc comiler
+			shaderc::Compiler compiler;
+			shaderc::CompileOptions options;
+			options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+			const bool optimize = true;
+			if (optimize)
+				options.SetOptimizationLevel(shaderc_optimization_level_performance);
+
+			//compile vertex shader
+			shaderc_shader_kind kind = shaderc_shader_kind::shaderc_vertex_shader;
+			std::string sourcecode = (const char*)vertsource.data;
+			shaderc::SpvCompilationResult compiledvertmodule = compiler.CompileGlslToSpv(sourcecode, kind, "ref");
+			if (compiledvertmodule.GetCompilationStatus() != shaderc_compilation_status_success)
+			{
+				WARN << "Failed to compile shaderstage: Vertex Shader\n\n";
+				WARN << "Source Code: \n\n" << (const char*)vertsource.data << "\n\n";
+				WARN << compiledvertmodule.GetErrorMessage().c_str() << "\n";
+				return false;
+			}
+
+			sizeptr vertsize = (compiledvertmodule.cend() - compiledvertmodule.cbegin()) * sizeof(uint32);
+
+			kind = shaderc_shader_kind::shaderc_fragment_shader;
+			sourcecode = (const char*)fragsource.data;
+
+			shaderc::SpvCompilationResult compiledfragmodule = compiler.CompileGlslToSpv(sourcecode, kind, "ref");
+			if (compiledfragmodule.GetCompilationStatus() != shaderc_compilation_status_success)
+			{
+				WARN << "Failed to compile shaderstage: fragmentshader Shader\n\n";
+				WARN << "Source Code: \n\n" << (const char*)fragsource.data << "\n\n";
+				WARN << compiledfragmodule.GetErrorMessage().c_str() << "\n";
+				return false;
+			}
+
+			sizeptr fragsize = (compiledvertmodule.cend() - compiledvertmodule.cbegin()) * sizeof(uint32);
+
+			return createGraphicsPipelineFromBinaries(target, { (uint8*)compiledvertmodule.cbegin(), vertsize }, { (uint8*)compiledfragmodule.cbegin(), fragsize });
+		}
+
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath) {
+
+			Platform::GFX::GraphicsPipelineCreateinfo info{};
+
+			Platform::FileBuffer vertsource;
+			Platform::FileBuffer fragsource;
+			if (!Platform::loadFile(&vertsource, vertpath)) {
+				Engine::ERR << "failed to load vertsource!\n";
+			}
+
+			if (!Platform::loadFile(&fragsource, fragpath)) {
+				Engine::ERR << "failed to load fragsource!\n";
+			}
+
+			auto result = createGraphicsPipelineFromGLSLSource(target, { (uint8*)vertsource.data, vertsource.size }, { (uint8*)fragsource.data, fragsource.size });
+
+			Platform::unloadFile(&vertsource);
+			Platform::unloadFile(&fragsource);
+
+			return result;
+		}
+
 		Platform::GFX::DescriptorSet createTextureDescriptorSet(Context* context) {
 
 			GFX::DescriptorSetCreateinfo createinfo{};
@@ -160,77 +289,6 @@ namespace PH::Engine {
 			GFX::updateDescriptorSets(&write, 1);
 
 			return set;
-		}
-
-
-		Platform::GFX::GraphicsPipeline initDefaultGraphicsPipeline(Context* context, const InitInfo& initinfo) {
-			if (initinfo.defaultpipeline != 0) {
-				return initinfo.defaultpipeline;
-			}
-
-			if (initinfo.defaultfragpath && initinfo.defaultvertpath) {
-
-				//loading in the shader data
-				PH::Platform::FileBuffer fragdata;
-				if (!PH::Platform::loadFile(&fragdata, initinfo.defaultfragpath)) {
-					PH_DEBUG_BREAK();
-					ERR << "failed to load fragdata!\n";
-					return 0;
-				}
-
-				PH::Platform::FileBuffer vertdata;
-				if (!PH::Platform::loadFile(&vertdata, initinfo.defaultvertpath)) {
-					PH_DEBUG_BREAK();
-					ERR << "failed to load vertdata!\n";
-					return 0;
-				}
-
-				//createing the shaders...
-				Platform::GFX::ShaderCreateinfo fragshadercreate{};
-				fragshadercreate.stage = Platform::GFX::SHADER_STAGE_FRAGMENT_BIT;
-				fragshadercreate.sourcecode = fragdata.data;
-				fragshadercreate.sourcetype = GFX::ShaderSourceType::VULKAN_BINARIES;
-				fragshadercreate.size = fragdata.size;
-
-				Platform::GFX::ShaderCreateinfo vertshadercreate{};
-				vertshadercreate.stage = Platform::GFX::SHADER_STAGE_VERTEX_BIT;
-				vertshadercreate.sourcetype = GFX::ShaderSourceType::VULKAN_BINARIES;
-				vertshadercreate.sourcecode = vertdata.data;
-				vertshadercreate.size = vertdata.size;
-
-				Platform::GFX::ShaderCreateinfo shadercreateinfos[] = { fragshadercreate, vertshadercreate };
-				Platform::GFX::Shader shaders[2];
-
-				PH::Platform::GFX::createShaders(shadercreateinfos, shaders, 2);
-
-				//adding the scene layout and the renderer layout together
-				auto layouts = Engine::ArrayList<GFX::DescriptorSetLayout>::create(2);
-				layouts.pushBack(context->texturedescriptorlayout);
-				for (auto layout : initinfo.descriptorsetlayouts) {
-					layouts.pushBack(layout);
-				}
-
-
-				//adding it all together in the pipeline create;
-				PH::Platform::GFX::GraphicsPipelineCreateinfo pipelinecreate{};
-				pipelinecreate.layouts = layouts.getArray();
-				pipelinecreate.renderpass = initinfo.renderpass;
-				pipelinecreate.shaderstages = { shaders, 2 };
-				pipelinecreate.topology = Platform::GFX::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-				pipelinecreate.vertexbindingdescriptions = { quadvertexbindingdescription, ARRAY_LENGTH(quadvertexbindingdescription) };
-				pipelinecreate.vertexattributedescriptions = { quadvertexinputattributes, ARRAY_LENGTH(quadvertexinputattributes) };
-				pipelinecreate.depthtest = true;
-
-				Platform::GFX::GraphicsPipeline pipeline;
-				Platform::GFX::createGraphicsPipelines(&pipelinecreate, &pipeline, 1);
-
-				//destroying the layouts array
-				layouts.release();
-				return pipeline;
-			}
-
-			WARN << "no default pipeline was given!\n";
-			return 0;
 		}
 
 		Buffers createBuffers(const InitInfo& initinfo) {
@@ -284,7 +342,7 @@ namespace PH::Engine {
 			result.texturedescriptorlayout = createTextureDescriptorSetLayout();
 			result.texturedescriptor = createTextureDescriptorSet(&result);
 
-			result.defaultpipeline = initDefaultGraphicsPipeline(&result, initinfo);
+			result.defaultpipeline = initinfo.currentpipeline;
 			result.quads = Engine::ArrayList<ColoredQuadInstance>::create(1);
 			result.buffers = createBuffers(initinfo);
 			result.instancebuffersize = initinfo.instancebuffersize;

@@ -50,7 +50,8 @@ project "RP-GUI"
 
 	postbuildcommands 
 	{
-		"{COPYFILE} %{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{cfg.buildtarget.name} %{wks.location}/bin/" .. outputdir .. "/Platform",
+		--"copy /b /y 'P:\\My Documents\\BRP\\GUI\\ProjectPhysica\\bin\\Debug-windows-x86_64\\RP-GUI\\RP-GUI.dll' 'P:\\My Documents\\BRP\\GUI\\ProjectPhysica\\bin\\Debug-windows-x86_64\\Platform'"
+		"{COPYFILE} \"%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{cfg.buildtarget.name}\" \"%{wks.location}/bin/" .. outputdir .. "/Platform\"",	
 	}
 
 	filter "system:windows"
