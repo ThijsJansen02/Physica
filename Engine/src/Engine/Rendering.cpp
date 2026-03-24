@@ -31,6 +31,11 @@ namespace PH::Engine {
 			PH::Platform::GFX::Buffer index;
 		};
 
+		struct SceneBuffer {
+			glm::mat4 projection;
+			glm::mat4 view;
+		};
+
 		struct Context {
 
 			Buffers buffers;
@@ -42,11 +47,12 @@ namespace PH::Engine {
 
 			ArrayList<GFX::Texture> textures;
 
-			PH::Platform::GFX::DescriptorSet texturedescriptor;
-			PH::Platform::GFX::DescriptorSetLayout texturedescriptorlayout;
-
+			PH::Platform::GFX::DescriptorSet globaldescriptor;
+			PH::Platform::GFX::Buffer scenebuffer;
 
 			sizeptr instancebuffersize;
+
+			SceneBuffer localscenebuffer;
 		};
 
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color, Renderer2D::Context* context) {
@@ -100,23 +106,49 @@ namespace PH::Engine {
 			return true;
 		}
 
-		Platform::GFX::DescriptorSetLayout textureDescriptorSetLayout = PH_GFX_NULL;
+		Platform::GFX::DescriptorSetLayout globalDescriptorSetLayout = PH_GFX_NULL;
 
-		Platform::GFX::DescriptorSetLayout createTextureDescriptorSetLayout() {
+		Platform::GFX::DescriptorSetLayout createGlobalDescriptorSetLayout() {
+
+			GFX::DescriptorBinding texturebinding;
+			texturebinding.binding = TEXTURESAMPLER_BINDING;
+			texturebinding.descriptorcount = MAX_TEXTURES;
+			texturebinding.shaderstages = GFX::SHADER_STAGE_FRAGMENT_BIT;
+			texturebinding.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			
+			GFX::DescriptorBinding transformbinding;
+			transformbinding.binding = SCENE_UBO_BINDING;
+			transformbinding.descriptorcount = 1;
+			transformbinding.shaderstages = GFX::SHADER_STAGE_VERTEX_BIT;
+			transformbinding.type = GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				
+			GFX::DescriptorBinding bindings[2] = { texturebinding, transformbinding };
 
 			GFX::DescriptorSetLayoutCreateinfo createinfo{};
-			GFX::DescriptorBinding binding;
-			binding.binding = TEXTURESAMPLER_BINDING;
-			binding.descriptorcount = MAX_TEXTURES;
-			binding.shaderstages = GFX::SHADER_STAGE_FRAGMENT_BIT;
-			binding.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			
-			createinfo.bindings = { &binding, 1 };
-
+			createinfo.bindings = { bindings, 2 };
 			GFX::DescriptorSetLayout layout;
 
 			GFX::createDescriptorSetLayouts(&createinfo, &layout, 1);
 			return layout;
+		}
+
+		Platform::GFX::Buffer createScenebuffer() {
+
+			SceneBuffer localbuffer = { glm::mat4(1.0f), glm::mat4(1.0f) };
+
+			Platform::GFX::BufferCreateinfo info{};
+			info.bufferusage = Platform::GFX::BufferUsageFlagBits::BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			info.data = &localbuffer;
+			info.dynamic = true;
+			info.memoryproperties = Platform::GFX::MEMORY_PROPERTY_HOST_VISIBLE_BIT | Platform::GFX::MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			info.size = sizeof(localbuffer);
+			
+			Platform::GFX::Buffer result;
+			if (!Platform::GFX::createBuffers(&info, &result, 1)) {
+				Engine::WARN << "Failed to create buffer\n";
+			}
+
+			return result;
 		}
 
 		//creates a 1x1 texture with a white color to be set when no texture is specified
@@ -160,15 +192,15 @@ namespace PH::Engine {
 				Engine::WARN << "failed to create shaders!\n";
 			}
 
-			if (textureDescriptorSetLayout == PH_GFX_NULL) {
-				textureDescriptorSetLayout = createTextureDescriptorSetLayout();
+			if (globalDescriptorSetLayout == PH_GFX_NULL) {
+				globalDescriptorSetLayout = createGlobalDescriptorSetLayout();
 			}
 
 			//adding the scene layout and the renderer layout together
 			auto layouts = Engine::ArrayList<GFX::DescriptorSetLayout>::create(1);
-			layouts.pushBack(textureDescriptorSetLayout);
+			layouts.pushBack(globalDescriptorSetLayout);
 
-			//TODO add ability to have clobal descriptors
+			//TODO add ability to have lobal descriptors
 			/*
 			for (auto layout : initinfo.descriptorsetlayouts) {
 				layouts.pushBack(layout);
@@ -188,8 +220,8 @@ namespace PH::Engine {
 
 			Platform::GFX::GraphicsPipeline pipeline;
 
-			if (Platform::GFX::createGraphicsPipelines(&pipelinecreate, &pipeline, 1)) {
-				Engine::WARN << "failed to create graphicspipeline!\n";
+			if (!Platform::GFX::createGraphicsPipelines(&pipelinecreate, &pipeline, 1)) {
+ 				Engine::WARN << "failed to create graphicspipeline!\n";
 			}
 
 			//destroying the layouts array
@@ -204,6 +236,8 @@ namespace PH::Engine {
 			shaderc::Compiler compiler;
 			shaderc::CompileOptions options;
 			options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+			options.SetAutoMapLocations(false);
+			options.SetAutoBindUniforms(false);
 			const bool optimize = true;
 			if (optimize)
 				options.SetOptimizationLevel(shaderc_optimization_level_performance);
@@ -234,7 +268,7 @@ namespace PH::Engine {
 				return false;
 			}
 
-			sizeptr fragsize = (compiledvertmodule.cend() - compiledvertmodule.cbegin()) * sizeof(uint32);
+			sizeptr fragsize = (compiledfragmodule.cend() - compiledfragmodule.cbegin()) * sizeof(uint32);
 
 			return createGraphicsPipelineFromBinaries(target, { (uint8*)compiledvertmodule.cbegin(), vertsize }, { (uint8*)compiledfragmodule.cbegin(), fragsize });
 		}
@@ -261,11 +295,20 @@ namespace PH::Engine {
 			return result;
 		}
 
-		Platform::GFX::DescriptorSet createTextureDescriptorSet(Context* context) {
+		bool32 setView(Context* context, const glm::mat4& view) {
+			context->localscenebuffer.view = view;
+			return true;
+		}
+		bool32 setProjection(Context* context, const glm::mat4& projection) {
+			context->localscenebuffer.projection = projection;
+			return true;
+		}
+
+		Platform::GFX::DescriptorSet createGlobalDescriptorSet(Context* context) {
 
 			GFX::DescriptorSetCreateinfo createinfo{};
 			createinfo.dynamic = true;
-			createinfo.layout = context->texturedescriptorlayout;
+			createinfo.layout = globalDescriptorSetLayout;
 
 			GFX::DescriptorSet set;
 			GFX::createDescriptorSets(&createinfo, &set, 1);
@@ -277,16 +320,33 @@ namespace PH::Engine {
 			}
 
 			//writing the null texture into the set
-			GFX::DescriptorWrite write{};
-			write.dynamicwrite = false;
-			write.arrayelement = 0;
-			write.dstset = set;
-			write.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			write.descriptorcount = MAX_TEXTURES;
-			write.dstbinding = TEXTURESAMPLER_BINDING;
-			write.descriptorinfo = infos;
+			GFX::DescriptorWrite texturewrite;
+			texturewrite.dynamicwrite = false;
+			texturewrite.arrayelement = 0;
+			texturewrite.dstset = set;
+			texturewrite.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			texturewrite.descriptorcount = MAX_TEXTURES;
+			texturewrite.dstbinding = TEXTURESAMPLER_BINDING;
+			texturewrite.descriptorinfo = infos;
 
-			GFX::updateDescriptorSets(&write, 1);
+			GFX::DescriptorBufferInfo bufferinfo;
+			bufferinfo.buffer = context->scenebuffer;
+			bufferinfo.offset = 0;
+			bufferinfo.range = sizeof(SceneBuffer);
+
+			//note not dynamic write because this write should set the buffer for every frame
+			GFX::DescriptorWrite bufferwrite;
+			bufferwrite.arrayelement = 0;
+			bufferwrite.descriptorcount = 1;
+			bufferwrite.dstset = set;
+			bufferwrite.descriptorinfo = &bufferinfo;
+			bufferwrite.dynamicwrite = false;
+			bufferwrite.type = GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			bufferwrite.dstbinding = SCENE_UBO_BINDING;
+
+			GFX::DescriptorWrite writes[2] = { texturewrite, bufferwrite };
+
+			GFX::updateDescriptorSets(writes, 2);
 
 			return set;
 		}
@@ -338,10 +398,13 @@ namespace PH::Engine {
 		Context* createContext(const InitInfo& initinfo) {
 
 			Context result{};
-			result.nulltexture = createNullTexture();
-			result.texturedescriptorlayout = createTextureDescriptorSetLayout();
-			result.texturedescriptor = createTextureDescriptorSet(&result);
+			if (globalDescriptorSetLayout == PH_GFX_NULL) {
+				globalDescriptorSetLayout = createGlobalDescriptorSetLayout();
+			}
 
+			result.nulltexture = createNullTexture();
+			result.scenebuffer = createScenebuffer();
+			result.globaldescriptor = createGlobalDescriptorSet(&result);
 			result.defaultpipeline = initinfo.currentpipeline;
 			result.quads = Engine::ArrayList<ColoredQuadInstance>::create(1);
 			result.buffers = createBuffers(initinfo);
@@ -377,7 +440,7 @@ namespace PH::Engine {
 			write.arrayelement = 0;
 			write.descriptorcount = context->textures.getCount();
 			write.dstbinding = TEXTURESAMPLER_BINDING;
-			write.dstset = context->texturedescriptor;
+			write.dstset = context->globaldescriptor;
 			write.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			write.descriptorinfo = infos;
 
@@ -386,7 +449,18 @@ namespace PH::Engine {
 			return true;
 		}
 
-		bool32 flush(Context* context, Base::Array<Platform::GFX::DescriptorSet> globaldescriptorsets) {
+		bool32 updateSceneBuffer(Context* context) {
+			
+			SceneBuffer* gpubuffer;
+			PH::Platform::GFX::mapBuffer((void**) & gpubuffer, context->scenebuffer);
+			*gpubuffer = context->localscenebuffer;
+
+			PH::Platform::GFX::unmapBuffer(context->scenebuffer);
+
+			return true;
+		}
+
+		bool32 flush(Context* context, Base::Array<Platform::GFX::DescriptorSet> additionaldescriptors) {
 
 			Engine::ArenaScope s;
 
@@ -401,13 +475,14 @@ namespace PH::Engine {
 
 			Base::copyMemory(context->quads.raw(), instancememory, context->quads.getCount() * sizeof(ColoredQuadInstance));
 
+			updateSceneBuffer(context);
 			updateDescriptorSet(context);
 
 			PH::Platform::GFX::bindGraphicsPipeline(context->defaultpipeline);
 
-			auto descriptorsets = Base::ArrayList<GFX::DescriptorSet, Engine::ArenaAllocator>::create(1 + globaldescriptorsets.count);
-			descriptorsets.pushBack(context->texturedescriptor);
-			descriptorsets.pushBack(globaldescriptorsets);
+			auto descriptorsets = Base::ArrayList<GFX::DescriptorSet, Engine::ArenaAllocator>::create(1 + additionaldescriptors.count);
+			descriptorsets.pushBack(context->globaldescriptor);
+			descriptorsets.pushBack(additionaldescriptors);
 				
 			PH::Platform::GFX::bindDescriptorSets(descriptorsets.raw(), 0, descriptorsets.getCount());
 

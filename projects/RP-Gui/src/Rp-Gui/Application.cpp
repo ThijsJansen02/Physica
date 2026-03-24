@@ -31,7 +31,7 @@ namespace PH::RpGui {
 
 using namespace PH;
 
-extern "C" __declspec(dllexport) PH_APPLICATION_INITIALIZE(applicationInitialize) {
+PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
 	//sets up the engine allocators and other systems that rely on the engine allocator, such as the console log stream
 	PH::Engine::EngineInitInfo engineinit{};
@@ -42,16 +42,34 @@ extern "C" __declspec(dllexport) PH_APPLICATION_INITIALIZE(applicationInitialize
 
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
 
-	//this is just a stub application that does nothing, the real application is in the editor module
+	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(Engine::getParentDisplay(), "res/shaders/default_quadshader.vert", "res/shaders/default_quadshader.frag");
+	
+	Engine::Renderer2D::InitInfo init{};
+	init.currentpipeline = RpGui::context->pipeline2D;
+	init.descriptorsetlayouts = { nullptr, 0 };
+	init.instancebuffersize = 1 * MEGA_BYTE;
+	init.shadowmapdimensions = 0;
+
+	RpGui::context->renderer2D = Engine::Renderer2D::createContext(init);
 	return true;
 }
 
 PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
-	PH::Engine::beginNewFrame(&context);	
-
+	PH::Engine::beginNewFrame(&context);
 	PH::Engine::beginRenderPass(*Engine::getParentDisplay());
-	
+
+	Engine::Renderer2D::setView(RpGui::context->renderer2D, glm::mat4(1.0f));
+	Engine::Renderer2D::setProjection(RpGui::context->renderer2D, glm::mat4(1.0f));
+
+	Engine::Renderer2D::begin(RpGui::context->renderer2D);
+	Engine::Renderer2D::drawColoredQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 1.0f, 1.0f }, RpGui::context->renderer2D);
+	Engine::Renderer2D::end(RpGui::context->renderer2D);
+
+	//Engine::Renderer2D::end(RpGui::context->renderer2D);
+
+	Engine::Renderer2D::flush(RpGui::context->renderer2D, { nullptr, 0 });
+
 	bool open = true;
 	if(ImGui::Begin("renderstats", &open)) {
 		ImGui::Text("Frame rate: %f", 1.0f / PH::Engine::getTimeStep());

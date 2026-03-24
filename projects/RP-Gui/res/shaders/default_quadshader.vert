@@ -15,10 +15,10 @@ layout(location = 0) out vec4 fragColor;
 layout(location = 1) out vec2 TexCoord;
 layout(location = 2) out uint TextureIndex;
 
-layout(set = 1, binding = 0) uniform Scene {
+layout(set = 0, binding = 1) uniform Scene {
 	mat4 projection;
 	mat4 view;
-} scene;
+} scene;	
 
 void main() {
 

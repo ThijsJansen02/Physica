@@ -45,9 +45,9 @@ namespace PH::Engine {
 			{1, 5, Platform::GFX::FORMAT_R32_UINT, offsetof(ColoredQuadInstance, textureindex)}
 		};
 
-		const uint32 SCENE_UBO_BINDING = 0;
+		const uint32 SCENE_UBO_BINDING = 1;
+		const uint32 SCENE_UBO_SET = 0;
 		const uint32 SCENE_SKYBOX_BINDING = 1;
-		const uint32 SCENE_UBO_SET = 1;
 
 		const uint32 TEXTURESAMPLER_BINDING = 0;
 		const uint32 TEXTURESAMPLER_SET = 0;
@@ -60,11 +60,6 @@ namespace PH::Engine {
 			//currently used pipeline
 			Platform::GFX::GraphicsPipeline currentpipeline;
 			Base::Array<Platform::GFX::DescriptorSetLayout> descriptorsetlayouts;
-
-			//create pipeline when no default pipeline is setup
-			const char* defaultfragpath;
-			const char* defaultvertpath;
-			Platform::GFX::RenderpassDescription renderpass;
 
 			uint32 shadowmapdimensions;
 
@@ -83,6 +78,9 @@ namespace PH::Engine {
 		bool32 drawColoredQuad(const glm::mat4& transform, glm::vec4 color, Renderer2D::Context* context);
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, real32 rotation, glm::vec4 color, Renderer2D::Context* context);
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color, Renderer2D::Context* context);
+
+		bool32 setView(Context* context, const glm::mat4& view);
+		bool32 setProjection(Context* context, const glm::mat4& projection);
 		Context* createContext(const InitInfo& initinfo);
 	}
 
