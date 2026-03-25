@@ -8,6 +8,7 @@ project "Engine"
 	files
 	{
 		"src/**.h",
+		"src/**.hpp",
 		"src/**.cpp",
 		"res/**"
 	}

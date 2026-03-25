@@ -6,10 +6,6 @@
 
 namespace PH::Engine {
 
-	namespace Renderer {
-
-	}
-
 	namespace Renderer2D {
 
 		struct QuadVertex {

@@ -1,0 +1,66 @@
+#pragma once
+
+#include <Engine/Rendering.h>
+
+namespace PH::Engine {
+
+	namespace Renderer2D {
+
+		class Wrapper {
+		public:
+			bool32 begin() {
+				return Renderer2D::begin(m_Context);
+			}
+			bool32 end() {
+				return Renderer2D::end(m_Context);
+			}
+			bool32 flush(Base::Array<Platform::GFX::DescriptorSet> globaldescriptorsets) {
+				return Renderer2D::flush(m_Context, globaldescriptorsets);
+			}
+			bool32 drawTexturedQuad(const glm::mat4& transform, Platform::GFX::Texture texture) {
+				return Renderer2D::drawTexturedQuad(transform, texture, m_Context);
+			}
+			static Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath) {
+				return Renderer2D::createGraphicsPipelineFromGLSLSource(target, vertpath, fragpath);
+			}
+			bool32 drawColoredQuad(const glm::mat4& transform, glm::vec4 color) {
+				return Renderer2D::drawColoredQuad(transform, color, m_Context);
+			}
+			bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, real32 rotation, glm::vec4 color) {
+				return Renderer2D::drawColoredQuad(position, size, rotation, color, m_Context);
+			}
+			bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color) {
+				return Renderer2D::drawColoredQuad(position, size, color, m_Context);
+			}
+			bool32 setView(const glm::mat4& view) {
+				return Renderer2D::setView(m_Context, view);
+			}
+			bool32 setProjection(const glm::mat4& projection) {
+				return Renderer2D::setProjection(m_Context, projection);
+			}
+
+			static Wrapper create(const Renderer2D::InitInfo& info) {
+
+				Wrapper result;
+				result.m_Context = createContext(info);
+				return result;
+			}
+
+			static Wrapper create(PH::Platform::GFX::GraphicsPipeline pipeline) {
+
+				Renderer2D::InitInfo info{};
+				info.currentpipeline;
+				info.instancebuffersize = MEGA_BYTE;
+
+				Wrapper result{};
+				result.m_Context = Renderer2D::createContext(info);
+				return result;
+			}
+
+		private:
+		
+			Renderer2D::Context* m_Context;
+		};
+	
+	}
+}
