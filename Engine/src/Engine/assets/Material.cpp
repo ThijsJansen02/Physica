@@ -369,8 +369,6 @@ namespace PH::Engine::Assets {
 			WARN << "Failed to reflect on binary";
 		}
 
-		Platform::GFX::ShaderCreateinfo createinfo;
-
 		Platform::GFX::ShaderCreateinfo createfrombin{};
 		createfrombin.chachedir = nullptr;
 		createfrombin.size = module->loadedbinarysize;
@@ -806,10 +804,10 @@ namespace PH::Engine::Assets {
 		}
 
 		mat.compiled = false;
-		if (compileMaterialFromBinaries(&mat, Engine::Display::renderpass)) {
+		if (compileMaterialFromBinaries(&mat, Engine::Display::defaultrenderpassdescription)) {
 			mat.compiled = true;
 		}
-		else if (compileMaterialFromSource(&mat, Engine::Display::renderpass)) {
+		else if (compileMaterialFromSource(&mat, Engine::Display::defaultrenderpassdescription)) {
 			mat.compiled = true;
 		}
 

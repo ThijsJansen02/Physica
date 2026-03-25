@@ -8,6 +8,7 @@
 
 #include <Engine/Rendering.h>
 #include <Engine/Engine.h>
+#include <Engine/Rendering.h>
 
 namespace PH::RpGui {
 
@@ -22,100 +23,64 @@ namespace PH::RpGui {
 	PH::Base::LogStream<consoleWrite> WARN;
 	PH::Base::LogStream<consoleWrite> ERR;
 
-
-	void beginFinalRenderpass(uint32 windowwidth, uint32 windowheight) {
-
-		GFX::RenderpassbeginInfo renderpassbegin{};
-		renderpassbegin.description = 0;
-		renderpassbegin.framebuffer = 0;
-		renderpassbegin.renderarea = { windowwidth, windowheight };
-
-		GFX::ClearValue clearcolor = { 0.5f, 0.5f, 0.5f, 1.0f };
-		renderpassbegin.clearvalues = { &clearcolor, 1 };
-
-		GFX::beginRenderpass(&renderpassbegin);
-
-		GFX::Viewport viewport;
-		viewport.width = (real32)windowwidth;
-		viewport.height = (real32)windowheight;
-		viewport.x = 0;
-		viewport.y = 0;
-
-		GFX::setViewports(&viewport, 1);
-
-		GFX::Scissor scissor;
-		scissor.width = windowwidth;
-		scissor.height = windowheight;
-		scissor.x = 0;
-		scissor.y = 0;
-
-		GFX::setScissors(&scissor, 1);
-	}
-
-	void endFinalRenderpass() {
-		GFX::endRenderpass();
-	}
-
 	struct Context {
 		Engine::Renderer2D::Context* renderer2D;
+		PH::Platform::GFX::GraphicsPipeline pipeline2D;
 	};
+
+	Context* context;
 }
 
+using namespace PH;
 
-
-
-void* imguiAllocator(size_t sz, void* userdata) {
-	return PH::Engine::Allocator::alloc(sz);
-}
-
-void imguiDeallocator(void* data, void* userdata) {
-	PH::Engine::Allocator::dealloc(data);
-}
-
-using namespace PH::RpGui;
-
-extern "C" __declspec(dllexport) PH_APPLICATION_INITIALIZE(applicationInitialize) {
-
-	PH::RpGui::INFO << "intializing Rp-Gui application...\n";
-
-	PH::RpGui::Context* appcontext = (PH::RpGui::Context*)context.appmemory;
+PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
 	//sets up the engine allocators and other systems that rely on the engine allocator, such as the console log stream
 	PH::Engine::EngineInitInfo engineinit{};
-	engineinit.memory = (PH::uint8*)context.appmemory + sizeof(PH::RpGui::Context);
-	engineinit.memorysize = context.appmemsize - sizeof(PH::RpGui::Context);
+	engineinit.memory = (PH::uint8*)context.appmemory;
+	engineinit.memorysize = context.appmemsize;
+	engineinit.platformcontext = &context;
 	PH::Engine::init(engineinit);
-	
-	//renderpass is finalrenderpass
-	PH::Engine::Renderer2D::InitInfo init{};
-	init.renderpass = 0;
-	init.defaultpipeline = PH_GFX_NULL;
-	init.shadowmapdimensions = { 1024 };
-	init.instancebuffersize = MEGA_BYTE;
-	appcontext->renderer2D = PH::Engine::Renderer2D::createContext(init);
-	
-	//set the Imgui context in this translation unit
-	ImGui::SetCurrentContext(context.imguicontext);
-	ImGui::SetAllocatorFunctions(imguiAllocator, imguiDeallocator, nullptr);
 
-	//this is just a stub application that does nothing, the real application is in the editor module
+	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
+
+	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(Engine::getParentDisplay(), "res/shaders/default_quadshader.vert", "res/shaders/default_quadshader.frag");
+	
+	Engine::Renderer2D::InitInfo init{};
+	init.currentpipeline = RpGui::context->pipeline2D;
+	init.descriptorsetlayouts = { nullptr, 0 };
+	init.instancebuffersize = 1 * MEGA_BYTE;
+	init.shadowmapdimensions = 0;
+
+	RpGui::context->renderer2D = Engine::Renderer2D::createContext(init);
 	return true;
 }
 
 
 PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
-	PH::Engine::beginNewFrame();	
+	PH::Engine::beginNewFrame(&context);
+	PH::Engine::beginRenderPass(*Engine::getParentDisplay());
 
-	PH::RpGui::beginFinalRenderpass(context.windowwidth, context.windowheight);
+	Engine::Renderer2D::setView(RpGui::context->renderer2D, glm::mat4(1.0f));
+	Engine::Renderer2D::setProjection(RpGui::context->renderer2D, glm::mat4(1.0f));
+
+	Engine::Renderer2D::begin(RpGui::context->renderer2D);
+	Engine::Renderer2D::drawColoredQuad({ 0.0f, 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.0f, 1.0f, 1.0f, 1.0f }, RpGui::context->renderer2D);
+	Engine::Renderer2D::end(RpGui::context->renderer2D);
+
+	//Engine::Renderer2D::end(RpGui::context->renderer2D);
+
+	Engine::Renderer2D::flush(RpGui::context->renderer2D, { nullptr, 0 });
+
 	bool open = true;
-	if(ImGui::Begin("stats", &open)) {
+	if(ImGui::Begin("renderstats", &open)) {
 		ImGui::Text("Frame rate: %f", 1.0f / PH::Engine::getTimeStep());
 	} ImGui::End();
 
 	ImGui::Render();
 	PH::Platform::GFX::drawImguiWidgets(ImGui::GetDrawData());
-	PH::RpGui::endFinalRenderpass();
+	PH::Engine::endRenderPass(*Engine::getParentDisplay());
 	return true;
 }
 

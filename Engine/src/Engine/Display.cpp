@@ -4,7 +4,7 @@
 namespace PH::Engine {
 
 	//the global display renderpass that is shared between all displays. engine init initializes this.
-	PH::Platform::GFX::RenderpassDescription Display::renderpass;
+	PH::Platform::GFX::RenderpassDescription Display::defaultrenderpassdescription;
 
 	PH::Platform::GFX::RenderpassDescription createDisplayRenderpass() {
 
@@ -69,6 +69,7 @@ namespace PH::Engine {
 	Display createDisplay(uint32 width, uint32 height) {
 
 		Display display;
+		display.renderpass = Display::defaultrenderpassdescription;
 
 		Platform::GFX::TextureCreateInfo texturecreate{};
 		texturecreate.format = Platform::GFX::FORMAT_R8G8B8A8_UNORM;
@@ -95,7 +96,7 @@ namespace PH::Engine {
 		fbcreate.attachments = { attachments, ARRAY_LENGTH(attachments)};
 		fbcreate.width = width;
 		fbcreate.height = height;
-		fbcreate.renderpassdescription = Display::renderpass;
+		fbcreate.renderpassdescription = display.renderpass;
 
 		Platform::GFX::createFramebuffers(&fbcreate, &display.fb, 1);
 
