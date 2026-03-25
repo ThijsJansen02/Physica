@@ -38,6 +38,18 @@ namespace PH::Engine {
 			bool32 setProjection(const glm::mat4& projection) {
 				return Renderer2D::setProjection(m_Context, projection);
 			}
+			bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec2 thickness) {
+				return Renderer2D::drawLine(v1, v2, thickness, m_Context);
+			}
+			bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec2 thickness) {
+				return Renderer2D::drawLineStrip(points, thickness, m_Context);
+			}
+			bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec4 color, glm::vec2 thickness) {
+				return Renderer2D::drawLine(v1, v2, color, thickness, m_Context);
+			}
+			bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness) {
+				return Renderer2D::drawLineStrip(points, color, thickness, m_Context);	
+			}
 
 			static Wrapper create(const Renderer2D::InitInfo& info) {
 

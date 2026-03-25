@@ -106,6 +106,46 @@ namespace PH::Engine {
 			return true;
 		}
 
+		bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec2 thickness, Renderer2D::Context* context) {
+			return drawLine(v1, v2, { 1.0f, 1.0f, 1.0f, 1.0f }, thickness, context);
+		}
+
+		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec2 thickness, Renderer2D::Context* context) {
+			return drawLineStrip(points, { 1.0f, 1.0f, 1.0f, 1.0f }, thickness, context);
+		}
+
+		real32 blend(real32 a, real32 b, real32 blendfactor) {
+			return (1.0f - blendfactor) * a + blendfactor * b;
+		}
+
+		bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context) {
+
+			glm::vec3 midpoint = (v1 + v2) * 0.5f;
+
+			glm::vec3 up = { 0.0f, 0.0f, 1.0f };
+			glm::vec3 tangent = glm::normalize(v2 - v1);
+			glm::vec3 bitangent = glm::cross(tangent, up);
+
+			real32 length = glm::length(v2 - v1);
+			real32 bithickness = blend(thickness.y, thickness.x, glm::abs(bitangent.x));
+			real32 tanthickness = blend(thickness.y, thickness.x, glm::abs(tangent.x));
+
+			glm::mat3 rotscale = glm::mat3(tangent * (length + tanthickness), bitangent * bithickness, up);
+
+			glm::mat4 transform = glm::mat4(rotscale);
+			transform[3] = { midpoint, 1.0f };
+
+			return drawColoredQuad(transform, color, context);
+		}
+
+		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context) {
+
+			for (uint32 i = 1; i < points.count; i++) {
+				drawLine({ points[i - 1], 0.0f }, { points[i], 0.0f }, color, thickness, context);
+			}
+			return true;
+		}
+
 		Platform::GFX::DescriptorSetLayout globalDescriptorSetLayout = PH_GFX_NULL;
 
 		Platform::GFX::DescriptorSetLayout createGlobalDescriptorSetLayout() {

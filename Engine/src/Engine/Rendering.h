@@ -75,6 +75,13 @@ namespace PH::Engine {
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, real32 rotation, glm::vec4 color, Renderer2D::Context* context);
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color, Renderer2D::Context* context);
 
+		bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec2 thickness, Renderer2D::Context* context);
+		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec2 thickness, Renderer2D::Context* context);
+
+		bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context);
+		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context);
+
+
 		bool32 setView(Context* context, const glm::mat4& view);
 		bool32 setProjection(Context* context, const glm::mat4& projection);
 		Context* createContext(const InitInfo& initinfo);
