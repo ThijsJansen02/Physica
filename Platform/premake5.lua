@@ -35,7 +35,7 @@ project "Platform"
 	}
 
 	dependson {
-		--'RP-GUI'
+		'RP-GUI'
 	}
 
 	defines 

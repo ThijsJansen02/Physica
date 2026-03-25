@@ -118,12 +118,12 @@ namespace PH::Vulkan {
 
 	//chooses present mode, if PRESENT_MODE_MAILBOX is available it returns this, otherwise PRESENTMODE_FIFO is chosen
 	VkPresentModeKHR choosePresentMode(Array<VkPresentModeKHR> availablemodes) {
+		return VK_PRESENT_MODE_FIFO_KHR;
 		for (const auto& mode : availablemodes) {
 			if (mode == VK_PRESENT_MODE_MAILBOX_KHR) {
 				return mode;
 			}
 		}
-		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
 
