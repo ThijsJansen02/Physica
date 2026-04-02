@@ -27,6 +27,7 @@ group ""
 
 group "dependencies"
     include "dep/imgui"
+    --include "dep/libssh"
     --include "dep/stb"
     --include "dep/entt"
     include "dep/yaml"

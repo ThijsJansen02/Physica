@@ -23,6 +23,25 @@ namespace PH::Base {
 		return *str1 == *str2;
 	}
 
+	inline bool32 stringCompare(const char* str1, const char* str2, sizeptr maxsize) {
+		
+		
+		while (*str1 != 0 && *str2 != 0) {
+			if (maxsize == 0)
+			{
+				return false;
+			}
+
+			if (*str1 != *str2) {
+				return false;
+			}
+			str1++;
+			str2++;
+			maxsize--;
+		}
+		return *str1 == *str2;
+	}
+
 	//copies string from src to dst and returns the amount of bytes copied including the nulltermination character
 	inline sizeptr stringCopy(const char* src, char* dst, sizeptr maxsize) {
 

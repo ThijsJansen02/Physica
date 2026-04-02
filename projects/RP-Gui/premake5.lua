@@ -30,8 +30,8 @@ project "RP-GUI"
 		"%{IncludeDir.yaml}",
 		--"%{IncludeDir.imguizmo}",
 		"%{IncludeDir.editor}",
-		"%{IncludeDir.stb}"
-
+		"%{IncludeDir.stb}",
+		"%{IncludeDir.libssh}"
 	}
 
 	defines 

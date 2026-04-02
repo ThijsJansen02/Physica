@@ -27,14 +27,18 @@ project "Engine"
 		"%{prj.location}/dep/include",
 		"%{IncludeDir.vulkanSDK}",
 		"%{IncludeDir.imguizmo}",
-		"%{IncludeDir.engine}"
+		"%{IncludeDir.engine}",
+		"%{IncludeDir.openssl}",
+		"%{IncludeDir.libssh}"
 	}
 
 	
 	libdirs
 	{
 		--"%{wks.location}/dep/bin/win32-release/assimp",
-		"%{LibraryDir.vulkanSDK}"
+		"%{LibraryDir.vulkanSDK}",
+		"%{LibraryDir.openssl}",
+		"%{LibraryDir.libssh}"
 	}
 
 
@@ -73,7 +77,9 @@ project "Engine"
 		links {
 			"%{Library.shaderC_Debug}",
 			"%{Library.SPIRV_Cross_Debug}",
-			"%{Library.SPIRV_Tools_Debug}"
+			"%{Library.SPIRV_Tools_Debug}",
+			"%{Library.openssl_debug}",
+			"%{Library.libssh_debug}"
 		}
 
 	filter "configurations:Release"
@@ -84,7 +90,9 @@ project "Engine"
 		links {
 			"%{Library.shaderC_Release}",
 			"%{Library.SPIRV_Cross_Release}",
-			"%{Library.SPIRV_Tools_Release}"
+			"%{Library.SPIRV_Tools_Release}",
+			"%{Library.openssl}",
+			"%{Library.libssh}"
 		}
 
 	filter "configurations:Dist"
@@ -95,7 +103,9 @@ project "Engine"
 		links {
 			"%{Library.shaderC_Release}",
 			"%{Library.SPIRV_Cross_Release}",
-			"%{Library.SPIRV_Tools_Release}"
+			"%{Library.SPIRV_Tools_Release}",
+			"%{Library.libssh}",
+			"%{Library.openssl}"
 		}
 
     
