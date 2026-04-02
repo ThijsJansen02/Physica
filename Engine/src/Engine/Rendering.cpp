@@ -41,18 +41,33 @@ namespace PH::Engine {
 			Buffers buffers;
 			PH::Platform::GFX::Texture nulltexture;
 
-			PH::Platform::GFX::GraphicsPipeline defaultpipeline;
-			PH::Platform::GFX::Shader shaders[2];
+			PH::Platform::GFX::GraphicsPipeline currentpipeline;
+
 			ArrayList<ColoredQuadInstance> quads;
 
-			ArrayList<GFX::Texture> textures;
+			//holds a list of the descriptors that the user has set for the current draw call, these will be bound before drawing and cleared after drawing
+			ArrayList<PH::Platform::GFX::DescriptorSet> userdescriptors;
 
-			PH::Platform::GFX::DescriptorSet globaldescriptor;
+			//holds the texture array and scene uniform buffer for every draw call will be incremented and bound to the pipeline before drawing
+			ArrayList<PH::Platform::GFX::DescriptorSet> globaldescriptors;
+			
+			//pointer to the current position in the global descriptor set array, will be incremented for every draw call
+			sizeptr globaldescriptorpointer;
+
+			//holds the uniform buffer for the current scene
 			PH::Platform::GFX::Buffer scenebuffer;
 
+			//holds the size of the instance buffer, will be used to check if the buffer needs to be resized before drawing
 			sizeptr instancebuffersize;
+			
+			//holds the number of instances that have been drawn before this draw call
+			sizeptr drawninstances;
 
+			//local copy of the scene buffer data, will be updated by the user and copied to the GPU buffer before drawing
 			SceneBuffer localscenebuffer;
+
+			//holds the textures that have been used in the current draw call
+			ArrayList<GFX::Texture> textures;
 		};
 
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color, Renderer2D::Context* context) {
@@ -61,6 +76,17 @@ namespace PH::Engine {
 			instance.position = position;
 			instance.scalerot = glm::mat2{ {size.x, 0.0f}, {0.0f, size.y} };
 			
+			context->quads.pushBack(instance);
+			return true;
+		}
+
+		bool32 drawQuadWithID(const glm::vec3& position, const glm::vec2& size, const glm::vec4& color, uint32 objectid, Renderer2D::Context* context) {
+			ColoredQuadInstance instance{};
+			instance.color = color;
+			instance.position = position;
+			instance.scalerot = glm::mat2{ {size.x, 0.0f}, {0.0f, size.y} };
+			instance.textureindex = objectid;
+
 			context->quads.pushBack(instance);
 			return true;
 		}
@@ -87,6 +113,21 @@ namespace PH::Engine {
 			instance.textureindex = 0;
 			
 			context->quads.push(instance);
+			return true;
+		}
+
+		bool32 drawTexturedQuad(glm::vec3 position, glm::vec2 size, GFX::Texture texture, Renderer2D::Context* context) {
+			
+			ColoredQuadInstance instance{};
+			instance.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+			instance.position = position;
+			instance.scalerot = glm::mat2{ {size.x, 0.0f}, {0.0f, size.y} };
+			if (context->textures[context->textures.getCount() - 1] != texture) {
+				context->textures.pushBack(texture);
+			}
+
+			instance.textureindex = context->textures.getCount() - 1;
+			context->quads.pushBack(instance);
 			return true;
 		}
 
@@ -138,12 +179,26 @@ namespace PH::Engine {
 			return drawColoredQuad(transform, color, context);
 		}
 
-		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context) {
-
+		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, real32 depth, Renderer2D::Context* context) {
 			for (uint32 i = 1; i < points.count; i++) {
-				drawLine({ points[i - 1], 0.0f }, { points[i], 0.0f }, color, thickness, context);
+				drawLine({ points[i - 1], depth }, { points[i], depth }, color, thickness, context);
 			}
 			return true;
+		}
+
+		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context) {
+			return drawLineStrip(points, color, thickness, 0.0f, context);
+		}
+
+		bool32 pushTexture(GFX::Texture texture, Renderer2D::Context* context) {
+			if (context->textures.getCount() < Renderer2D::MAX_TEXTURES) {
+				context->textures.pushBack(texture);
+				return true;
+			}
+			else {
+				Engine::WARN << "Max texture count reached for this draw call, texture will not be drawn\n";
+				return false;
+			}
 		}
 
 		Platform::GFX::DescriptorSetLayout globalDescriptorSetLayout = PH_GFX_NULL;
@@ -208,7 +263,7 @@ namespace PH::Engine {
 			return tex;
 		}
 
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource) {
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
 
 			//create the shader modules
 			Platform::GFX::ShaderCreateinfo vertcreate{};
@@ -240,12 +295,10 @@ namespace PH::Engine {
 			auto layouts = Engine::ArrayList<GFX::DescriptorSetLayout>::create(1);
 			layouts.pushBack(globalDescriptorSetLayout);
 
-			//TODO add ability to have lobal descriptors
-			/*
-			for (auto layout : initinfo.descriptorsetlayouts) {
+			//TODO add ability to have global descriptors
+			for (auto layout : userlayouts) {
 				layouts.pushBack(layout);
 			}
-			*/
 
 
 			//adding it all together in the pipeline create;
@@ -270,7 +323,7 @@ namespace PH::Engine {
 			return pipeline;
 		}
 
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource) {
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts) {
 
 			//setup the shaderc comiler
 			shaderc::Compiler compiler;
@@ -310,10 +363,10 @@ namespace PH::Engine {
 
 			sizeptr fragsize = (compiledfragmodule.cend() - compiledfragmodule.cbegin()) * sizeof(uint32);
 
-			return createGraphicsPipelineFromBinaries(target, { (uint8*)compiledvertmodule.cbegin(), vertsize }, { (uint8*)compiledfragmodule.cbegin(), fragsize });
+			return createGraphicsPipelineFromBinaries(target, { (uint8*)compiledvertmodule.cbegin(), vertsize }, { (uint8*)compiledfragmodule.cbegin(), fragsize }, userlayouts);
 		}
 
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath) {
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
 
 			Platform::GFX::GraphicsPipelineCreateinfo info{};
 
@@ -327,7 +380,7 @@ namespace PH::Engine {
 				Engine::ERR << "failed to load fragsource!\n";
 			}
 
-			auto result = createGraphicsPipelineFromGLSLSource(target, { (uint8*)vertsource.data, vertsource.size }, { (uint8*)fragsource.data, fragsource.size });
+			auto result = createGraphicsPipelineFromGLSLSource(target, { (uint8*)vertsource.data, vertsource.size }, { (uint8*)fragsource.data, fragsource.size }, userlayouts);
 
 			Platform::unloadFile(&vertsource);
 			Platform::unloadFile(&fragsource);
@@ -344,7 +397,7 @@ namespace PH::Engine {
 			return true;
 		}
 
-		Platform::GFX::DescriptorSet createGlobalDescriptorSet(Context* context) {
+		Platform::GFX::DescriptorSet createGlobalDescriptorSet(Context* context, sizeptr scenebufferoffset) {
 
 			GFX::DescriptorSetCreateinfo createinfo{};
 			createinfo.dynamic = true;
@@ -371,7 +424,7 @@ namespace PH::Engine {
 
 			GFX::DescriptorBufferInfo bufferinfo;
 			bufferinfo.buffer = context->scenebuffer;
-			bufferinfo.offset = 0;
+			bufferinfo.offset = scenebufferoffset;
 			bufferinfo.range = sizeof(SceneBuffer);
 
 			//note not dynamic write because this write should set the buffer for every frame
@@ -444,28 +497,18 @@ namespace PH::Engine {
 
 			result.nulltexture = createNullTexture();
 			result.scenebuffer = createScenebuffer();
-			result.globaldescriptor = createGlobalDescriptorSet(&result);
-			result.defaultpipeline = initinfo.currentpipeline;
+			result.globaldescriptors = Engine::ArrayList<GFX::DescriptorSet>::create(1);
+			result.currentpipeline = initinfo.currentpipeline;
 			result.quads = Engine::ArrayList<ColoredQuadInstance>::create(1);
 			result.buffers = createBuffers(initinfo);
 			result.instancebuffersize = initinfo.instancebuffersize;
+			result.userdescriptors = Engine::ArrayList<GFX::DescriptorSet>::create(1);
 
 			result.textures = ArrayList<GFX::Texture>::create(MAX_TEXTURES);
 
 			Context* resultptr = (Context*)Engine::Allocator::alloc(sizeof(Renderer2D::Context));
 			*resultptr = result;
 			return resultptr;
-		}
-
-		bool32 begin(Context* context) {
-			context->textures.clear();
-			context->textures.pushBack(context->nulltexture);
-
-			context->quads.clear();
-			return true;
-		}
-		bool32 end(Context* context) {
-			return true;
 		}
 
 		bool32 updateDescriptorSet(Context* context) {
@@ -480,7 +523,7 @@ namespace PH::Engine {
 			write.arrayelement = 0;
 			write.descriptorcount = context->textures.getCount();
 			write.dstbinding = TEXTURESAMPLER_BINDING;
-			write.dstset = context->globaldescriptor;
+			write.dstset = context->globaldescriptors[context->globaldescriptorpointer];
 			write.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			write.descriptorinfo = infos;
 
@@ -500,45 +543,97 @@ namespace PH::Engine {
 			return true;
 		}
 
+		bool32 begin(Context* context) {
+
+			if (context->globaldescriptors.getCount() <= 0) {
+				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, 0));
+			}
+
+			context->textures.clear();
+			context->textures.pushBack(context->nulltexture);
+			context->quads.clear();
+
+			context->drawninstances = 0;
+			context->globaldescriptorpointer = 0;
+			return true;
+		}
+
+		bool32 end(Context* context) {
+			return true;
+		}
+
 		bool32 flush(Context* context, Base::Array<Platform::GFX::DescriptorSet> additionaldescriptors) {
 
 			Engine::ArenaScope s;
+
+			//calculate the offeset in the buffer because of the instances that have already been drawn in this frame, this allows for multiple flushes in one frame without overwriting the instance data of the previous flushes
+			sizeptr instanceoffset = sizeof(ColoredQuadInstance) * context->drawninstances;
 
 			//copy the instancedata into the gpu buffer
 			void* instancememory = nullptr;
 			PH::Platform::GFX::mapBuffer(&instancememory, context->buffers.instance);
 
-			if (context->quads.getCount() * sizeof(ColoredQuadInstance) > context->instancebuffersize) {
+			if (instanceoffset + context->quads.getCount() * sizeof(ColoredQuadInstance) > context->instancebuffersize) {
 				WARN << "there are more quads submittend than the size of the instance buffer allows the engine to draw\n";
 				return false;
 			}
 
-			Base::copyMemory(context->quads.raw(), instancememory, context->quads.getCount() * sizeof(ColoredQuadInstance));
+			//might not be necessary to copy the data every frame if the buffer is persistently mapped but for now this is the easiest way to do it
+			Base::copyMemory(context->quads.raw(), (uint8*)instancememory + instanceoffset, context->quads.getCount() * sizeof(ColoredQuadInstance));
 
 			updateSceneBuffer(context);
 			updateDescriptorSet(context);
 
-			PH::Platform::GFX::bindGraphicsPipeline(context->defaultpipeline);
+			PH::Platform::GFX::bindGraphicsPipeline(context->currentpipeline);
 
-			auto descriptorsets = Base::ArrayList<GFX::DescriptorSet, Engine::ArenaAllocator>::create(1 + additionaldescriptors.count);
-			descriptorsets.pushBack(context->globaldescriptor);
+			auto descriptorsets = Base::ArrayList<GFX::DescriptorSet, Engine::ArenaAllocator>::create(1 + additionaldescriptors.count + context->userdescriptors.getCount());
+			descriptorsets.pushBack(context->globaldescriptors[context->globaldescriptorpointer]);
+			descriptorsets.pushBack(context->userdescriptors.getArray());
 			descriptorsets.pushBack(additionaldescriptors);
 				
 			PH::Platform::GFX::bindDescriptorSets(descriptorsets.raw(), 0, descriptorsets.getCount());
 
 			PH::Platform::GFX::bindIndexBuffer(context->buffers.index, 0);
 			PH::Platform::GFX::Buffer buffers[2] = { context->buffers.vertex, context->buffers.instance };
-			sizeptr offsets[] = { 0, 0 };
+			sizeptr offsets[] = { 0, instanceoffset};
 			PH::Platform::GFX::bindVertexBuffers(0, 2, buffers, offsets);
-
 			PH::Platform::GFX::drawIndexed(6, context->quads.getCount(), 0, 0);
+			
+			context->drawninstances += context->quads.getCount();	
+
+			//reset all the data for the next drawcall
+			context->textures.clear();
+			context->textures.pushBack(context->nulltexture);
+			context->quads.clear();
 
 			descriptorsets.release();
 			return true;
 		}
+
+		void moveToNextDesciptorSet(Context* context) {
+			context->globaldescriptorpointer++;
+			if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
+				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, 0));
+			}
+		}
+
+		bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context) {
+			if (!context->quads.empty()) {
+				flush(context, {nullptr, 0});
+				moveToNextDesciptorSet(context);
+			}
+			else {
+				if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
+					context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, 0));
+				}
+			}
+			context->currentpipeline = pipeline;
+			context->userdescriptors.clear();
+			context->userdescriptors.pushBack(userdescriptors);
+
+			return true;
+		}
 	}
-
-
 
 	namespace Renderer3D {
 

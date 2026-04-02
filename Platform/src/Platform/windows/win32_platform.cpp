@@ -130,12 +130,16 @@ PH::Platform::Event win32_translateMessage(MSG message) {
 	result.type = PH_EVENT_TYPE_NULL;
 
 	switch (message.message) {
+
+	case WM_MOUSEWHEEL:
+		result.type = PH_EVENT_TYPE_MOUSE_SCROLLED;
+		result.lparam = (PH::uint64)(void*)GET_WHEEL_DELTA_WPARAM(message.wParam);
+		break;
 	case WM_MOUSEMOVE:
 		result.type = PH_EVENT_TYPE_MOUSE_MOVED;
 		result.lparam = LOWORD(message.lParam);
 		result.rparam = HIWORD(message.lParam);
 		break;
-
 	case WM_KEYDOWN:
 		result.type = PH_EVENT_TYPE_KEY_PRESSED;
 		result.lparam = message.wParam;

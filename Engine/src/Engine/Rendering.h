@@ -64,12 +64,17 @@ namespace PH::Engine {
 		};
 
 		bool32 begin(Context* context);
+		bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context);
+		bool32 pushTexture(Platform::GFX::Texture texture, PH::Engine::Renderer2D::Context* context);
 		bool32 end(Context* context);
 		bool32 flush(Context* context, Base::Array<Platform::GFX::DescriptorSet> globaldescriptorsets);
 
+		bool32 drawTexturedQuad(glm::vec3 position, glm::vec2 size, Platform::GFX::Texture texture, Renderer2D::Context* context);
 		bool32 drawTexturedQuad(const glm::mat4& transform, Platform::GFX::Texture texture, Renderer2D::Context* context);
 
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath);
+		bool32 drawQuadWithID(const glm::vec3& position, const glm::vec2& scale, const glm::vec4& color, uint32 objectid, Renderer2D::Context* m_Context);
+
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
 
 		bool32 drawColoredQuad(const glm::mat4& transform, glm::vec4 color, Renderer2D::Context* context);
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, real32 rotation, glm::vec4 color, Renderer2D::Context* context);
@@ -80,6 +85,7 @@ namespace PH::Engine {
 
 		bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context);
 		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context);
+		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, real32 depth, Renderer2D::Context* context);
 
 
 		bool32 setView(Context* context, const glm::mat4& view);

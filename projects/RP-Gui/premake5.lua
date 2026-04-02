@@ -30,6 +30,7 @@ project "RP-GUI"
 		"%{IncludeDir.yaml}",
 		--"%{IncludeDir.imguizmo}",
 		"%{IncludeDir.editor}",
+		"%{IncludeDir.stb}"
 
 	}
 

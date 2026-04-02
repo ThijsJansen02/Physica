@@ -11,6 +11,7 @@ namespace PH::Platform {
 #define PH_EVENT_TYPE_CHAR 5
 #define PH_EVENT_TYPE_MOUSE_MOVED 6
 #define PH_EVENT_TYPE_WINDOW_RESIZED 7
+#define PH_EVENT_TYPE_MOUSE_SCROLLED 8
 
 	//all keyboard defines
 #define PH_CANCEL 0x03 	        //Control-break processing

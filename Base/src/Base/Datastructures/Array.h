@@ -421,6 +421,10 @@ namespace PH::Base {
 			return;
 		}
 
+		bool32 empty() const {
+			return getCount() == 0;
+		}
+
 		type& operator[](sizeptr index) {
 			return m_Storage[index];
 		}

@@ -20,9 +20,19 @@ namespace PH::Engine {
 			bool32 drawTexturedQuad(const glm::mat4& transform, Platform::GFX::Texture texture) {
 				return Renderer2D::drawTexturedQuad(transform, texture, m_Context);
 			}
-			static Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath) {
-				return Renderer2D::createGraphicsPipelineFromGLSLSource(target, vertpath, fragpath);
+
+			bool32 drawTexturedQuad(glm::vec3 position, glm::vec2 size, Platform::GFX::Texture texture) {
+				return Renderer2D::drawTexturedQuad(position, size, texture, m_Context);
 			}
+
+			static Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath, Base::Array<Platform::GFX::DescriptorSetLayout> userlayout) {
+				return Renderer2D::createGraphicsPipelineFromGLSLSource(target, vertpath, fragpath, userlayout);
+			}
+
+			bool32 drawQuadWithID(const glm::vec3& position, const glm::vec2& size, glm::vec4 color, uint32 objectid) {
+				return Renderer2D::drawQuadWithID(position, size, color, objectid, m_Context);
+			}
+
 			bool32 drawColoredQuad(const glm::mat4& transform, glm::vec4 color) {
 				return Renderer2D::drawColoredQuad(transform, color, m_Context);
 			}
@@ -43,12 +53,23 @@ namespace PH::Engine {
 			}
 			bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec2 thickness) {
 				return Renderer2D::drawLineStrip(points, thickness, m_Context);
-			}
+			}	
 			bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec4 color, glm::vec2 thickness) {
 				return Renderer2D::drawLine(v1, v2, color, thickness, m_Context);
 			}
 			bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness) {
 				return Renderer2D::drawLineStrip(points, color, thickness, m_Context);	
+			}
+			bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, real32 depth) {
+				return Renderer2D::drawLineStrip(points, color, thickness, depth, m_Context);
+			}
+
+			bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors = {nullptr, 0}) {
+				return Renderer2D::pushGraphicsPipeline(pipeline, userdescriptors, m_Context);
+			}
+
+			bool32 pushTexture(Platform::GFX::Texture texture) {
+				return Renderer2D::pushTexture(texture, m_Context);
 			}
 
 			static Wrapper create(const Renderer2D::InitInfo& info) {
