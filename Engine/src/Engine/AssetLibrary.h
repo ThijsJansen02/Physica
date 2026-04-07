@@ -69,6 +69,8 @@ namespace PH::Engine::Assets {
 		Asset* assettobeloaded;
 	};
 
+	//TODO: should use circular work queue from the base library instead of this homebrew one, but for now this is fine
+
 	/// <summary>
 	/// work queue capable of multithreaded queue operations
 	/// </summary>

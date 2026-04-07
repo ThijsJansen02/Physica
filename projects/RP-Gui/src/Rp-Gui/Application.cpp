@@ -17,6 +17,8 @@
 #include <Engine/Events.h>
 #include <Engine/imgui/DockSpace.h>
 
+#include <Base/Datastructures/circularworkqueue.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -184,11 +186,26 @@ int show_remote_processes(ssh_session session)
 	return SSH_OK;
 }
 
+struct ThreadCommand {
+	const char* command;
+};
+
+struct ThreadData {
+	bool32 connected = false;
+	bool32 open = true;
+
+	DWORD threadid;
+	HANDLE semaphore;
+
+	PH::Base::CircularWorkQueue<ThreadCommand, Engine::Allocator> commandqueue;
+};
+
 //open ssh connection in a seperate thread to test the thread safety of libssh, and to test the performance of libssh when used in a separate thread. also to test the performance of libssh when used in a separate thread with a separate memory allocator
 PH::int32 examplethread(
 	void* userdata
 ) {
 	INFO << "hello from thread! userdata: " << (uint64)userdata << "\n";
+#if 0
 
 	ssh_session my_ssh_session = NULL;
 	int rc;
@@ -196,8 +213,9 @@ PH::int32 examplethread(
 	int port = 22;
 
 	my_ssh_session = ssh_new();
-	if (my_ssh_session == NULL)
-		exit(-1);
+	if (my_ssh_session == NULL) {
+		return -1;
+	}
 
 
 	ssh_options_set(my_ssh_session, SSH_OPTIONS_HOST, "root@rp-f083c2.local");
@@ -208,17 +226,16 @@ PH::int32 examplethread(
 	if (rc != SSH_OK)
 	{
 		Engine::ERR << "Error connecting to localhost: " << ssh_get_error(my_ssh_session) << "\n";
-		system("PAUSE");
+		return -1;
 	}
 
 
 	// Verify the server's identity
-	// For the source code of verify_knownhost(), check previous example
 	if (verify_knownhost(my_ssh_session) < 0)
 	{
 		ssh_disconnect(my_ssh_session);
 		ssh_free(my_ssh_session);
-		exit(-1);
+		return -1;
 	}
 
 	// Authenticate ourselves
@@ -229,16 +246,35 @@ PH::int32 examplethread(
 		WARN << "Error authenticating with password: %s\n" << ssh_get_error(my_ssh_session) << "\n";
 		ssh_disconnect(my_ssh_session);
 		ssh_free(my_ssh_session);
-		exit(-1);
+		return -1;
 	}
 
 	show_remote_processes(my_ssh_session);
 
 	ssh_disconnect(my_ssh_session);
 	ssh_free(my_ssh_session);
+#endif
 
+	ThreadData* info = (ThreadData*)userdata;
+
+	WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
+
+	while (true && info->open) {
+
+		ThreadCommand* work = info->commandqueue.pop();
+		if (work) {
+			INFO << "Thread: " << (uint32)info->threadid << " is executing command: " << work->command << "\n";
+		}
+		else {
+			INFO << "thread: " << (uint32)info->threadid << " is going to sleep\n";
+			WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
+			INFO << "thread: " << (uint32)info->threadid << " woke up\n";
+		}
+	}
 	return 0;
 }
+
+ThreadData threaddata;
 
 PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
@@ -251,17 +287,24 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
 	ssh_init(); //libssh test
 
+	threaddata.semaphore = CreateSemaphoreEx(0, 0, 1, nullptr, 0, SEMAPHORE_ALL_ACCESS);
+	threaddata.commandqueue = PH::Base::CircularWorkQueue<ThreadCommand, Engine::Allocator>::create(10);
+	threaddata.open = true;
+
 	PH::Platform::ThreadCreateInfo threadinfo{};
 	threadinfo.threadworkmemorysize = KILO_BYTE;
 	threadinfo.usegfx = false;
-	threadinfo.userdata = nullptr;
+	threadinfo.userdata = (void*)&threaddata;
 	threadinfo.threadproc = examplethread;
 
 	PH::Platform::Thread thread;
-
 	PH::Platform::createThread(threadinfo, &thread);
+	threaddata.threadid = thread.id;
 
 
+	//push first command to queue;
+	threaddata.commandqueue.push({ "first command to execute" });
+	ReleaseSemaphore(threaddata.semaphore, 1, nullptr);
 
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
 
@@ -323,6 +366,11 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		ImGui::Text("framerate %f", 1.0f / Engine::getTimeStep());
 		ImGui::Text("mousepos %f, %f", Engine::Events::getMousePos().x, Engine::getParentDisplay()->viewport.y - Engine::Events::getMousePos().y);
 		ImGui::Text("viewpanel topleft: %f, %f", RpGui::context->plotviewpanel.panelregion.left, RpGui::context->plotviewpanel.panelregion.top);
+
+		if (ImGui::Button("poke thread")) {
+			threaddata.commandqueue.push({ "poke from imgui button" });
+			ReleaseSemaphore(threaddata.semaphore, 1, nullptr);	
+		}
 	} ImGui::End();
 
 	PH::Engine::EndDockspace();
