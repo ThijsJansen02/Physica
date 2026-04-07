@@ -11,6 +11,8 @@
 #include <Base/Log.h>
 
 void win32_consoleWrite(const PH::Base::SubString& str);
+void win32_consoleWrite_dummy(const PH::Base::SubString& str);
+
 
 namespace PH::Vulkan {
 
@@ -18,9 +20,9 @@ namespace PH::Vulkan {
 #define MAX_FRAMES_IN_FLIGHT 2
 #define VULKAN_DESCRIPTOR_POOL_SIZE 100;
 
-	extern PH::Base::LogStream<win32_consoleWrite> ERR;
-	extern PH::Base::LogStream<win32_consoleWrite> WARN;
-	extern PH::Base::LogStream<win32_consoleWrite> INFO;
+	extern PH::Base::LogStream<win32_consoleWrite_dummy> ERR;
+	extern PH::Base::LogStream<win32_consoleWrite_dummy> WARN;
+	extern PH::Base::LogStream<win32_consoleWrite_dummy> INFO;
 
 	class Allocator {
 	public:

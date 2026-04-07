@@ -49,7 +49,8 @@ project "Engine"
 		"yaml-cpp",
 		"assimp",
 		"Ws2_32.lib",
-		"Iphlpapi.lib"
+		"Iphlpapi.lib",
+		"Crypt32.lib"
 	}
 
 

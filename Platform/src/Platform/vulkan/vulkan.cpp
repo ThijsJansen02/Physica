@@ -23,9 +23,9 @@ namespace PH::Vulkan {
 		void* pUserData);
 
 
-	PH::Base::LogStream<win32_consoleWrite> ERR;
-	PH::Base::LogStream<win32_consoleWrite> WARN;
-	PH::Base::LogStream<win32_consoleWrite> INFO;
+	PH::Base::LogStream<win32_consoleWrite_dummy> ERR;
+	PH::Base::LogStream<win32_consoleWrite_dummy> WARN;
+	PH::Base::LogStream<win32_consoleWrite_dummy> INFO;
 
 	PH::Base::DynamicMemoryBuffer Allocator::memory;
 	thread_local PH::Base::MemoryArena ArenaAllocator::arena;

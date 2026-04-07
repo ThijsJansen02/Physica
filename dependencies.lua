@@ -31,11 +31,11 @@ LibraryDir["zlib"] = "%{wks.location}/dep/zlib/lib"
 Library = {}
 Library["vulkan"] = "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
 
-Library["openssl_debug"] = "%{LibraryDir.openssl}/MTd/libssl.lib"
-Library["openssl"] = "%{LibraryDir.openssl}/MT/libssl.lib"
+Library["openssl_debug"] = "%{LibraryDir.openssl}/MTd/libssl_static.lib"
+Library["openssl"] = "%{LibraryDir.openssl}/MT/libssl_static.lib"
 
-Library["libcrypto_debug"] = "%{LibraryDir.openssl}/MTd/libcrypto.lib"
-Library["libcrypto"] = "%{LibraryDir.openssl}/MT/libcrypto.lib"
+Library["libcrypto_debug"] = "%{LibraryDir.openssl}/MTd/libcrypto_static.lib"
+Library["libcrypto"] = "%{LibraryDir.openssl}/MT/libcrypto_static.lib"
 
 Library["libssh_debug"] = "%{LibraryDir.libssh}/Debug/ssh.lib"
 Library["libssh"] = "%{LibraryDir.libssh}/Release/ssh.lib"

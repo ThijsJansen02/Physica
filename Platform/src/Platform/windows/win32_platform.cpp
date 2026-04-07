@@ -100,6 +100,11 @@ void win32_consoleWrite(const PH::Base::SubString& str) {
 	WriteFile(hStdout, str.getC_Str(), (DWORD)str.getLength(), &byteswritten, NULL);
 }
 
+void win32_consoleWrite_dummy(const PH::Base::SubString& str) {
+	DWORD byteswritten = 0;
+	//WriteFile(hStdout, str.getC_Str(), (DWORD)str.getLength(), &byteswritten, NULL);
+}
+
 void win32_consoleWrite(const win32String& str) {
 	win32_consoleWrite(str.getSubString());
 }
@@ -107,7 +112,7 @@ void win32_consoleWrite(const win32String& str) {
 
 PH::Base::LogStream<win32_consoleWrite> INFO;
 PH::Base::LogStream<win32_consoleWrite> WARN;
-PH::Base::LogStream<win32_consoleWrite> ERR;	
+PH::Base::LogStream<win32_consoleWrite> ERR;
 
 PH::uint64 pack(PH::uint32 high, PH::uint32 low) {
 
