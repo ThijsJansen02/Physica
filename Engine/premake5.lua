@@ -47,7 +47,9 @@ project "Engine"
 		"Base",
 		"Imgui",
 		"yaml-cpp",
-		"assimp"
+		"assimp",
+		"Ws2_32.lib",
+		"Iphlpapi.lib"
 	}
 
 
@@ -79,7 +81,9 @@ project "Engine"
 			"%{Library.SPIRV_Cross_Debug}",
 			"%{Library.SPIRV_Tools_Debug}",
 			"%{Library.openssl_debug}",
-			"%{Library.libssh_debug}"
+			"%{Library.libssh_debug}",
+			"%{Library.libcrypto_debug}",
+			"%{Library.zlib_debug}"
 		}
 
 	filter "configurations:Release"
@@ -92,7 +96,9 @@ project "Engine"
 			"%{Library.SPIRV_Cross_Release}",
 			"%{Library.SPIRV_Tools_Release}",
 			"%{Library.openssl}",
-			"%{Library.libssh}"
+			"%{Library.libssh}",
+			"%{Library.libcrypto}",
+			"%{Library.zlib}"
 		}
 
 	filter "configurations:Dist"
@@ -105,7 +111,9 @@ project "Engine"
 			"%{Library.SPIRV_Cross_Release}",
 			"%{Library.SPIRV_Tools_Release}",
 			"%{Library.libssh}",
-			"%{Library.openssl}"
+			"%{Library.openssl}",
+			"%{Library.libcrypto_debug}",
+			"%{Library.zlib}"
 		}
 
     

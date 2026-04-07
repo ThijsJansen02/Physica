@@ -19,7 +19,7 @@ namespace PH::RpGui {
 		real32 pixelheight;
 	};
 
-	Platform::GFX::DescriptorSetLayout createFontDescriptorSetLayout() {
+	inline Platform::GFX::DescriptorSetLayout createFontDescriptorSetLayout() {
 
 		Platform::GFX::DescriptorBinding binding;
 		binding.binding = 0;
@@ -33,14 +33,14 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	Platform::GFX::DescriptorSetLayout fontuserlayout = PH_GFX_NULL;
+	extern Platform::GFX::DescriptorSetLayout fontuserlayout;
 
 	struct UVcoords {
 		glm::vec2 bottomleft;
 		glm::vec2 topright;
 	};
 
-	Font loadFont(const char* ttfpath, uint32 bitmapwidth, real32 pixelheight) {
+	inline Font loadFont(const char* ttfpath, uint32 bitmapwidth, real32 pixelheight) {
 
 		Font result = {};
 
@@ -125,7 +125,7 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	void drawFromBottomLeft(glm::vec3 position, glm::vec2 size, glm::vec4 color, uint32 id) {
+	inline void drawFromBottomLeft(glm::vec3 position, glm::vec2 size, glm::vec4 color, uint32 id) {
 		glm::vec3 middle = glm::vec3(glm::vec2(position) + (size / 2.0f), position.z);
 		RpGui::renderer2D.drawQuadWithID(
 			middle,
@@ -135,7 +135,7 @@ namespace PH::RpGui {
 		);
 	}
 
-	void drawText(Font* font, const char* text, glm::vec2 position, real32 scale) {
+	inline void drawText(Font* font, const char* text, glm::vec2 position, real32 scale) {
 
 		real32 x = 0.0f;
 		real32 y = 0.0f;

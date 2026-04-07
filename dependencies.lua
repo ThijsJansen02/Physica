@@ -16,13 +16,17 @@ IncludeDir["imguizmo"] = "%{wks.location}/dep/ImGuizmo"
 IncludeDir["zep"] = "%{wks.location}/dep/zep/include"
 IncludeDir["editor"] = "%{wks.location}/Editor/src"
 IncludeDir["stb"] = "%{wks.location}/dep/stb_"
+
+--openssl and libssh for remote red pitaya access
 IncludeDir["openssl"] = "%{wks.location}/dep/openssl/include"
 IncludeDir["libssh"] = "%{wks.location}/dep/libssh/include"
+IncludeDir["zlib"] = "%{wks.location}/dep/zlib/include"
 
 LibraryDir = {}
 LibraryDir["vulkanSDK"] = "%{VULKAN_SDK}/Lib"
 LibraryDir["openssl"] = "%{wks.location}/dep/openssl/lib/VC/x64"
 LibraryDir["libssh"] = "%{wks.location}/dep/libssh/lib"
+LibraryDir["zlib"] = "%{wks.location}/dep/zlib/lib"
 
 Library = {}
 Library["vulkan"] = "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
@@ -30,8 +34,14 @@ Library["vulkan"] = "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
 Library["openssl_debug"] = "%{LibraryDir.openssl}/MTd/libssl.lib"
 Library["openssl"] = "%{LibraryDir.openssl}/MT/libssl.lib"
 
+Library["libcrypto_debug"] = "%{LibraryDir.openssl}/MTd/libcrypto.lib"
+Library["libcrypto"] = "%{LibraryDir.openssl}/MT/libcrypto.lib"
+
 Library["libssh_debug"] = "%{LibraryDir.libssh}/Debug/ssh.lib"
 Library["libssh"] = "%{LibraryDir.libssh}/Release/ssh.lib"
+
+Library["zlib_debug"] = "%{LibraryDir.zlib}/Debug/zsd.lib"
+Library["zlib"] = "%{LibraryDir.zlib}/Release/zs.lib"
 
 Library["shaderC_Debug"] = "%{LibraryDir.vulkanSDK}/shaderc_sharedd.lib"
 Library["SPIRV_Cross_Debug"] = "%{LibraryDir.vulkanSDK}/spirv-cross-cored.lib"

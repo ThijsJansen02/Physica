@@ -15,7 +15,7 @@ namespace PH::Engine {
 		colorattachment.initiallayout = Platform::GFX::IMAGE_LAYOUT_UNDEFINED;
 		colorattachment.finallayout = Platform::GFX::IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		colorattachment.format = Platform::GFX::FORMAT_R8G8B8A8_UNORM;
+		colorattachment.format = Platform::GFX::FORMAT_R8G8B8A8_SRGB;
 		colorattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
 		colorattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_STORE;
 
@@ -72,7 +72,7 @@ namespace PH::Engine {
 		display.renderpass = Display::defaultrenderpassdescription;
 
 		Platform::GFX::TextureCreateInfo texturecreate{};
-		texturecreate.format = Platform::GFX::FORMAT_R8G8B8A8_UNORM;
+		texturecreate.format = Platform::GFX::FORMAT_R8G8B8A8_SRGB;
 		texturecreate.width = width;
 		texturecreate.height = height;
 		texturecreate.data = nullptr;

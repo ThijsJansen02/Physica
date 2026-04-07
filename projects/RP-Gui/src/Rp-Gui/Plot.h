@@ -17,7 +17,7 @@ namespace PH::RpGui {
 	};
 
 	//WARNING: does the transform in the memory of the points array, changes the contents of the array! 
-	bool32 drawLineStrip(PH::Base::Array<glm::vec2> points, glm::vec2 thickness, const glm::vec4& color, const glm::mat4& transform) {
+	inline bool32 drawLineStrip(PH::Base::Array<glm::vec2> points, glm::vec2 thickness, const glm::vec4& color, const glm::mat4& transform) {
 
 		real32 depth = transform[3][2];
 
@@ -34,7 +34,7 @@ namespace PH::RpGui {
 		return RpGui::renderer2D.drawLineStrip(points, color, thickness, depth);
 	}
 
-	bool32 drawLine(glm::vec2 v1, glm::vec2 v2, glm::vec4 color, glm::vec2 thickness, const glm::mat4& transform) {
+	inline bool32 drawLine(glm::vec2 v1, glm::vec2 v2, glm::vec4 color, glm::vec2 thickness, const glm::mat4& transform) {
 		real32 depth = transform[3][2];
 
 		glm::vec3 tv1 = { transform[0] };
@@ -50,7 +50,7 @@ namespace PH::RpGui {
 	}
 
 	//draws a linestrip transformed from the corresponding range to the region on the display as given by the parameters
-	bool32 drawPlot(PH::Base::Array<glm::vec2> points, Box2D range, Box2D region, glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f }, glm::vec2 thickness = { 1.0f, 1.0f }) {
+	inline bool32 drawPlot(PH::Base::Array<glm::vec2> points, Box2D range, Box2D region, glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f }, glm::vec2 thickness = { 1.0f, 1.0f }) {
 
 		//transform from range to -1.0f, 1.0f
 		real32 width = region.right - region.left;
@@ -71,11 +71,11 @@ namespace PH::RpGui {
 		return drawLineStrip(points, thickness, color, rangeToRegion);
 	}
 
-	bool32 contains(glm::vec2 point, Box2D box) {
+	inline bool32 contains(glm::vec2 point, Box2D box) {
 		return point.x >= box.left && point.x <= box.right && point.y >= box.bottom && point.y <= box.top;
 	}
 
-	bool32 drawPlotScaleLines(Box2D range, Box2D region) {
+	inline bool32 drawPlotScaleLines(Box2D range, Box2D region) {
 		//transform from range to -1.0f, 1.0f
 		real32 width = region.right - region.left;
 		real32 heigth = region.top - region.bottom;
@@ -144,7 +144,7 @@ namespace PH::RpGui {
 		return true;
 	}
 
-	bool32 drawPlotScaleValues(Box2D range, Box2D region, Font* font, real32 scale = 1.0f) {
+	inline bool32 drawPlotScaleValues(Box2D range, Box2D region, Font* font, real32 scale = 1.0f) {
 		//transform from range to -1.0f, 1.0f
 		real32 width = region.right - region.left;
 		real32 heigth = region.top - region.bottom;
@@ -176,7 +176,7 @@ namespace PH::RpGui {
 		//draw lines in x direction
 		for (real32 x = xstart; x <= range.right; x += xstep) {
 			char buffer[64];
-			snprintf(buffer, 64, "%4.1f", x);
+			snprintf(buffer, 64, "%4.2f", x);
 
 			glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
 			drawText(font, buffer, glm::vec2(position) + padding, scale);
@@ -186,7 +186,7 @@ namespace PH::RpGui {
 		for (real32 y = ystart; y <= range.top; y += ystep) {
 
 			char buffer[64];
-			snprintf(buffer, 64, "%4.1f", y);
+			snprintf(buffer, 64, "%4.2f", y);
 
 			glm::vec4 position = rangeToRegion * glm::vec4{ range.left, y, 0.0f, 1.0f };
 			drawText(font, buffer, glm::vec2(position) + padding, scale);
@@ -195,7 +195,7 @@ namespace PH::RpGui {
 		return true;
 	}
 
-	void drawTextureQuadBottomLeft(glm::vec3 bottomleft, glm::vec2 scale, PH::Platform::GFX::Texture texture) {
+	inline void drawTextureQuadBottomLeft(glm::vec3 bottomleft, glm::vec2 scale, PH::Platform::GFX::Texture texture) {
 		RpGui::renderer2D.drawTexturedQuad({ bottomleft.x + scale.x, bottomleft.y + scale.y, bottomleft.z }, { scale.x, scale.y }, texture);
 	}
 

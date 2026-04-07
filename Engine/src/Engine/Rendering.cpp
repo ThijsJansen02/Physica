@@ -309,7 +309,7 @@ namespace PH::Engine {
 			pipelinecreate.topology = Platform::GFX::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			pipelinecreate.vertexbindingdescriptions = { quadvertexbindingdescription, ARRAY_LENGTH(quadvertexbindingdescription) };
 			pipelinecreate.vertexattributedescriptions = { quadvertexinputattributes, ARRAY_LENGTH(quadvertexinputattributes) };
-			pipelinecreate.depthtest = true;
+			pipelinecreate.depthtest = false;
 
 			Platform::GFX::GraphicsPipeline pipeline;
 
