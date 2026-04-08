@@ -20,12 +20,22 @@ namespace PH::RpGui {
 		Box2D panelregion; //the region of the panel in window coordinates, used for drawing the plot and for transforming mouse coordinates from window coordinates to plot coordinates
 		bool32 isfocussed;
 
-		static PlotViewPanel create(Box2D range);
+		Engine::String name;
+
+		static PlotViewPanel create(Box2D range, const char* name);
 
 		void onEvent(PH::Platform::Event* event);
 
 		void setRange(Box2D newrange) {
 			range = newrange;
+		}
+
+		void beginRenderPass() {
+			Engine::beginRenderPass(display);
+		}
+
+		void endRenderPass() {
+			Engine::endRenderPass(display);
 		}
 
 		void ImGuiDraw();

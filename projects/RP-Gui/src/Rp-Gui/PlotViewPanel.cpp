@@ -7,7 +7,7 @@
 
 namespace PH::RpGui {
 	
-	PlotViewPanel PlotViewPanel::create(Box2D range)  {
+	PlotViewPanel PlotViewPanel::create(Box2D range, const char* name)  {
 
 		PlotViewPanel result;
 		result.display = Engine::createImGuiDisplay(1920, 1080);
@@ -16,24 +16,14 @@ namespace PH::RpGui {
 		result.region.bottom = 0.0f;
 		result.region.top = (real32)result.display.framebuffersize.y;
 
+		result.name = Engine::String::create(name);
+
 		result.range = range;
 
 		result.isfocussed = false;
 
 		return result;
 
-	}
-
-	struct FunctionParams {
-		real32 cutoff;
-		real32 Qfactor;
-		real32 gain;
-	};
-
-	real32 bandpass(real32 x, void* params_) {
-
-		FunctionParams* params = (FunctionParams*)params_;
-		return (x * x + params->cutoff * params->cutoff) / (x * x + ((x * params->cutoff) / params->Qfactor) + params->cutoff * params->cutoff);
 	}
 
 	void PlotViewPanel::onEvent(PH::Platform::Event* event) {
@@ -75,7 +65,7 @@ namespace PH::RpGui {
 
 		auto& io = ImGui::GetIO();
 
-		if (ImGui::Begin("ViewPlot")) {
+		if (ImGui::Begin(name.getC_Str())) {
 			real32 titlebarheight = ImGui::GetFrameHeight();
 
 			//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 0, 0 });
@@ -127,43 +117,7 @@ namespace PH::RpGui {
 
 	void PlotViewPanel::draw() {
 
-		//begin renderpass for this display
-		Engine::beginRenderPass(display);
-
-		PH::RpGui::context->buffer.clear();
-		static int32 nsamples = 2000;
-
-		real32 xrange = range.right - range.left;
-		real32 dx = xrange / (real32)nsamples;
-
-		static FunctionParams params = { 100.0f, 4.0f, 10.0f };
-
-		//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
-		for (real32 x = range.left; x <= range.right; x += dx) {
-			glm::vec2 coordinate = { x, 20 * log10(bandpass(powf(10.0f, x), (void*)&params)) };
-			PH::RpGui::context->buffer.pushBack(coordinate);
-		}
-
-		//start drawing the plot, first set the pipeline and the view and projection matrices, then draw the background and the plot itself, then end the renderer and flush it to the GPU
-		RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->pipeline2D);
-		RpGui::renderer2D.setView(glm::mat4(1.0f));
-		RpGui::renderer2D.setProjection(glm::ortho(0.0f, (real32)region.right, (real32)region.top, 0.0f));
 		
-		//draw the plot with lines and the plot itself
-		drawPlotScaleLines(range, region);
-		drawPlot(RpGui::context->buffer.getArray(), range, region);
-
-		static real32 textscale = 0.5f;
-
-		//start drawing the text
-		RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->fontpipeline2D, { &RpGui::context->font.cdata, 1 });
-		RpGui::renderer2D.pushTexture(RpGui::context->font.atlas);
-		RpGui::drawPlotScaleValues(range, region, &RpGui::context->font, textscale);
-
-		RpGui::renderer2D.flush({ nullptr, 0 });
-
-		//end renderpass for this display
-		Engine::endRenderPass(display);
 	}
 
 
