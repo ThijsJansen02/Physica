@@ -129,7 +129,7 @@ int verify_knownhost(ssh_session session)
 	return 0;
 }
 
-int show_remote_processes(ssh_session session)
+int show_remote_processes(ssh_session session, const char* request)
 {
 	ssh_channel channel = NULL;
 	int rc;
@@ -147,7 +147,9 @@ int show_remote_processes(ssh_session session)
 		return rc;
 	}
 
-	rc = ssh_channel_request_exec(channel, "ls");
+
+
+	rc = ssh_channel_request_exec(channel, request);
 	if (rc != SSH_OK)
 	{
 		ssh_channel_close(channel);
@@ -156,6 +158,7 @@ int show_remote_processes(ssh_session session)
 	}
 
 	nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+	buffer[nbytes] = '\0';
 
 	/*
 	while (nbytes > 0)
@@ -205,7 +208,7 @@ PH::int32 examplethread(
 	void* userdata
 ) {
 	INFO << "hello from thread! userdata: " << (uint64)userdata << "\n";
-#if 0
+#if 1
 
 	ssh_session my_ssh_session = NULL;
 	int rc;
@@ -249,10 +252,8 @@ PH::int32 examplethread(
 		return -1;
 	}
 
-	show_remote_processes(my_ssh_session);
+	show_remote_processes(my_ssh_session, "fpgautil -b sinewave_generator_wrapper.bit.bin\n");
 
-	ssh_disconnect(my_ssh_session);
-	ssh_free(my_ssh_session);
 #endif
 
 	ThreadData* info = (ThreadData*)userdata;
@@ -264,6 +265,10 @@ PH::int32 examplethread(
 		ThreadCommand* work = info->commandqueue.pop();
 		if (work) {
 			INFO << "Thread: " << (uint32)info->threadid << " is executing command: " << work->command << "\n";
+			show_remote_processes(my_ssh_session, "monitor 0x41200008 0x3FFF0000");
+
+
+
 		}
 		else {
 			INFO << "thread: " << (uint32)info->threadid << " is going to sleep\n";
@@ -271,6 +276,9 @@ PH::int32 examplethread(
 			INFO << "thread: " << (uint32)info->threadid << " woke up\n";
 		}
 	}
+
+	ssh_disconnect(my_ssh_session);
+	ssh_free(my_ssh_session);
 	return 0;
 }
 

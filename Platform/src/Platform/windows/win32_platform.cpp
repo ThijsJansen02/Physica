@@ -624,7 +624,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	initinfo.windowwidth = state.windowwidth;
 	initinfo.windowheight = state.windowheight;
 
+#ifdef PH_DEBUG
 	initinfo.debugactive = true;
+#else
+	initinfo.debugactive = false;
+#endif
 	initinfo.memory = VirtualAlloc(nullptr, GRAPHICS_MEMORY_SIZE, MEM_COMMIT, PAGE_READWRITE);
 	initinfo.memorysize = GRAPHICS_MEMORY_SIZE;
 

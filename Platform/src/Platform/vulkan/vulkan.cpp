@@ -23,9 +23,9 @@ namespace PH::Vulkan {
 		void* pUserData);
 
 
-	PH::Base::LogStream<win32_consoleWrite_dummy> ERR;
-	PH::Base::LogStream<win32_consoleWrite_dummy> WARN;
-	PH::Base::LogStream<win32_consoleWrite_dummy> INFO;
+	PH::Base::LogStream<win32_consoleWrite> ERR;
+	PH::Base::LogStream<win32_consoleWrite> WARN;
+	PH::Base::LogStream<win32_consoleWrite> INFO;
 
 	PH::Base::DynamicMemoryBuffer Allocator::memory;
 	thread_local PH::Base::MemoryArena ArenaAllocator::arena;
@@ -91,6 +91,7 @@ namespace PH::Vulkan {
 
 		if (!checkValidationLayerSupport(requiredvalidationlayers.getArray())) {
 			ERR << "couldn't create vulkan instance because a validation layer was not present\n";
+			system("PAUSE");
 		}
 
 		createinfo.enabledLayerCount = (uint32)requiredvalidationlayers.getCount();
@@ -98,6 +99,7 @@ namespace PH::Vulkan {
 
 		if (vkCreateInstance(&createinfo, nullptr, &instance) != VK_SUCCESS) {
 			ERR << "failed to create Vulkan Instance\n";
+			system("PAUSE");
 		}
 
 		requiredvalidationlayers.release();
