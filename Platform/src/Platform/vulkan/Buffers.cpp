@@ -51,8 +51,6 @@ namespace PH::Vulkan {
 			}
 
 			//is set to sharing mode exclusive because we do not share the buffer between queues. If we want to use multiple queues in the future we'll have to change it.
-
-
 			VkBuffer vkbuffer;
 			VkDeviceMemory vkmemory;
 

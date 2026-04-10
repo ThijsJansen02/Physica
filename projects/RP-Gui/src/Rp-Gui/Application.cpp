@@ -35,7 +35,7 @@ namespace PH::RpGui {
 
 
 using namespace PH::RpGui;
-ThreadData threaddata;
+RpConnection threaddata;
 
 PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
@@ -49,7 +49,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	ssh_init(); //libssh test
 
 	threaddata.semaphore = CreateSemaphoreEx(0, 0, 1, nullptr, 0, SEMAPHORE_ALL_ACCESS);
-	threaddata.commandqueue = PH::Base::CircularWorkQueue<ThreadCommand, Engine::Allocator>::create(10);
+	threaddata.commandqueue = PH::Base::CircularWorkQueue<RpCommand, Engine::Allocator>::create(10);
 	threaddata.open = true;
 
 	PH::Platform::ThreadCreateInfo threadinfo{};
@@ -68,8 +68,15 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
 
+	const auto& ini = Engine::FileIO::loadYamlfile("RpGui.ini");
+	const auto& plotviewpanels = ini["PlotViewPanels"];
+
 	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "magnitude");
 	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "phase");
+
+	RpGui::context->magnitudeplot.deserialize(plotviewpanels["magnitude"]);
+	RpGui::context->phaseplot.deserialize(plotviewpanels["phase"]);
+
 
 	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/times.ttf", 512, 32.0f);
 	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_quadshader.vert", "res/shaders/default_quadshader.frag", {nullptr, 0});
@@ -148,6 +155,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	for (auto& event : context.events) {
 		PH::Engine::Events::onEvent(event);
 		RpGui::context->magnitudeplot.onEvent(&event);
+		RpGui::context->phaseplot.onEvent(&event);
 	}
 
 	auto& io = ImGui::GetIO();
@@ -170,8 +178,8 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	
 	//start drawing the plot, first set the pipeline and the view and projection matrices, then draw the background and the plot itself, then end the renderer and flush it to the GPU
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->pipeline2D);
-	RpGui::renderer2D.setView(glm::mat4(1.0f));
-	RpGui::renderer2D.setProjection(glm::ortho(0.0f, (real32)plot->region.right, (real32)plot->region.top, 0.0f));
+	RpGui::renderer2D.pushView(glm::mat4(1.0f));
+	RpGui::renderer2D.pushProjection(glm::ortho(0.0f, (real32)plot->region.right, (real32)plot->region.top, 0.0f));
 
 	//draw the plot with lines and the plot itself
 	drawPlotScaleLines(plot->range, plot->region);
@@ -195,10 +203,10 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 	//start drawing the plot, first set the pipeline and the view and projection matrices, then draw the background and the plot itself, then end the renderer and flush it to the GPU
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->pipeline2D);
-	RpGui::renderer2D.setView(glm::mat4(1.0f));
+	RpGui::renderer2D.pushView(glm::mat4(1.0f));
 	
 	//fix set projection to allow multiple windows!
-	RpGui::renderer2D.setProjection(glm::ortho(0.0f, (real32)plot->region.right, (real32)plot->region.top, 0.0f));
+	RpGui::renderer2D.pushProjection(glm::ortho(0.0f, (real32)plot->region.right, (real32)plot->region.top, 0.0f));
 
 	//draw the plot with lines and the plot itself
 	drawPlotScaleLines(plot->range, plot->region);
@@ -252,5 +260,15 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 PH_DLL_EXPORT PH_APPLICATION_DESTROY(applicationDestroy) {
 
 	PH::RpGui::INFO << "destroying Rp-Gui application...\n";
+
+	YAML::Emitter out;
+	out << YAML::BeginMap << YAML::Key << "PlotViewPanels" << YAML::Value << YAML::BeginMap;
+	RpGui::context->magnitudeplot.serialize(out);
+	RpGui::context->phaseplot.serialize(out);
+	out << YAML::EndMap;
+
+	Engine::FileIO::writeYamlFile(out, "RpGui.ini");
+
+	//system("PAUSE");
 	return true;
 }

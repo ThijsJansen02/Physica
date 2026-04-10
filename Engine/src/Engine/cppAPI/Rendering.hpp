@@ -42,11 +42,11 @@ namespace PH::Engine {
 			bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color) {
 				return Renderer2D::drawColoredQuad(position, size, color, m_Context);
 			}
-			bool32 setView(const glm::mat4& view) {
-				return Renderer2D::setView(m_Context, view);
+			bool32 pushView(const glm::mat4& view) {
+				return Renderer2D::pushView(m_Context, view);
 			}
-			bool32 setProjection(const glm::mat4& projection) {
-				return Renderer2D::setProjection(m_Context, projection);
+			bool32 pushProjection(const glm::mat4& projection) {
+				return Renderer2D::pushProjection(m_Context, projection);
 			}
 			bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec2 thickness) {
 				return Renderer2D::drawLine(v1, v2, thickness, m_Context);

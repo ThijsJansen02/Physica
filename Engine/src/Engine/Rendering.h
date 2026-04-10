@@ -88,8 +88,8 @@ namespace PH::Engine {
 		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, real32 depth, Renderer2D::Context* context);
 
 
-		bool32 setView(Context* context, const glm::mat4& view);
-		bool32 setProjection(Context* context, const glm::mat4& projection);
+		bool32 pushView(Context* context, const glm::mat4& view);
+		bool32 pushProjection(Context* context, const glm::mat4& projection);
 		Context* createContext(const InitInfo& initinfo);
 	}
 

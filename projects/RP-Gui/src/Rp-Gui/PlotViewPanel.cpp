@@ -30,7 +30,7 @@ namespace PH::RpGui {
 
 		real32 scrollspeed = 0.001f;
 
-		if (event->type == PH_EVENT_TYPE_MOUSE_SCROLLED) {
+		if (event->type == PH_EVENT_TYPE_MOUSE_SCROLLED && ishovered) {
 			int16 delta = (int16)(void*)event->lparam;
 
 			real32 zoom = 1.0f - (real32)delta * scrollspeed;
@@ -97,6 +97,7 @@ namespace PH::RpGui {
 
 			//might move this to a update function in the future , for now its just easier to do it here
 			if(ImGui::IsItemHovered()) {
+				ishovered = true;
 				glm::vec2 mousefactor = { (range.right - range.left) / (region.right - region.left), (range.top - range.bottom) / (region.top - region.bottom) };
 				if (PH::Engine::Events::isMouseButtonPressed(PH_LMBUTTON)) {
 
@@ -108,11 +109,31 @@ namespace PH::RpGui {
 					range.bottom += mousefactor.y * deltam.y;
 				}
 			}
+			else {
+				ishovered = false;
+			}
 		}
 
 		ImGui::End();
 
 		ImGui::PopStyleVar(1);
+	}
+
+	void PlotViewPanel::serialize(YAML::Emitter& out) {
+
+		out << YAML::Key << this->name.getC_Str() << YAML::Value << YAML::BeginMap;
+		out << YAML::Key << "range" << YAML::Value << YAML::BeginSeq << range.left << range.bottom << range.right << range.top << YAML::EndSeq;
+		out << YAML::EndMap;
+	}
+
+	void PlotViewPanel::deserialize(const YAML::Node& root) {
+
+		const auto& range_ = root["range"];
+		range.left = range_[0].as<real32>();
+		range.bottom = range_[1].as<real32>();
+		range.right = range_[2].as<real32>();
+		range.top = range_[3].as<real32>();
+		
 	}
 
 	void PlotViewPanel::draw() {

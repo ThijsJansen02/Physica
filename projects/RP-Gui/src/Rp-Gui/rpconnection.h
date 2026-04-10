@@ -166,18 +166,18 @@ namespace PH::RpGui {
 		return SSH_OK;
 	}
 
-	struct ThreadCommand {
+	struct RpCommand {
 		const char* command;
 	};
 
-	struct ThreadData {
+	struct RpConnection {
 		bool32 connected = false;
 		bool32 open = true;
 
 		DWORD threadid;
 		HANDLE semaphore;
 
-		PH::Base::CircularWorkQueue<ThreadCommand, Engine::Allocator> commandqueue;
+		PH::Base::CircularWorkQueue<RpCommand, Engine::Allocator> commandqueue;
 	};
 
 	//open ssh connection in a seperate thread to test the thread safety of libssh, and to test the performance of libssh when used in a separate thread. also to test the performance of libssh when used in a separate thread with a separate memory allocator
@@ -235,13 +235,13 @@ namespace PH::RpGui {
 		ssh_free(my_ssh_session);
 #endif
 
-		ThreadData* info = (ThreadData*)userdata;
+		RpConnection* info = (RpConnection*)userdata;
 
 		WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
 
 		while (true && info->open) {
 
-			ThreadCommand* work = info->commandqueue.pop();
+			RpCommand* work = info->commandqueue.pop();
 			if (work) {
 				INFO << "Thread: " << (uint32)info->threadid << " is executing command: " << work->command << "\n";
 			}

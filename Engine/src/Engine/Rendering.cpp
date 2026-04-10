@@ -227,17 +227,17 @@ namespace PH::Engine {
 			return layout;
 		}
 
-		Platform::GFX::Buffer createScenebuffer() {
+		Platform::GFX::Buffer createScenebuffer(sizeptr size) {
 
 			SceneBuffer localbuffer = { glm::mat4(1.0f), glm::mat4(1.0f) };
 
 			Platform::GFX::BufferCreateinfo info{};
 			info.bufferusage = Platform::GFX::BufferUsageFlagBits::BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-			info.data = &localbuffer;
+			info.data = nullptr;
 			info.dynamic = true;
 			info.memoryproperties = Platform::GFX::MEMORY_PROPERTY_HOST_VISIBLE_BIT | Platform::GFX::MEMORY_PROPERTY_HOST_COHERENT_BIT;
-			info.size = sizeof(localbuffer);
-			
+			info.size = size;
+
 			Platform::GFX::Buffer result;
 			if (!Platform::GFX::createBuffers(&info, &result, 1)) {
 				Engine::WARN << "Failed to create buffer\n";
@@ -388,12 +388,54 @@ namespace PH::Engine {
 			return result;
 		}
 
-		bool32 setView(Context* context, const glm::mat4& view) {
+		Platform::GFX::DescriptorSet createGlobalDescriptorSet(Context* context, sizeptr scenebufferoffset);
+
+		void moveToNextDesciptorSet(Context* context) {
+			context->globaldescriptorpointer++;
+			if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
+				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, sizeof(SceneBuffer) * context->globaldescriptorpointer));
+			}
+		}
+
+		void checkCreateDesciptorSet(Context* context) {
+			if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
+				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, sizeof(SceneBuffer) * context->globaldescriptorpointer));
+			}
+		}
+
+		///checks wheter a new descriptorset is needed and wheter the currently indexed exists and is valid if not creates a new descriptorset
+		void checkMoveNextDescriptorSet(Context* context) {
+			if (!context->quads.empty()) {
+				flush(context, { nullptr, 0 });
+			}
+			checkCreateDesciptorSet(context);
+		}
+
+		bool32 pushView(Context* context, const glm::mat4& view) {
+
+			checkMoveNextDescriptorSet(context);
+
 			context->localscenebuffer.view = view;
 			return true;
 		}
-		bool32 setProjection(Context* context, const glm::mat4& projection) {
+
+
+		bool32 pushProjection(Context* context, const glm::mat4& projection) {
+
+			checkMoveNextDescriptorSet(context);
+
 			context->localscenebuffer.projection = projection;
+			return true;
+		}
+
+		bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context) {
+			
+			checkMoveNextDescriptorSet(context);
+
+			context->currentpipeline = pipeline;
+			context->userdescriptors.clear();
+			context->userdescriptors.pushBack(userdescriptors);
+
 			return true;
 		}
 
@@ -496,7 +538,7 @@ namespace PH::Engine {
 			}
 
 			result.nulltexture = createNullTexture();
-			result.scenebuffer = createScenebuffer();
+			result.scenebuffer = createScenebuffer(KILO_BYTE);
 			result.globaldescriptors = Engine::ArrayList<GFX::DescriptorSet>::create(1);
 			result.currentpipeline = initinfo.currentpipeline;
 			result.quads = Engine::ArrayList<ColoredQuadInstance>::create(1);
@@ -536,6 +578,8 @@ namespace PH::Engine {
 			
 			SceneBuffer* gpubuffer;
 			PH::Platform::GFX::mapBuffer((void**) & gpubuffer, context->scenebuffer);
+
+			gpubuffer += context->globaldescriptorpointer;
 			*gpubuffer = context->localscenebuffer;
 
 			PH::Platform::GFX::unmapBuffer(context->scenebuffer);
@@ -606,31 +650,10 @@ namespace PH::Engine {
 			context->textures.pushBack(context->nulltexture);
 			context->quads.clear();
 
-			descriptorsets.release();
-			return true;
-		}
-
-		void moveToNextDesciptorSet(Context* context) {
+			//increase the global descriptor pointer
 			context->globaldescriptorpointer++;
-			if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
-				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, 0));
-			}
-		}
 
-		bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context) {
-			if (!context->quads.empty()) {
-				flush(context, {nullptr, 0});
-				moveToNextDesciptorSet(context);
-			}
-			else {
-				if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
-					context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, 0));
-				}
-			}
-			context->currentpipeline = pipeline;
-			context->userdescriptors.clear();
-			context->userdescriptors.pushBack(userdescriptors);
-
+			descriptorsets.release();
 			return true;
 		}
 	}
