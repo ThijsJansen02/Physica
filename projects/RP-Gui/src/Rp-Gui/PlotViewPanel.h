@@ -7,6 +7,8 @@
 #include <Engine/Events.h>
 #include <Platform/platformAPI.h>
 
+#include <yaml-cpp/yaml.h>
+
 #include <glm/glm.hpp>
 
 namespace PH::RpGui {
@@ -19,8 +21,11 @@ namespace PH::RpGui {
 
 		Box2D panelregion; //the region of the panel in window coordinates, used for drawing the plot and for transforming mouse coordinates from window coordinates to plot coordinates
 		bool32 isfocussed;
+		bool32 ishovered;
 
-		static PlotViewPanel create(Box2D range);
+		Engine::String name;
+
+		static PlotViewPanel create(Box2D range, const char* name);
 
 		void onEvent(PH::Platform::Event* event);
 
@@ -28,8 +33,21 @@ namespace PH::RpGui {
 			range = newrange;
 		}
 
+		void beginRenderPass() {
+			Engine::beginRenderPass(display);
+		}
+
+		void endRenderPass() {
+			Engine::endRenderPass(display);
+		}
+
 		void ImGuiDraw();
 		void draw();
+
+		void serialize(YAML::Emitter& emmiter);
+		void deserialize(const YAML::Node& root);
+
+
 	};
 
 

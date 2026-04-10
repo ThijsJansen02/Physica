@@ -2,10 +2,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-//this define is needed to use libssh as a static library on windows, because otherwise the functions will be exported with __declspec(dllimport) which will cause linker errors when trying to link against the static library
-//libssh should be included as the first header to avoid any issues with the windows.h header that is included by the platform layer, because windows.h defines some macros that can cause issues with the libssh headers if they are included after windows.h
-#define LIBSSH_STATIC 1
-#include <libssh/libssh.h>
+//must be included before windows.h to avoid issues with the winsock2.h header that is included by libssh, because windows.h defines some macros that can cause issues with the winsock2.h header if it is included after windows.h
+#include "rpconnection.h"
 
 #include "RpGui.h"
 
@@ -16,14 +14,6 @@
 #include <Engine/Engine.h>
 #include <Engine/Events.h>
 #include <Engine/imgui/DockSpace.h>
-
-#include <Base/Datastructures/circularworkqueue.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <string.h>
-
 
 #include "Text.h"
 #include "Plot.h"
@@ -42,247 +32,10 @@ namespace PH::RpGui {
 	PH::Base::LogStream<consoleWrite> ERR;
 }
 
+
+
 using namespace PH::RpGui;
-
-int verify_knownhost(ssh_session session)
-{
-	enum ssh_known_hosts_e state;
-	unsigned char* hash = NULL;
-	ssh_key srv_pubkey = NULL;
-	size_t hlen;
-	char buf[10];
-	char* p = NULL;
-	int cmp;
-	int rc;
-
-	rc = ssh_get_server_publickey(session, &srv_pubkey);
-	if (rc < 0) {
-		return -1;
-	}
-
-	rc = ssh_get_publickey_hash(srv_pubkey,
-		SSH_PUBLICKEY_HASH_SHA256,
-		&hash,
-		&hlen);
-	ssh_key_free(srv_pubkey);
-	if (rc < 0) {
-		return -1;
-	}
-
-	state = ssh_session_is_known_server(session);
-	switch (state) {
-	case SSH_KNOWN_HOSTS_OK:
-		/* OK */
-
-		break;
-	case SSH_KNOWN_HOSTS_CHANGED:
-		WARN << "Host key for server changed: it is now:\n";
-		ssh_print_hash(SSH_PUBLICKEY_HASH_SHA256, hash, hlen);
-		WARN << "For security reasons, connection will be stopped\n";
-		ssh_clean_pubkey_hash(&hash);
-
-		return -1;
-	case SSH_KNOWN_HOSTS_OTHER:
-		fprintf(stderr, "The host key for this server was not found but an other"
-			"type of key exists.\n");
-		fprintf(stderr, "An attacker might change the default server key to"
-			"confuse your client into thinking the key does not exist\n");
-		ssh_clean_pubkey_hash(&hash);
-
-		return -1;
-	case SSH_KNOWN_HOSTS_NOT_FOUND:
-		fprintf(stderr, "Could not find known host file.\n");
-		fprintf(stderr, "If you accept the host key here, the file will be"
-			"automatically created.\n");
-
-		/* FALL THROUGH to SSH_SERVER_NOT_KNOWN behavior */
-
-	case SSH_KNOWN_HOSTS_UNKNOWN:
-		fprintf(stderr, "The server is unknown. Do you trust the host key?\n");
-		fprintf(stderr, "Public key hash: ");
-		ssh_print_hash(SSH_PUBLICKEY_HASH_SHA256, hash, hlen);
-		ssh_clean_pubkey_hash(&hash);
-		p = fgets(buf, sizeof(buf), stdin);
-		if (p == NULL) {
-			return -1;
-		}
-
-		cmp = Base::stringCompare(buf, "yes", 5);
-		if (cmp != 0) {
-			return -1;
-		}
-
-		rc = ssh_session_update_known_hosts(session);
-		if (rc < 0) {
-			fprintf(stderr, "Error %s\n", strerror(errno));
-			return -1;
-		}
-
-		break;
-	case SSH_KNOWN_HOSTS_ERROR:
-		fprintf(stderr, "Error %s", ssh_get_error(session));
-		ssh_clean_pubkey_hash(&hash);
-		return -1;
-	}
-
-	ssh_clean_pubkey_hash(&hash);
-	return 0;
-}
-
-int show_remote_processes(ssh_session session, const char* request)
-{
-	ssh_channel channel = NULL;
-	int rc;
-	char buffer[256];
-	int nbytes;
-
-	channel = ssh_channel_new(session);
-	if (channel == NULL)
-		return SSH_ERROR;
-
-	rc = ssh_channel_open_session(channel);
-	if (rc != SSH_OK)
-	{
-		ssh_channel_free(channel);
-		return rc;
-	}
-
-
-
-	rc = ssh_channel_request_exec(channel, request);
-	if (rc != SSH_OK)
-	{
-		ssh_channel_close(channel);
-		ssh_channel_free(channel);
-		return rc;
-	}
-
-	nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-	buffer[nbytes] = '\0';
-
-	/*
-	while (nbytes > 0)
-	{
-		if (write(1, buffer, nbytes) != (unsigned int)nbytes)
-		{
-			ssh_channel_close(channel);
-			ssh_channel_free(channel);
-			return SSH_ERROR;
-		}
-		nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-	}
-	*/
-
-	INFO << "remote processes:\n" << buffer << "\n";
-
-	if (nbytes < 0)
-	{
-		ssh_channel_close(channel);
-		ssh_channel_free(channel);
-		return SSH_ERROR;
-	}
-
-	ssh_channel_send_eof(channel);
-	ssh_channel_close(channel);
-	ssh_channel_free(channel);
-
-	return SSH_OK;
-}
-
-struct ThreadCommand {
-	const char* command;
-};
-
-struct ThreadData {
-	bool32 connected = false;
-	bool32 open = true;
-
-	DWORD threadid;
-	HANDLE semaphore;
-
-	PH::Base::CircularWorkQueue<ThreadCommand, Engine::Allocator> commandqueue;
-};
-
-//open ssh connection in a seperate thread to test the thread safety of libssh, and to test the performance of libssh when used in a separate thread. also to test the performance of libssh when used in a separate thread with a separate memory allocator
-PH::int32 examplethread(
-	void* userdata
-) {
-	INFO << "hello from thread! userdata: " << (uint64)userdata << "\n";
-#if 1
-
-	ssh_session my_ssh_session = NULL;
-	int rc;
-	int verbosity = SSH_LOG_PROTOCOL;
-	int port = 22;
-
-	my_ssh_session = ssh_new();
-	if (my_ssh_session == NULL) {
-		return -1;
-	}
-
-
-	ssh_options_set(my_ssh_session, SSH_OPTIONS_HOST, "root@rp-f083c2.local");
-	ssh_options_set(my_ssh_session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
-	ssh_options_set(my_ssh_session, SSH_OPTIONS_PORT, &port);
-
-	rc = ssh_connect(my_ssh_session);
-	if (rc != SSH_OK)
-	{
-		Engine::ERR << "Error connecting to localhost: " << ssh_get_error(my_ssh_session) << "\n";
-		return -1;
-	}
-
-
-	// Verify the server's identity
-	if (verify_knownhost(my_ssh_session) < 0)
-	{
-		ssh_disconnect(my_ssh_session);
-		ssh_free(my_ssh_session);
-		return -1;
-	}
-
-	// Authenticate ourselves
-	const char* password = "root";
-	rc = ssh_userauth_password(my_ssh_session, NULL, password);
-	if (rc != SSH_AUTH_SUCCESS)
-	{
-		WARN << "Error authenticating with password: %s\n" << ssh_get_error(my_ssh_session) << "\n";
-		ssh_disconnect(my_ssh_session);
-		ssh_free(my_ssh_session);
-		return -1;
-	}
-
-	show_remote_processes(my_ssh_session, "fpgautil -b sinewave_generator_wrapper.bit.bin\n");
-
-#endif
-
-	ThreadData* info = (ThreadData*)userdata;
-
-	WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
-
-	while (true && info->open) {
-
-		ThreadCommand* work = info->commandqueue.pop();
-		if (work) {
-			INFO << "Thread: " << (uint32)info->threadid << " is executing command: " << work->command << "\n";
-			show_remote_processes(my_ssh_session, "monitor 0x41200008 0x3FFF0000");
-
-
-
-		}
-		else {
-			INFO << "thread: " << (uint32)info->threadid << " is going to sleep\n";
-			WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
-			INFO << "thread: " << (uint32)info->threadid << " woke up\n";
-		}
-	}
-
-	ssh_disconnect(my_ssh_session);
-	ssh_free(my_ssh_session);
-	return 0;
-}
-
-ThreadData threaddata;
+RpConnection threaddata;
 
 PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
@@ -296,7 +49,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	ssh_init(); //libssh test
 
 	threaddata.semaphore = CreateSemaphoreEx(0, 0, 1, nullptr, 0, SEMAPHORE_ALL_ACCESS);
-	threaddata.commandqueue = PH::Base::CircularWorkQueue<ThreadCommand, Engine::Allocator>::create(10);
+	threaddata.commandqueue = PH::Base::CircularWorkQueue<RpCommand, Engine::Allocator>::create(10);
 	threaddata.open = true;
 
 	PH::Platform::ThreadCreateInfo threadinfo{};
@@ -309,19 +62,47 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	PH::Platform::createThread(threadinfo, &thread);
 	threaddata.threadid = thread.id;
 
-
 	//push first command to queue;
 	threaddata.commandqueue.push({ "first command to execute" });
 	ReleaseSemaphore(threaddata.semaphore, 1, nullptr);
 
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
 
-	RpGui::context->plotviewpanel = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f });
+	const auto& ini = Engine::FileIO::loadYamlfile("RpGui.ini");
+	const auto& plotviewpanels = ini["PlotViewPanels"];
+
+	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "magnitude");
+	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "phase");
+
+	RpGui::context->magnitudeplot.deserialize(plotviewpanels["magnitude"]);
+	RpGui::context->phaseplot.deserialize(plotviewpanels["phase"]);
+
 
 	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/times.ttf", 512, 32.0f);
-	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->plotviewpanel.display, "res/shaders/default_quadshader.vert", "res/shaders/default_quadshader.frag", {nullptr, 0});
-	RpGui::context->fontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->plotviewpanel.display, "res/shaders/default_fontshader.vert", "res/shaders/default_fontshader.frag", { &RpGui::fontuserlayout, 1 });
+	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_quadshader.vert", "res/shaders/default_quadshader.frag", {nullptr, 0});
+	RpGui::context->fontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_fontshader.vert", "res/shaders/default_fontshader.frag", { &RpGui::fontuserlayout, 1 });
 	
+
+	//setup example transferfunctions; should in the future be loaded from a serialized document
+	RpGui::context->activetransferfunctions = Engine::ArrayList<TransferFunction>::create(1);
+	TransferFunction examplefunction{};
+
+	examplefunction.name = Engine::String::create("example function");
+
+	examplefunction.filters = Engine::ArrayList<Filter>::create(3);
+	Filter filter1{};
+	filter1.cutoff = 1000.0f;
+	filter1.gain = 1.0f;
+	filter1.Qfactor = 30.0f;
+
+	examplefunction.filters.pushBack(filter1);
+	filter1.cutoff = 4000.0f;
+	examplefunction.filters.pushBack(filter1);
+	filter1.cutoff = 10000.0f;
+	examplefunction.filters.pushBack(filter1);
+
+	RpGui::context->activetransferfunctions.pushBack(examplefunction);
+
 	Engine::Renderer2D::InitInfo init{};
 	init.currentpipeline = RpGui::context->pipeline2D;
 	init.descriptorsetlayouts = { nullptr, 0 };
@@ -338,6 +119,30 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	return true;
 }
 
+void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer) {
+
+	static int32 nsamples = 2000;
+
+	real32 xrange = plot->range.right - plot->range.left;
+	real32 dx = xrange / (real32)nsamples;
+
+	buffer->clear();
+
+	//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
+	for (real32 x = plot->range.left; x <= plot->range.right; x += dx) {
+
+		real32 y = 1.0f;
+
+		for (auto& filter : function->filters) {
+			y *= bandpass(powf(10.0f, x), (void*) & filter);
+		}
+		buffer->pushBack(glm::vec2{x, 20.0f * log10f(y)});
+	}
+
+	drawPlot(buffer->getArray(), plot->range, plot->region);
+}
+
+
 PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 	PH::Engine::beginNewFrame(&context);
@@ -345,12 +150,12 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 
 	real32 scrollspeed = 0.001f;
-	static RpGui::Box2D range = { 0.0f, 0.0f, 10.0f, 5.0f };
 
 	//update all events events;
 	for (auto& event : context.events) {
 		PH::Engine::Events::onEvent(event);
-		RpGui::context->plotviewpanel.onEvent(&event);
+		RpGui::context->magnitudeplot.onEvent(&event);
+		RpGui::context->phaseplot.onEvent(&event);
 	}
 
 	auto& io = ImGui::GetIO();
@@ -364,8 +169,66 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	ImGui::MenuItem("File");
 	ImGui::EndMenuBar();
 
-	RpGui::context->plotviewpanel.draw();
-	RpGui::context->plotviewpanel.ImGuiDraw();
+	static real32 textscale = 0.5f;
+
+
+	//draw the magnitude plot for the bandpass filter
+	RpGui::PlotViewPanel* plot = &RpGui::context->magnitudeplot;
+	plot->beginRenderPass();
+	
+	//start drawing the plot, first set the pipeline and the view and projection matrices, then draw the background and the plot itself, then end the renderer and flush it to the GPU
+	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->pipeline2D);
+	RpGui::renderer2D.pushView(glm::mat4(1.0f));
+	RpGui::renderer2D.pushProjection(glm::ortho(0.0f, (real32)plot->region.right, (real32)plot->region.top, 0.0f));
+
+	//draw the plot with lines and the plot itself
+	drawPlotScaleLines(plot->range, plot->region);
+	for (auto& transferfunction : RpGui::context->activetransferfunctions) {
+		drawTransferFunctionMagnitude(plot, &transferfunction, &RpGui::context->buffer);
+	}
+
+	//start drawing the text
+	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->fontpipeline2D, { &RpGui::context->font.cdata, 1 });
+	RpGui::renderer2D.pushTexture(RpGui::context->font.atlas);
+	RpGui::drawPlotScaleValues(plot->range, plot->region, &RpGui::context->font, textscale);
+
+	RpGui::renderer2D.flush({ nullptr, 0 });
+
+	//end renderpass for this display
+	plot->endRenderPass();
+
+	//draw the phase plot which is now just exactly the same as the magnitude plot
+	plot = &RpGui::context->phaseplot;
+	plot->beginRenderPass();
+
+	//start drawing the plot, first set the pipeline and the view and projection matrices, then draw the background and the plot itself, then end the renderer and flush it to the GPU
+	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->pipeline2D);
+	RpGui::renderer2D.pushView(glm::mat4(1.0f));
+	
+	//fix set projection to allow multiple windows!
+	RpGui::renderer2D.pushProjection(glm::ortho(0.0f, (real32)plot->region.right, (real32)plot->region.top, 0.0f));
+
+	//draw the plot with lines and the plot itself
+	drawPlotScaleLines(plot->range, plot->region);
+	for (auto& transferfunction : RpGui::context->activetransferfunctions) {
+		drawTransferFunctionMagnitude(plot, &transferfunction, &RpGui::context->buffer);
+	}
+
+	//start drawing the text
+	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->fontpipeline2D, { &RpGui::context->font.cdata, 1 });
+	RpGui::renderer2D.pushTexture(RpGui::context->font.atlas);
+	RpGui::drawPlotScaleValues(plot->range, plot->region, &RpGui::context->font, textscale);
+
+	RpGui::renderer2D.flush({ nullptr, 0 });
+
+	//end renderpass for this display
+	plot->endRenderPass();
+
+
+
+
+	RpGui::context->phaseplot.ImGuiDraw();
+	RpGui::context->magnitudeplot.ImGuiDraw();
 
 	PH::Engine::beginRenderPass(*Engine::getParentDisplay());
 
@@ -373,7 +236,6 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	if (ImGui::Begin("stats")) {
 		ImGui::Text("framerate %f", 1.0f / Engine::getTimeStep());
 		ImGui::Text("mousepos %f, %f", Engine::Events::getMousePos().x, Engine::getParentDisplay()->viewport.y - Engine::Events::getMousePos().y);
-		ImGui::Text("viewpanel topleft: %f, %f", RpGui::context->plotviewpanel.panelregion.left, RpGui::context->plotviewpanel.panelregion.top);
 
 		if (ImGui::Button("poke thread")) {
 			threaddata.commandqueue.push({ "poke from imgui button" });
@@ -398,5 +260,15 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 PH_DLL_EXPORT PH_APPLICATION_DESTROY(applicationDestroy) {
 
 	PH::RpGui::INFO << "destroying Rp-Gui application...\n";
+
+	YAML::Emitter out;
+	out << YAML::BeginMap << YAML::Key << "PlotViewPanels" << YAML::Value << YAML::BeginMap;
+	RpGui::context->magnitudeplot.serialize(out);
+	RpGui::context->phaseplot.serialize(out);
+	out << YAML::EndMap;
+
+	Engine::FileIO::writeYamlFile(out, "RpGui.ini");
+
+	//system("PAUSE");
 	return true;
 }
