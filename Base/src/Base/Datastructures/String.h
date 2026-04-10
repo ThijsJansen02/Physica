@@ -393,6 +393,11 @@ namespace PH::Base {
 			copyMemory((void*)str, (void*)m_Str, newsize);
 		}
 
+		void set(String other) {
+			allocator::dealloc((void*)m_Str);
+			*this = other;
+		}
+
 		char* m_Str;
 		sizeptr m_Size;
 	};

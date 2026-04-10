@@ -138,7 +138,7 @@ namespace PH::Engine::FileIO {
 		Platform::FileBuffer file;
 		if (!Platform::loadFile(&file, path)) {
 			WARN << "failed to load yaml file: " << path << "\n";
-			return {};
+			return YAML::Node(YAML::NodeType::Undefined);
 		}
 		
 		YAML::Node result = YAML::Load((const char*)file.data); 

@@ -177,6 +177,8 @@ namespace PH::RpGui {
 		DWORD threadid;
 		HANDLE semaphore;
 
+		Engine::String remoteip;
+
 		PH::Base::CircularWorkQueue<RpCommand, Engine::Allocator> commandqueue;
 	};
 

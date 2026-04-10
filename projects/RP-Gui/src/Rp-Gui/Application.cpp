@@ -14,6 +14,13 @@
 #include <Engine/Engine.h>
 #include <Engine/Events.h>
 #include <Engine/imgui/DockSpace.h>
+#include <Engine/YamlExtensions.h>
+
+#include "TransferFunction.h"
+
+#include "Context.h"
+
+
 
 #include "Text.h"
 #include "Plot.h"
@@ -36,6 +43,27 @@ namespace PH::RpGui {
 
 using namespace PH::RpGui;
 RpConnection threaddata;
+
+RpGui::TransferFunction createExampleTransferFunction() {
+	TransferFunction examplefunction{};
+
+	examplefunction.name = Engine::String::create("example function");
+	examplefunction.connection.remoteip = Engine::String::create("root@rp-f083c2.local");
+
+	examplefunction.filters = Engine::ArrayList<Filter>::create(3);
+	Filter filter1{};
+	filter1.cutoff = 1000.0f;
+	filter1.gain = 1.0f;
+	filter1.Qfactor = 30.0f;
+
+	examplefunction.filters.pushBack(filter1);
+	filter1.cutoff = 4000.0f;
+	examplefunction.filters.pushBack(filter1);
+	filter1.cutoff = 10000.0f;
+	examplefunction.filters.pushBack(filter1);
+
+	return examplefunction;
+}
 
 PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
@@ -68,40 +96,44 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
 
-	const auto& ini = Engine::FileIO::loadYamlfile("RpGui.ini");
-	const auto& plotviewpanels = ini["PlotViewPanels"];
+	auto ini = Engine::FileIO::loadYamlfile("RpGui.ini");
 
 	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "magnitude");
 	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "phase");
 
-	RpGui::context->magnitudeplot.deserialize(plotviewpanels["magnitude"]);
-	RpGui::context->phaseplot.deserialize(plotviewpanels["phase"]);
+	RpGui::context->openproject = Engine::String::create("project1.rpproj");
 
+	//loading the application settings
+	if (ini) {
+		const auto& plotviewpanels = ini["PlotViewPanels"];
+		RpGui::context->magnitudeplot.deserialize(plotviewpanels["magnitude"]);
+		RpGui::context->phaseplot.deserialize(plotviewpanels["phase"]);
 
-	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/times.ttf", 512, 32.0f);
+		auto currentprojectdir = ini["CurrentProject"];
+		if (currentprojectdir) {
+			RpGui::context->openproject.set(currentprojectdir.as<Engine::String>());
+		}
+	}
+
+	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/times.ttf", 512, 48.0f);
 	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_quadshader.vert", "res/shaders/default_quadshader.frag", {nullptr, 0});
 	RpGui::context->fontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_fontshader.vert", "res/shaders/default_fontshader.frag", { &RpGui::fontuserlayout, 1 });
 	
-
 	//setup example transferfunctions; should in the future be loaded from a serialized document
 	RpGui::context->activetransferfunctions = Engine::ArrayList<TransferFunction>::create(1);
-	TransferFunction examplefunction{};
 
-	examplefunction.name = Engine::String::create("example function");
+	auto proj = Engine::FileIO::loadYamlfile(RpGui::context->openproject.getC_Str());
+	if (proj) {
+		auto transferfunctions = proj["TransferFunctions"];
+		for (const auto& tf : transferfunctions) {
+			RpGui::context->activetransferfunctions.pushBack(deserializeTransferFunction(tf));
+		}
+	}
+	else {
+		RpGui::context->activetransferfunctions.pushBack(createExampleTransferFunction());
+	}
 
-	examplefunction.filters = Engine::ArrayList<Filter>::create(3);
-	Filter filter1{};
-	filter1.cutoff = 1000.0f;
-	filter1.gain = 1.0f;
-	filter1.Qfactor = 30.0f;
 
-	examplefunction.filters.pushBack(filter1);
-	filter1.cutoff = 4000.0f;
-	examplefunction.filters.pushBack(filter1);
-	filter1.cutoff = 10000.0f;
-	examplefunction.filters.pushBack(filter1);
-
-	RpGui::context->activetransferfunctions.pushBack(examplefunction);
 
 	Engine::Renderer2D::InitInfo init{};
 	init.currentpipeline = RpGui::context->pipeline2D;
@@ -261,14 +293,32 @@ PH_DLL_EXPORT PH_APPLICATION_DESTROY(applicationDestroy) {
 
 	PH::RpGui::INFO << "destroying Rp-Gui application...\n";
 
-	YAML::Emitter out;
-	out << YAML::BeginMap << YAML::Key << "PlotViewPanels" << YAML::Value << YAML::BeginMap;
-	RpGui::context->magnitudeplot.serialize(out);
-	RpGui::context->phaseplot.serialize(out);
-	out << YAML::EndMap;
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap << YAML::Key << "PlotViewPanels" << YAML::Value << YAML::BeginMap;
+		RpGui::context->magnitudeplot.serialize(out);
+		RpGui::context->phaseplot.serialize(out);
 
-	Engine::FileIO::writeYamlFile(out, "RpGui.ini");
+		out << YAML::Key << "CurrentProject" << YAML::Value << RpGui::context->openproject.getC_Str();
 
+		out << YAML::EndMap;
+
+		Engine::FileIO::writeYamlFile(out, "RpGui.ini");
+	}
+
+	{
+		YAML::Emitter out;
+		out << YAML::BeginMap << YAML::Key << "TransferFunctions" << YAML::Value << YAML::BeginSeq;
+		for (const auto& t : RpGui::context->activetransferfunctions) {
+			RpGui::serializeTransferFunction(t, out);
+		}
+		out << YAML::EndSeq;
+		out << YAML::EndMap;
+
+		Engine::FileIO::writeYamlFile(out, RpGui::context->openproject.getC_Str());
+	}
+
+	
 	//system("PAUSE");
 	return true;
 }
