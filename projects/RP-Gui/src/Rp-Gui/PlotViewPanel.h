@@ -25,6 +25,8 @@ namespace PH::RpGui {
 
 		Engine::String name;
 
+		PlotViewPanel* xlock = nullptr;
+
 		static PlotViewPanel create(Box2D range, const char* name);
 
 		void onEvent(PH::Platform::Event* event);

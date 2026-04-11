@@ -75,26 +75,29 @@ namespace PH::RpGui {
 		return point.x >= box.left && point.x <= box.right && point.y >= box.bottom && point.y <= box.top;
 	}
 
+	//real32 rangemult = 2.5f;
+
 	inline bool32 drawPlotScaleLines(Box2D range, Box2D region) {
 		//transform from range to -1.0f, 1.0f
 		real32 width = region.right - region.left;
-		real32 heigth = region.top - region.bottom;
+		real32 height = region.top - region.bottom;
 
 		glm::mat4 rangeToStdDev = glm::ortho(range.left, range.right, range.bottom, range.top);
 		glm::mat4 rangeToStd = glm::scale(glm::mat4(1.0f), glm::vec3{ 0.5f, 0.5f, 1.0f }) * glm::translate(glm::mat4(1.0f), glm::vec3{ 1.0f, 1.0f, 0.0f }) * rangeToStdDev;
 
 		glm::vec4 vx = { width, 0.0f, 0.0f, 0.0f };
-		glm::vec4 vy = { 0.0f, heigth, 0.0f, 0.0f };
+		glm::vec4 vy = { 0.0f, height, 0.0f, 0.0f };
 		glm::vec4 vz = { 0.0f, 0.0f, 1.0f, 0.0f };
 		glm::vec4 translate = { region.left, region.bottom, 0.0f, 1.0f };
 
 		glm::mat4 stdToRegion = glm::mat4(vx, vy, vz, translate);
 		glm::mat4 rangeToRegion = stdToRegion * rangeToStd;
 
-		real32 rangemult = 2.5f;
+		real32 rangemultx = 5000.0f / width;
+		real32 rangemulty = 5000.0f / height;
 
-		int32 xorder = floor(log10((range.right - range.left) * rangemult)) - 1;
-		int32 yorder = floor(log10((range.top - range.bottom) * rangemult)) - 1;
+		int32 xorder = floor(log10((range.right - range.left) * rangemultx)) - 1;
+		int32 yorder = floor(log10((range.top - range.bottom) * rangemulty)) - 1;
 
 		real32 xstep = pow(10.0f, xorder);
 		real32 ystep = pow(10.0f, yorder);
@@ -147,23 +150,24 @@ namespace PH::RpGui {
 	inline bool32 drawPlotScaleValues(Box2D range, Box2D region, Font* font, real32 scale = 1.0f) {
 		//transform from range to -1.0f, 1.0f
 		real32 width = region.right - region.left;
-		real32 heigth = region.top - region.bottom;
+		real32 height = region.top - region.bottom;
 
 		glm::mat4 rangeToStdDev = glm::ortho(range.left, range.right, range.bottom, range.top);
 		glm::mat4 rangeToStd = glm::scale(glm::mat4(1.0f), glm::vec3{ 0.5f, 0.5f, 1.0f }) * glm::translate(glm::mat4(1.0f), glm::vec3{ 1.0f, 1.0f, 0.0f }) * rangeToStdDev;
 
 		glm::vec4 vx = { width, 0.0f, 0.0f, 0.0f };
-		glm::vec4 vy = { 0.0f, heigth, 0.0f, 0.0f };
+		glm::vec4 vy = { 0.0f, height, 0.0f, 0.0f };
 		glm::vec4 vz = { 0.0f, 0.0f, 1.0f, 0.0f };
 		glm::vec4 translate = { region.left, region.bottom, 0.0f, 1.0f };
 
 		glm::mat4 stdToRegion = glm::mat4(vx, vy, vz, translate);
 		glm::mat4 rangeToRegion = stdToRegion * rangeToStd;
 
-		real32 rangemult = 2.5f;
+		real32 rangemultx = 5000.0f / width;
+		real32 rangemulty = 5000.0f / height;
 
-		int32 xorder = floor(log10((range.right - range.left) * rangemult)) - 1;
-		int32 yorder = floor(log10((range.top - range.bottom) * rangemult)) - 1;
+		int32 xorder = floor(log10((range.right - range.left) * rangemultx)) - 1;
+		int32 yorder = floor(log10((range.top - range.bottom) * rangemulty)) - 1;
 
 		real32 xstep = pow(10.0f, xorder);
 		real32 ystep = pow(10.0f, yorder);

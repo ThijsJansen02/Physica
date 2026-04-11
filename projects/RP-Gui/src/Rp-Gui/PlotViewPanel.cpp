@@ -56,6 +56,11 @@ namespace PH::RpGui {
 				range.top = (range.top - mousepos.y) * zoom + mousepos.y;
 				range.bottom = (range.bottom - mousepos.y) * zoom + mousepos.y;
 			}
+
+			if (xlock) {
+				xlock->range.left = range.left;
+				xlock->range.right = range.right;
+			}
 		}
 	}
 
@@ -107,6 +112,11 @@ namespace PH::RpGui {
 					range.right -= mousefactor.x * deltam.x;
 					range.top += mousefactor.y * deltam.y;
 					range.bottom += mousefactor.y * deltam.y;
+
+					if (xlock) {
+						xlock->range.left = range.left;
+						xlock->range.right = range.right;
+					}
 				}
 			}
 			else {

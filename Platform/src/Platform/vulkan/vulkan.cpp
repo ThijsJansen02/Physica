@@ -640,7 +640,7 @@ namespace PH::Vulkan {
 
 		VkDescriptorPoolSize imagepoolsize{};
 		imagepoolsize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		imagepoolsize.descriptorCount = 200;
+		imagepoolsize.descriptorCount = 300;
 
 		VkDescriptorPoolSize poolsizes[2] = {
 			poolsize, imagepoolsize

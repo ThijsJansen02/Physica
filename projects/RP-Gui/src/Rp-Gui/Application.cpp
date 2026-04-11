@@ -101,13 +101,20 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "magnitude");
 	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "phase");
 
+	RpGui::context->magnitudeplot.xlock = &RpGui::context->phaseplot;
+	RpGui::context->phaseplot.xlock = &RpGui::context->magnitudeplot;
+
 	RpGui::context->openproject = Engine::String::create("project1.rpproj");
 
 	//loading the application settings
 	if (ini) {
+
 		const auto& plotviewpanels = ini["PlotViewPanels"];
-		RpGui::context->magnitudeplot.deserialize(plotviewpanels["magnitude"]);
-		RpGui::context->phaseplot.deserialize(plotviewpanels["phase"]);
+		if (plotviewpanels) {
+			RpGui::context->magnitudeplot.deserialize(plotviewpanels["magnitude"]);
+			RpGui::context->phaseplot.deserialize(plotviewpanels["phase"]);
+		}
+
 
 		auto currentprojectdir = ini["CurrentProject"];
 		if (currentprojectdir) {
@@ -115,7 +122,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 		}
 	}
 
-	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/times.ttf", 512, 48.0f);
+	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/times.ttf", 512, 32.0f);
 	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_quadshader.vert", "res/shaders/default_quadshader.frag", {nullptr, 0});
 	RpGui::context->fontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_fontshader.vert", "res/shaders/default_fontshader.frag", { &RpGui::fontuserlayout, 1 });
 	
@@ -155,6 +162,33 @@ void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* functi
 
 	static int32 nsamples = 2000;
 
+	real64 xrange = plot->range.right - plot->range.left;
+	real64 dx = xrange / (real64)nsamples;
+
+	buffer->clear();
+
+	//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
+
+	//this is dangerous because if there is an error in dx than this function can blow up!
+	for (real64 x = plot->range.left; x <= plot->range.right; x += dx) {
+
+		Base::Complex<real32> y = 1.0f;
+
+		for (auto& filter : function->filters) {
+			y = y * bandpass(powf(10.0f, (real32)x) * Base::Complex<real32>::i(), (void*)&filter);
+		}
+
+
+		buffer->pushBack(glm::vec2{x, 20.0f * log10f(y.modulus())});
+	}
+
+	drawPlot(buffer->getArray(), plot->range, plot->region);
+}
+
+void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer) {
+
+	static int32 nsamples = 2000;
+
 	real32 xrange = plot->range.right - plot->range.left;
 	real32 dx = xrange / (real32)nsamples;
 
@@ -163,12 +197,14 @@ void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* functi
 	//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
 	for (real32 x = plot->range.left; x <= plot->range.right; x += dx) {
 
-		real32 y = 1.0f;
+		Base::Complex<real32> y = 1.0f;
 
 		for (auto& filter : function->filters) {
-			y *= bandpass(powf(10.0f, x), (void*) & filter);
+			y = y * bandpass(powf(10.0f, x) * Base::Complex<real32>::i(), (void*)&filter);
 		}
-		buffer->pushBack(glm::vec2{x, 20.0f * log10f(y)});
+
+
+		buffer->pushBack(glm::vec2{ x, y.arg() });
 	}
 
 	drawPlot(buffer->getArray(), plot->range, plot->region);
@@ -243,7 +279,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	//draw the plot with lines and the plot itself
 	drawPlotScaleLines(plot->range, plot->region);
 	for (auto& transferfunction : RpGui::context->activetransferfunctions) {
-		drawTransferFunctionMagnitude(plot, &transferfunction, &RpGui::context->buffer);
+		drawTransferFunctionPhase(plot, &transferfunction, &RpGui::context->buffer);
 	}
 
 	//start drawing the text
@@ -268,6 +304,8 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	if (ImGui::Begin("stats")) {
 		ImGui::Text("framerate %f", 1.0f / Engine::getTimeStep());
 		ImGui::Text("mousepos %f, %f", Engine::Events::getMousePos().x, Engine::getParentDisplay()->viewport.y - Engine::Events::getMousePos().y);
+
+		ImGui::Text("amount of global descriptors %u", Engine::Renderer2D::getStats(RpGui::renderer2D.getContext()).useddescriptors);
 
 		if (ImGui::Button("poke thread")) {
 			threaddata.commandqueue.push({ "poke from imgui button" });

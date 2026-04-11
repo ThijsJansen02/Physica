@@ -72,6 +72,10 @@ namespace PH::Engine {
 				return Renderer2D::pushTexture(texture, m_Context);
 			}
 
+			Renderer2D::Context* getContext() {
+				return m_Context;
+			}
+
 			static Wrapper create(const Renderer2D::InitInfo& info) {
 
 				Wrapper result;

@@ -63,6 +63,10 @@ namespace PH::Engine {
 			sizeptr instancebuffersize;
 		};
 
+		struct Stats {
+			sizeptr useddescriptors;
+		};
+
 		bool32 begin(Context* context);
 		bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context);
 		bool32 pushTexture(Platform::GFX::Texture texture, PH::Engine::Renderer2D::Context* context);
@@ -91,6 +95,8 @@ namespace PH::Engine {
 		bool32 pushView(Context* context, const glm::mat4& view);
 		bool32 pushProjection(Context* context, const glm::mat4& projection);
 		Context* createContext(const InitInfo& initinfo);
+
+		Stats getStats(Context* context);
 	}
 
 	namespace Renderer3D {

@@ -70,6 +70,12 @@ namespace PH::Engine {
 			ArrayList<GFX::Texture> textures;
 		};
 
+		Stats getStats(Context* context) {
+			Renderer2D::Stats result;
+			result.useddescriptors = context->globaldescriptorpointer - 1;
+			return result;
+		}
+
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color, Renderer2D::Context* context) {
 			ColoredQuadInstance instance{};
 			instance.color = color;
