@@ -102,7 +102,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 		}
 	}
 
-	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/times.ttf", 512, 32.0f);
+	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/arial.ttf", 512, 32.0f);
 	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_quadshader.vert", "res/shaders/default_quadshader.frag", {nullptr, 0});
 	RpGui::context->fontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromGLSLSource(&RpGui::context->magnitudeplot.display, "res/shaders/default_fontshader.vert", "res/shaders/default_fontshader.frag", { &RpGui::fontuserlayout, 1 });
 	
@@ -207,6 +207,82 @@ void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, 
 	drawPlot(buffer->getArray(), plot->range, plot->region);
 }
 
+typedef void (*UIfunc) (void*, RpGui::Context*);
+
+template<UIfunc func>
+inline void drawComponent(const Engine::String& name, PH::RpGui::Context* context, void* comp)
+{
+	const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding;
+	
+	ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
+
+	
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+	float lineHeight = 20.0f;
+	bool open = ImGui::TreeNodeEx((void*)PH::Base::uint32Hash((uint32)name.getChar(0)), treeNodeFlags, name.getC_Str());
+	ImGui::PopStyleVar();
+
+
+	ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
+	if (ImGui::Button("+", ImVec2{ lineHeight, lineHeight }))
+	{
+		ImGui::OpenPopup("Settings");
+	}
+
+	bool removeComponent = false;
+	if (ImGui::BeginPopup("Settings"))
+	{
+		if (ImGui::MenuItem("Remove component"))
+			removeComponent = true;
+
+		ImGui::EndPopup();
+	}
+
+	if (open)
+	{
+		func(comp, context);
+		ImGui::TreePop();
+	}
+
+	if (removeComponent) {
+			
+	}
+}
+
+real32 dragspeed = 0.002;
+
+void drawRpConnectionGui(void* function, RpGui::Context* context) {
+
+	RpGui::TransferFunction* tf = (RpGui::TransferFunction*)function;
+
+	char buffer[256];
+	PH::Base::stringCopy(tf->connection.remoteip.getC_Str(), buffer, 256);
+
+
+	if(ImGui::InputText("", buffer, 256)) {
+		tf->connection.remoteip.set(buffer);
+	}
+	
+	ImGui::SameLine();
+	if (ImGui::Button("connect")) {
+
+	}
+
+	uint32 id = 0;
+	for (auto& f : tf->filters) {
+		ImGui::PushID(id);
+
+		ImGui::Text("filter n%u", id);
+		ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed);
+		ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed);
+		ImGui::PopID();
+		id++;
+		//ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed);
+	}
+
+
+}
+
 
 PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
@@ -296,6 +372,15 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	RpGui::context->magnitudeplot.ImGuiDraw();
 
 	PH::Engine::beginRenderPass(*Engine::getParentDisplay());
+
+	static bool functionpanelopen;
+	if (ImGui::Begin("functions")) {
+		for (auto& tf : RpGui::context->activetransferfunctions) {
+			drawComponent<drawRpConnectionGui>(tf.name, RpGui::context, (void*) & tf);
+		}
+	} ImGui::End();
+
+
 
 	static bool statsopen;
 	if (ImGui::Begin("stats")) {
