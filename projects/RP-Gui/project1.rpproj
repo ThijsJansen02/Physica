@@ -3,11 +3,11 @@ TransferFunctions:
     remote: root@rp-f083c2.local
     filters:
       - cutoff: 1000
-        Qfactor: 20
+        Qfactor: 30
         gain: 1
       - cutoff: 4000
-        Qfactor: 50
+        Qfactor: 30
         gain: 1
       - cutoff: 10000
-        Qfactor: 10
+        Qfactor: 30
         gain: 1

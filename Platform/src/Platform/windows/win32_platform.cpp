@@ -469,6 +469,7 @@ struct win32_ThreadInfo {
 	PH::Platform::ThreadCreateInfo info;
 };
 
+//weird implementation, why does it have to create a memory arena for the GFX layer?
 DWORD WINAPI win32_ThreadProc(
 	_In_ LPVOID lpParameter
 ) {
@@ -478,7 +479,6 @@ DWORD WINAPI win32_ThreadProc(
 		PH::Vulkan::ArenaAllocator::arena = PH::Base::createMemoryArena(PlatformAllocator::alloc(memorysize), memorysize);
 	}
 	threadinfo->info.threadproc(threadinfo->info.userdata);
-
 	return 0;
 }
 

@@ -174,7 +174,7 @@ namespace PH::RpGui {
 		bool32 connected = false;
 		bool32 open = true;
 
-		DWORD threadid;
+		PH::Platform::Thread thread;
 		HANDLE semaphore;
 
 		Engine::String remoteip;
@@ -186,7 +186,10 @@ namespace PH::RpGui {
 	PH::int32 examplethread(
 		void* userdata
 	) {
-		INFO << "hello from thread! userdata: " << (uint64)userdata << "\n";
+
+
+		RpConnection* info = (RpConnection*)userdata;
+		INFO << "opened thread for connection with " << info->remoteip.getC_Str() << "\n";
 #if 0
 
 		ssh_session my_ssh_session = NULL;
@@ -237,7 +240,6 @@ namespace PH::RpGui {
 		ssh_free(my_ssh_session);
 #endif
 
-		RpConnection* info = (RpConnection*)userdata;
 
 		WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
 
@@ -245,12 +247,12 @@ namespace PH::RpGui {
 
 			RpCommand* work = info->commandqueue.pop();
 			if (work) {
-				INFO << "Thread: " << (uint32)info->threadid << " is executing command: " << work->command << "\n";
+				INFO << "Thread: " << (uint32)info->thread.id << " is executing command: " << work->command << "\n";
 			}
 			else {
-				INFO << "thread: " << (uint32)info->threadid << " is going to sleep\n";
+				INFO << "thread: " << (uint32)info->thread.id << " is going to sleep\n";
 				WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
-				INFO << "thread: " << (uint32)info->threadid << " woke up\n";
+				INFO << "thread: " << (uint32)info->thread.id << " woke up\n";
 			}
 		}
 		return 0;

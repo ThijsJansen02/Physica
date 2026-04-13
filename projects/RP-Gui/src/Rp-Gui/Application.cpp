@@ -39,10 +39,7 @@ namespace PH::RpGui {
 	PH::Base::LogStream<consoleWrite> ERR;
 }
 
-
-
 using namespace PH::RpGui;
-RpConnection threaddata;
 
 RpGui::TransferFunction createExampleTransferFunction() {
 	TransferFunction examplefunction{};
@@ -76,24 +73,6 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
 	ssh_init(); //libssh test
 
-	threaddata.semaphore = CreateSemaphoreEx(0, 0, 1, nullptr, 0, SEMAPHORE_ALL_ACCESS);
-	threaddata.commandqueue = PH::Base::CircularWorkQueue<RpCommand, Engine::Allocator>::create(10);
-	threaddata.open = true;
-
-	PH::Platform::ThreadCreateInfo threadinfo{};
-	threadinfo.threadworkmemorysize = KILO_BYTE;
-	threadinfo.usegfx = false;
-	threadinfo.userdata = (void*)&threaddata;
-	threadinfo.threadproc = examplethread;
-
-	PH::Platform::Thread thread;
-	PH::Platform::createThread(threadinfo, &thread);
-	threaddata.threadid = thread.id;
-
-	//push first command to queue;
-	threaddata.commandqueue.push({ "first command to execute" });
-	ReleaseSemaphore(threaddata.semaphore, 1, nullptr);
-
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
 
 	auto ini = Engine::FileIO::loadYamlfile("RpGui.ini");
@@ -101,6 +80,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "magnitude");
 	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "phase");
 
+	//lock the xaxis for both plots together
 	RpGui::context->magnitudeplot.xlock = &RpGui::context->phaseplot;
 	RpGui::context->phaseplot.xlock = &RpGui::context->magnitudeplot;
 
@@ -140,6 +120,23 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 		RpGui::context->activetransferfunctions.pushBack(createExampleTransferFunction());
 	}
 
+	//open connections with for all transferfunction with a remote
+	for (auto& tf : RpGui::context->activetransferfunctions) {
+
+		if (!tf.connection.remoteip.isEmpty()) {
+
+			tf.connection.semaphore = CreateSemaphoreEx(0, 0, 1, nullptr, 0, SEMAPHORE_ALL_ACCESS);
+			tf.connection.commandqueue = PH::Base::CircularWorkQueue<RpCommand, Engine::Allocator>::create(10);
+
+			PH::Platform::ThreadCreateInfo threadinfo{};
+			threadinfo.threadworkmemorysize = 0;
+			threadinfo.usegfx = false;
+			threadinfo.userdata = (void*)&tf.connection;
+			threadinfo.threadproc = examplethread;
+
+			PH::Platform::createThread(threadinfo, &tf.connection.thread);
+		}
+	}
 
 
 	Engine::Renderer2D::InitInfo init{};
@@ -308,8 +305,12 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		ImGui::Text("amount of global descriptors %u", Engine::Renderer2D::getStats(RpGui::renderer2D.getContext()).useddescriptors);
 
 		if (ImGui::Button("poke thread")) {
-			threaddata.commandqueue.push({ "poke from imgui button" });
-			ReleaseSemaphore(threaddata.semaphore, 1, nullptr);	
+
+			//unsafe, assumes there is a transfer function active!
+			RpGui::RpConnection* connection = &RpGui::context->activetransferfunctions[0].connection;
+
+			connection->commandqueue.push({ "Poked!!!" });
+			ReleaseSemaphore(connection->semaphore, 1, nullptr);	
 		}
 	} ImGui::End();
 

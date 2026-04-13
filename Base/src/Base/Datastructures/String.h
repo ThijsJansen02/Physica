@@ -299,7 +299,7 @@ namespace PH::Base {
 			}
 
 		}
-	
+
 
 		template<typename allocator_ = allocator>
 		String getTill(char c) {
@@ -361,6 +361,10 @@ namespace PH::Base {
 			m_Size = newsize;
 
 			return *this;
+		}
+
+		bool32 isEmpty() {
+			return m_Str == nullptr || m_Size == 0;
 		}
 
 		bool32 contains(char c) {
