@@ -58,8 +58,8 @@ namespace PH::Base {
 		return sqrt(modulus_squared());
 	}
 	
-	template<typename T>
-	Complex<T> operator*(T left, Complex<T> right) {
+	template<typename leftT, typename rightT>
+	Complex<rightT> operator*(leftT left, Complex<rightT> right) {
 		return { left * right.real, left * right.imag };
 	}
 
