@@ -5,6 +5,7 @@
 //must be included before windows.h to avoid issues with the winsock2.h header that is included by libssh, because windows.h defines some macros that can cause issues with the winsock2.h header if it is included after windows.h
 #include "rpconnection.h"
 
+
 #include "RpGui.h"
 
 #include <Platform/PlatformAPI.h>
@@ -20,8 +21,11 @@
 
 #include "Context.h"
 #include "imgui_spectrum.h"
-	
 
+#define PY_SSIZE_T_CLEA
+
+#include <python.h>
+#include <pybind11/embed.h>
 
 
 #include "Text.h"
@@ -118,6 +122,32 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	return examplefunction;
 }
 
+namespace py = pybind11;
+
+//actually usable functions in python!
+void setFilterCutoff(int filternumber, float cutoff) {
+	RpGui::context->activetransferfunctions[0].filters[filternumber].cutoff = cutoff;
+
+	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);	
+}
+
+//actually usable functions in python!
+void setFilterQfactor(int filternumber, float qfactor) {
+	RpGui::context->activetransferfunctions[0].filters[filternumber].Qfactor = qfactor;
+
+	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);
+}
+
+// Bind it to a Python module
+PYBIND11_EMBEDDED_MODULE(RpGui, m) {
+	m.doc() = "C++ functions for my RpGui";
+	m.def("setFilterCutoff", &setFilterCutoff, "sets the cutoff of a filter",
+		py::arg("a"), py::arg("b"));
+	m.def("setFilterQfactor", &setFilterQfactor, "set the qfactor of a filter",
+		py::arg("filternumber"), py::arg("qfactor"));
+}
+
+
 PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
 	//sets up the engine allocators and other systems that rely on the engine allocator, such as the console log stream
@@ -130,7 +160,52 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	ImGuiStyle& style = ImGui::GetStyle();
 	style.Colors[ImGuiCol_FrameBg] = ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f };
 	
+	
+	PyConfig config{};
 
+	// 1. Initialize with default Python configuration
+	PyConfig_InitPythonConfig(&config);
+
+	config.isolated = 1;
+
+	//set home
+	const wchar_t* pyhome = L"C:/Users/Thijs/OneDrive/Documenten/programming/physica/dep/cpython";
+	PyConfig_SetString(&config, &config.home, pyhome);
+
+	PyConfig_SetString(&config, &config.program_name, L"RP-GUI");
+
+	config.module_search_paths_set = 1;
+	PyWideStringList_Append(&config.module_search_paths, L"C:/Users/Thijs/OneDrive/Documenten/programming/physica/dep/cpython/Lib");
+	PyWideStringList_Append(&config.module_search_paths, L"C:/Users/Thijs/OneDrive/Documenten/programming/physica/dep/cpython/PCbuild/amd64");
+	PyWideStringList_Append(&config.module_search_paths, L"C:/Users/Thijs/OneDrive/Documenten/programming/physica/dep/cpython/Lib/site-packages");
+
+
+	try {
+		py::initialize_interpreter(&config);
+		py::exec(R"(
+			import sys
+			print(f"Hello world", flush=True)
+			print(f"version {sys.version}")
+		)");
+	}
+	catch (py::error_already_set& e) {
+		// This will print the actual Python error message and traceback to C++ stderr
+		ERR << "Python Error: " << e.what() << "\n";
+	}
+
+	
+
+	/*
+	PyStatus s;
+	s = Py_InitializeFromConfig(&config);
+	if (PyStatus_Exception(s)) {
+		ERR << s.err_msg << "\n";
+	}
+
+	PyConfig_Clear(&config);
+
+	PyRun_SimpleString("print(\"hello world!\")");
+	*/
 	ssh_init(); //libssh test
 
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
@@ -334,6 +409,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 			TerminateThread(tf->connection.thread.handle, 0);
 		}
 
+
 		PH::Platform::ThreadCreateInfo threadinfo{};
 		threadinfo.threadworkmemorysize = 0;
 		threadinfo.usegfx = false;
@@ -480,7 +556,43 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		}
 	} ImGui::End();
 
+	static char pythoncommandbuffer[256];
 
+	if (ImGui::Begin("Python Commandwindow")) {
+		if (ImGui::InputText("cmd", pythoncommandbuffer, IM_ARRAYSIZE(pythoncommandbuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+			// This code only runs when Enter is pressed
+			try {
+				//py::initialize_interpreter(&config);
+				py::exec(pythoncommandbuffer);
+				
+			}
+			catch (py::error_already_set& e) {
+				// This will print the actual Python error message and traceback to C++ stderr
+				ERR << "Python Error: " << e.what() << "\n";
+			}
+
+			for (uint32 i = 0; i < sizeof(pythoncommandbuffer); i++) {
+				pythoncommandbuffer[i] = '\0';
+			}
+			ImGui::SetKeyboardFocusHere(-1);
+		}
+
+		if (ImGui::Button("run exec file")) {
+			PH::Platform::FileBuffer b;
+			if (PH::Platform::loadFile(&b, "res/exec.py")) {
+				INFO << (char*)b.data << "\n\n";
+				try {
+					py::exec((char*)b.data);
+				}
+				catch (py::error_already_set& e) {
+					ERR << "Python Error: " << e.what() << "\n";
+				}
+
+				PH::Platform::unloadFile(&b);
+			}
+		}
+
+	} ImGui::End();
 
 	static bool statsopen;
 	if (ImGui::Begin("stats")) {

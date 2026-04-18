@@ -157,7 +157,7 @@ namespace PH::RpGui {
 		writeHexVal((uint16)dcoeffs.b2, buffer);
 		s << "0000";
 
-		return s.getString<Engine::Allcator>();
+		return s.getString<Engine::Allocator>();
 
 
 	}

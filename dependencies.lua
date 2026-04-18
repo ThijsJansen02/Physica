@@ -16,11 +16,17 @@ IncludeDir["imguizmo"] = "%{wks.location}/dep/ImGuizmo"
 IncludeDir["zep"] = "%{wks.location}/dep/zep/include"
 IncludeDir["editor"] = "%{wks.location}/Editor/src"
 IncludeDir["stb"] = "%{wks.location}/dep/stb_"
+IncludeDir["pybind11"] = "%{wks.location}/dep/pybind11/include"
+
+--IncludeDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/include"
+IncludeDir["cpython"] = "%{wks.location}/dep/cpython/Include"
+IncludeDir["cpythonPCheaders"] = "%{wks.location}/dep/cpython/PC"
 
 --openssl and libssh for remote red pitaya access
 IncludeDir["openssl"] = "%{wks.location}/dep/openssl/include"
 IncludeDir["libssh"] = "%{wks.location}/dep/libssh/include"
 IncludeDir["zlib"] = "%{wks.location}/dep/zlib/include"
+
 
 LibraryDir = {}
 LibraryDir["vulkanSDK"] = "%{VULKAN_SDK}/Lib"
@@ -28,11 +34,17 @@ LibraryDir["openssl"] = "%{wks.location}/dep/openssl/lib/VC/x64"
 LibraryDir["libssh"] = "%{wks.location}/dep/libssh/lib"
 LibraryDir["zlib"] = "%{wks.location}/dep/zlib/lib"
 
+LibraryDir["cpython"] = "%{wks.location}/dep/cpython/PCbuild/amd64"
+--LibraryDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/libs"
+
 Library = {}
+Library["cpython"] = "%{LibraryDir.cpython}/python315_d.lib"
+
 Library["vulkan"] = "%{LibraryDir.VulkanSDK}/vulkan-1.lib"
 
 Library["openssl_debug"] = "%{LibraryDir.openssl}/MTd/libssl_static.lib"
 Library["openssl"] = "%{LibraryDir.openssl}/MT/libssl_static.lib"
+
 
 Library["libcrypto_debug"] = "%{LibraryDir.openssl}/MTd/libcrypto_static.lib"
 Library["libcrypto"] = "%{LibraryDir.openssl}/MT/libcrypto_static.lib"
