@@ -109,65 +109,9 @@ namespace PH::RpGui {
 		return 0;
 	}
 
-	int show_remote_processes(ssh_session session)
-	{
-		ssh_channel channel = NULL;
-		int rc;
-		char buffer[256];
-		int nbytes;
-
-		channel = ssh_channel_new(session);
-		if (channel == NULL)
-			return SSH_ERROR;
-
-		rc = ssh_channel_open_session(channel);
-		if (rc != SSH_OK)
-		{
-			ssh_channel_free(channel);
-			return rc;
-		}
-
-		rc = ssh_channel_request_exec(channel, "ls");
-		if (rc != SSH_OK)
-		{
-			ssh_channel_close(channel);
-			ssh_channel_free(channel);
-			return rc;
-		}
-
-		nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-
-		/*
-		while (nbytes > 0)
-		{
-			if (write(1, buffer, nbytes) != (unsigned int)nbytes)
-			{
-				ssh_channel_close(channel);
-				ssh_channel_free(channel);
-				return SSH_ERROR;
-			}
-			nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-		}
-		*/
-
-		INFO << "remote processes:\n" << buffer << "\n";
-
-		if (nbytes < 0)
-		{
-			ssh_channel_close(channel);
-			ssh_channel_free(channel);
-			return SSH_ERROR;
-		}
-
-		ssh_channel_send_eof(channel);
-		ssh_channel_close(channel);
-		ssh_channel_free(channel);
-
-		return SSH_OK;
-	}
 
 	struct RpCommand {
-		const char* command;
+		Engine::String command;
 	};
 
 	struct RpConnection {
@@ -183,18 +127,18 @@ namespace PH::RpGui {
 	};
 
 	//open ssh connection in a seperate thread to test the thread safety of libssh, and to test the performance of libssh when used in a separate thread. also to test the performance of libssh when used in a separate thread with a separate memory allocator
-	PH::int32 examplethread(
+	PH::int32 rp_connection_thread(
 		void* userdata
 	) {
 
 
 		RpConnection* info = (RpConnection*)userdata;
-		INFO << "opened thread for connection with " << info->remoteip.getC_Str() << "\n";
-#if 0
+		INFO << "starting connection with " << info->remoteip.getC_Str() << "\n";
+#if 1
 
 		ssh_session my_ssh_session = NULL;
 		int rc;
-		int verbosity = SSH_LOG_PROTOCOL;
+		int verbosity = SSH_LOG_PACKET;
 		int port = 22;
 
 		my_ssh_session = ssh_new();
@@ -203,7 +147,7 @@ namespace PH::RpGui {
 		}
 
 
-		ssh_options_set(my_ssh_session, SSH_OPTIONS_HOST, "root@rp-f083c2.local");
+		ssh_options_set(my_ssh_session, SSH_OPTIONS_HOST, info->remoteip.getC_Str());
 		ssh_options_set(my_ssh_session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
 		ssh_options_set(my_ssh_session, SSH_OPTIONS_PORT, &port);
 
@@ -234,27 +178,81 @@ namespace PH::RpGui {
 			return -1;
 		}
 
-		show_remote_processes(my_ssh_session);
-
-		ssh_disconnect(my_ssh_session);
-		ssh_free(my_ssh_session);
+		info->connected = true;
+		INFO << "connected with Rp " << info->remoteip.getC_Str() << "\n";
 #endif
-
-
+		//wait for the semaphore to be released
 		WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
 
 		while (true && info->open) {
-
 			RpCommand* work = info->commandqueue.pop();
+			//if there is a command -> send it to the rp
 			if (work) {
-				INFO << "Thread: " << (uint32)info->thread.id << " is executing command: " << work->command << "\n";
+
+				INFO << "Client RP> " << work->command.getC_Str() << "\n";
+
+				ssh_channel channel = NULL;
+				int rc;
+				char buffer[256];
+				int nbytes;
+
+				channel = ssh_channel_new(my_ssh_session);
+				if (channel == NULL) {
+					WARN << "RP failed to create channel!\n";
+					continue;
+				}
+
+				rc = ssh_channel_open_session(channel);
+				if (rc != SSH_OK)
+				{
+					WARN << "Failed to open session on channel\n";
+					ssh_channel_free(channel);
+					continue;
+				}
+
+				rc = ssh_channel_request_exec(channel, work->command.getC_Str());
+				if (rc != SSH_OK)
+				{
+					ssh_channel_close(channel);
+					ssh_channel_free(channel);
+
+					WARN << "Failed to execute reguest\n";
+					continue;
+				}
+
+				nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+
+				INFO << "RP client> ";
+				while (nbytes > 0) {
+					buffer[nbytes -1] = 0;
+;					INFO << buffer << "\n";
+					nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+				}
+
+
+				if (nbytes < 0)
+				{
+					INFO << "nbytes: " << nbytes << "\n";
+					ssh_channel_close(channel);
+					ssh_channel_free(channel);
+					continue;
+				}
+
+				ssh_channel_send_eof(channel);
+				ssh_channel_close(channel);
+				ssh_channel_free(channel);
+
+
 			}
 			else {
-				INFO << "thread: " << (uint32)info->thread.id << " is going to sleep\n";
+				//INFO << "thread: " << (uint32)info->thread.id << " is going to sleep\n";
 				WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
-				INFO << "thread: " << (uint32)info->thread.id << " woke up\n";
+				//INFO << "thread: " << (uint32)info->thread.id << " woke up\n";
 			}
 		}
+
+		ssh_disconnect(my_ssh_session);
+		ssh_free(my_ssh_session);
 		return 0;
 	}
 

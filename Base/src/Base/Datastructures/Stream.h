@@ -65,6 +65,11 @@ namespace PH::Base {
 			return m_Writeptr;
 		}
 
+		template<typename Allocator> 
+		PH::Base::String<Allocator> getString() {
+			return PH::Base::String<Allocator>::create(m_Data);
+		}
+
 	private:
 		void resize(sizeptr newsize) {
 

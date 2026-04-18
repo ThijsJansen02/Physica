@@ -99,6 +99,7 @@ namespace ImGui {
 RpGui::TransferFunction createExampleTransferFunction() {
 	TransferFunction examplefunction{};
 
+	examplefunction.currentcommand = Engine::String::create("");
 	examplefunction.name = Engine::String::create("example function");
 	examplefunction.connection.remoteip = Engine::String::create("root@rp-f083c2.local");
 
@@ -191,7 +192,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 			threadinfo.threadworkmemorysize = 0;
 			threadinfo.usegfx = false;
 			threadinfo.userdata = (void*)&tf.connection;
-			threadinfo.threadproc = examplethread;
+			threadinfo.threadproc = rp_connection_thread;
 
 			PH::Platform::createThread(threadinfo, &tf.connection.thread);
 		}
@@ -225,13 +226,13 @@ void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* functi
 
 	//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
 
-	//this is dangerous because if there is an error in dx than this function can blow up!
+	//this is dangerous because if there is an floating point error in dx than this function can blow up!
 	for (real64 x = plot->range.left; x <= plot->range.right; x += dx) {
 
-		Base::Complex<real32> y = 1.0f;
+		Base::Complex<real64> y = 1.0f;
 
 		for (auto& filter : function->filters) {
-			y = y * bandpass(powf(10.0f, (real32)x) * Base::Complex<real32>::i(), (void*)&filter);
+			y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
 		}
 
 
@@ -253,10 +254,10 @@ void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, 
 	//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
 	for (real32 x = plot->range.left; x <= plot->range.right; x += dx) {
 
-		Base::Complex<real32> y = 1.0f;
+		Base::Complex<real64> y = 1.0f;
 
 		for (auto& filter : function->filters) {
-			y = y * bandpass(powf(10.0f, x) * Base::Complex<real32>::i(), (void*)&filter);
+			y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
 		}
 
 
@@ -318,22 +319,61 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 
 	char buffer[256];
 	PH::Base::stringCopy(tf->connection.remoteip.getC_Str(), buffer, 256);
-	if(ImGui::InputText(" ", buffer, 256)) {
-		tf->connection.remoteip.set(buffer);
-	}
-	
-	ImGui::SameLine();
-	if (ImGui::Button("connect")) {
 
-	}
 
 	uint32 id = 0;
+	ImGui::PushID(id++);
+	if (ImGui::InputText("", buffer, 256)) {
+		tf->connection.remoteip.set(buffer);
+	}
+	ImGui::PopID();
+
+	ImGui::SameLine();
+	if (ImGui::Button("connect")) {
+		if (tf->connection.open) {
+			TerminateThread(tf->connection.thread.handle, 0);
+		}
+
+		PH::Platform::ThreadCreateInfo threadinfo{};
+		threadinfo.threadworkmemorysize = 0;
+		threadinfo.usegfx = false;
+		threadinfo.userdata = (void*)&tf->connection;
+		threadinfo.threadproc = rp_connection_thread;
+
+		PH::Platform::createThread(threadinfo, &tf->connection.thread);
+	}
+
+	ImGui::PushID(id++);
+	PH::Base::stringCopy(tf->currentcommand.getC_Str(), buffer, 256);
+	if (ImGui::InputText("", buffer, 256)) {
+		tf->currentcommand.set(buffer);
+	}
+	ImGui::PopID();
+
+	ImGui::SameLine();
+	if (ImGui::Button("send")) {
+		if (tf->connection.connected) {
+
+			PH::RpGui::RpCommand c{};
+			tf->connection.commandqueue.push({ Engine::String::create(tf->currentcommand.getC_Str()) });
+			ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+			tf->currentcommand.set("");
+		}
+		else {
+			INFO << "red pitaya with adress " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
+		}
+	}
+
 	for (auto& f : tf->filters) {
 		ImGui::PushID(id);
 
 		ImGui::Text("filter n%u", id);
-		ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed);
-		ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed);
+		if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) {
+			recalculateFilter(&f);
+		}
+		if(ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) {
+			recalculateFilter(&f);
+		}
 		ImGui::PopID();
 		id++;
 		//ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed);
@@ -348,6 +388,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	PH::Engine::beginNewFrame(&context);
 	PH::Engine::Events::startNewFrame();
 
+	
 
 	real32 scrollspeed = 0.001f;
 
@@ -447,15 +488,6 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		ImGui::Text("mousepos %f, %f", Engine::Events::getMousePos().x, Engine::getParentDisplay()->viewport.y - Engine::Events::getMousePos().y);
 
 		ImGui::Text("amount of global descriptors %u", Engine::Renderer2D::getStats(RpGui::renderer2D.getContext()).useddescriptors);
-
-		if (ImGui::Button("poke thread")) {
-
-			//unsafe, assumes there is a transfer function active!
-			RpGui::RpConnection* connection = &RpGui::context->activetransferfunctions[0].connection;
-
-			connection->commandqueue.push({ "Poked!!!" });
-			ReleaseSemaphore(connection->semaphore, 1, nullptr);	
-		}
 	} ImGui::End();
 
 	//static bool demowindowopen = true;
