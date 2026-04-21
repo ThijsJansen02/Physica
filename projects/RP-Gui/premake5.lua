@@ -28,6 +28,9 @@ project "RP-GUI"
 		"%{IncludeDir.entt}",
 		"%{IncludeDir.engine}",
 		"%{IncludeDir.yaml}",
+		"%{IncludeDir.pybind11}",
+		"%{IncludeDir.cpython}",
+		"%{IncludeDir.cpythonPCheaders}",
 		--"%{IncludeDir.imguizmo}",
 		"%{IncludeDir.editor}",
 		"%{IncludeDir.stb}",
@@ -43,16 +46,21 @@ project "RP-GUI"
 		"YAML_CPP_STATIC_DEFINE"
 	}
 
+	libdirs {
+		"%{LibraryDir.cpython}"
+	}
+
 	links
 	{
 		"base",
-		"Engine"
+		"Engine",
+		"%{Library.cpython}"
 	}
 
 	postbuildcommands 
 	{
 		--"copy /b /y 'P:\\My Documents\\BRP\\GUI\\ProjectPhysica\\bin\\Debug-windows-x86_64\\RP-GUI\\RP-GUI.dll' 'P:\\My Documents\\BRP\\GUI\\ProjectPhysica\\bin\\Debug-windows-x86_64\\Platform'"
-		"{COPYFILE} \"%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{cfg.buildtarget.name}\" \"%{wks.location}/bin/" .. outputdir .. "/Platform\"",	
+		"{COPYFILE} \"%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{cfg.buildtarget.name}\" \"%{wks.location}/bin/" .. outputdir .. "/Platform\""
 	}
 
 	filter "system:windows"

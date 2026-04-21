@@ -1,0 +1,3 @@
+
+def pri():
+    print("ptr")

@@ -2,12 +2,12 @@ TransferFunctions:
   - name: example function
     remote: root@rp-f083c2.local
     filters:
-      - cutoff: 588.67
-        Qfactor: 1000
+      - cutoff: 500
+        Qfactor: 100
         gain: 1
-      - cutoff: 10000
-        Qfactor: 30
+      - cutoff: 1000
+        Qfactor: 3.75
         gain: 1
-      - cutoff: 100000
-        Qfactor: 30
+      - cutoff: 100
+        Qfactor: 100
         gain: 1

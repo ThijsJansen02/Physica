@@ -198,6 +198,18 @@ bool win32_initializeConsole() {
 	hStdin = GetStdHandle(STD_INPUT_HANDLE);
 	hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 
+	//reopen the standard out for the crt 
+	FILE* fDummy;
+	// Redirect standard output to the console
+	freopen_s(&fDummy, "CONOUT$", "w", stdout);
+	// Redirect standard error to the console
+	freopen_s(&fDummy, "CONOUT$", "w", stderr);
+	// Redirect standard input to the console
+	freopen_s(&fDummy, "CONIN$", "r", stdin);
+
+	// Optional: Disable buffering to see output immediately
+	setvbuf(stdout, NULL, _IONBF, 0);
+
 	if (hStdin == INVALID_HANDLE_VALUE ||
 		hStdout == INVALID_HANDLE_VALUE)
 	{
@@ -601,6 +613,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	}
 
 	PH::Base::base_log = win32_consoleWrite;
+
+	printf("this is a test print!\n");
 
 	HWND windowhandle;
 	if (!win32_initializeWindow(&windowhandle, hInstance, nCmdShow, &state)) {

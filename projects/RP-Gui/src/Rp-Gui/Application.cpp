@@ -5,6 +5,7 @@
 //must be included before windows.h to avoid issues with the winsock2.h header that is included by libssh, because windows.h defines some macros that can cause issues with the winsock2.h header if it is included after windows.h
 #include "rpconnection.h"
 
+
 #include "RpGui.h"
 
 #include <Platform/PlatformAPI.h>
@@ -19,7 +20,12 @@
 #include "TransferFunction.h"
 
 #include "Context.h"
+#include "imgui_spectrum.h"
 
+#define PY_SSIZE_T_CLEA
+
+#include <python.h>
+#include <pybind11/embed.h>
 
 
 #include "Text.h"
@@ -40,6 +46,59 @@ namespace PH::RpGui {
 }
 
 using namespace PH::RpGui;
+
+namespace ImGui {
+	void StyleColorsSpectrum() {
+		ImGuiStyle* style = &ImGui::GetStyle();
+		style->GrabRounding = 4.0f;
+
+		ImVec4* colors = style->Colors;
+		colors[ImGuiCol_Text] = ColorConvertU32ToFloat4(Spectrum::GRAY800); // text on hovered controls is gray900
+		colors[ImGuiCol_TextDisabled] = ColorConvertU32ToFloat4(Spectrum::GRAY500);
+		colors[ImGuiCol_WindowBg] = ColorConvertU32ToFloat4(Spectrum::GRAY100);
+		colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+		colors[ImGuiCol_PopupBg] = ColorConvertU32ToFloat4(Spectrum::GRAY50); // not sure about this. Note: applies to tooltips too.
+		colors[ImGuiCol_Border] = ColorConvertU32ToFloat4(Spectrum::GRAY300);
+		colors[ImGuiCol_BorderShadow] = ColorConvertU32ToFloat4(Spectrum::Static::NONE); // We don't want shadows. Ever.
+		colors[ImGuiCol_FrameBg] = ColorConvertU32ToFloat4(Spectrum::GRAY75); // this isnt right, spectrum does not do this, but it's a good fallback
+		colors[ImGuiCol_FrameBgHovered] = ColorConvertU32ToFloat4(Spectrum::GRAY50);
+		colors[ImGuiCol_FrameBgActive] = ColorConvertU32ToFloat4(Spectrum::GRAY200);
+		colors[ImGuiCol_TitleBg] = ColorConvertU32ToFloat4(Spectrum::GRAY300); // those titlebar values are totally made up, spectrum does not have this.
+		colors[ImGuiCol_TitleBgActive] = ColorConvertU32ToFloat4(Spectrum::GRAY200);
+		colors[ImGuiCol_TitleBgCollapsed] = ColorConvertU32ToFloat4(Spectrum::GRAY400);
+		colors[ImGuiCol_MenuBarBg] = ColorConvertU32ToFloat4(Spectrum::GRAY100);
+		colors[ImGuiCol_ScrollbarBg] = ColorConvertU32ToFloat4(Spectrum::GRAY100); // same as regular background
+		colors[ImGuiCol_ScrollbarGrab] = ColorConvertU32ToFloat4(Spectrum::GRAY400);
+		colors[ImGuiCol_ScrollbarGrabHovered] = ColorConvertU32ToFloat4(Spectrum::GRAY600);
+		colors[ImGuiCol_ScrollbarGrabActive] = ColorConvertU32ToFloat4(Spectrum::GRAY700);
+		colors[ImGuiCol_CheckMark] = ColorConvertU32ToFloat4(Spectrum::BLUE500);
+		colors[ImGuiCol_SliderGrab] = ColorConvertU32ToFloat4(Spectrum::GRAY700);
+		colors[ImGuiCol_SliderGrabActive] = ColorConvertU32ToFloat4(Spectrum::GRAY800);
+		colors[ImGuiCol_Button] = ColorConvertU32ToFloat4(Spectrum::GRAY75); // match default button to Spectrum's 'Action Button'.
+		colors[ImGuiCol_ButtonHovered] = ColorConvertU32ToFloat4(Spectrum::GRAY50);
+		colors[ImGuiCol_ButtonActive] = ColorConvertU32ToFloat4(Spectrum::GRAY200);
+		colors[ImGuiCol_Header] = ColorConvertU32ToFloat4(Spectrum::BLUE400);
+		colors[ImGuiCol_HeaderHovered] = ColorConvertU32ToFloat4(Spectrum::BLUE500);
+		colors[ImGuiCol_HeaderActive] = ColorConvertU32ToFloat4(Spectrum::BLUE600);
+		colors[ImGuiCol_Separator] = ColorConvertU32ToFloat4(Spectrum::GRAY400);
+		colors[ImGuiCol_SeparatorHovered] = ColorConvertU32ToFloat4(Spectrum::GRAY600);
+		colors[ImGuiCol_SeparatorActive] = ColorConvertU32ToFloat4(Spectrum::GRAY700);
+		colors[ImGuiCol_ResizeGrip] = ColorConvertU32ToFloat4(Spectrum::GRAY400);
+		colors[ImGuiCol_ResizeGripHovered] = ColorConvertU32ToFloat4(Spectrum::GRAY600);
+		colors[ImGuiCol_ResizeGripActive] = ColorConvertU32ToFloat4(Spectrum::GRAY700);
+		colors[ImGuiCol_PlotLines] = ColorConvertU32ToFloat4(Spectrum::BLUE400);
+		colors[ImGuiCol_PlotLinesHovered] = ColorConvertU32ToFloat4(Spectrum::BLUE600);
+		colors[ImGuiCol_PlotHistogram] = ColorConvertU32ToFloat4(Spectrum::BLUE400);
+		colors[ImGuiCol_PlotHistogramHovered] = ColorConvertU32ToFloat4(Spectrum::BLUE600);
+		colors[ImGuiCol_TextSelectedBg] = ColorConvertU32ToFloat4((Spectrum::BLUE400 & 0x00FFFFFF) | 0x33000000);
+		colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+		colors[ImGuiCol_NavHighlight] = ColorConvertU32ToFloat4((Spectrum::GRAY900 & 0x00FFFFFF) | 0x0A000000);
+		colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+		colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+		colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.20f, 0.20f, 0.20f, 0.35f);
+	}
+}
+
 
 RpGui::TransferFunction createExampleTransferFunction() {
 	TransferFunction examplefunction{};
@@ -63,6 +122,32 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	return examplefunction;
 }
 
+namespace py = pybind11;
+
+//actually usable functions in python!
+void setFilterCutoff(int filternumber, float cutoff) {
+	RpGui::context->activetransferfunctions[0].filters[filternumber].cutoff = cutoff;
+
+	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);	
+}
+
+//actually usable functions in python!
+void setFilterQfactor(int filternumber, float qfactor) {
+	RpGui::context->activetransferfunctions[0].filters[filternumber].Qfactor = qfactor;
+
+	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);
+}
+
+// Bind it to a Python module
+PYBIND11_EMBEDDED_MODULE(RpGui, m) {
+	m.doc() = "C++ functions for my RpGui";
+	m.def("setFilterCutoff", &setFilterCutoff, "sets the cutoff of a filter",
+		py::arg("a"), py::arg("b"));
+	m.def("setFilterQfactor", &setFilterQfactor, "set the qfactor of a filter",
+		py::arg("filternumber"), py::arg("qfactor"));
+}
+
+
 PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 
 	//sets up the engine allocators and other systems that rely on the engine allocator, such as the console log stream
@@ -72,6 +157,55 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	engineinit.platformcontext = &context;
 	PH::Engine::init(engineinit);
 
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.Colors[ImGuiCol_FrameBg] = ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+	
+	
+	PyConfig config{};
+
+	// 1. Initialize with default Python configuration
+	PyConfig_InitPythonConfig(&config);
+
+	config.isolated = 1;
+
+	//set home
+	const wchar_t* pyhome = L"C:/Users/Thijs/OneDrive/Documenten/programming/physica/dep/cpython";
+	PyConfig_SetString(&config, &config.home, pyhome);
+
+	PyConfig_SetString(&config, &config.program_name, L"RP-GUI");
+
+	config.module_search_paths_set = 1;
+	PyWideStringList_Append(&config.module_search_paths, L"C:/Users/Thijs/OneDrive/Documenten/programming/physica/dep/cpython/Lib");
+	PyWideStringList_Append(&config.module_search_paths, L"C:/Users/Thijs/OneDrive/Documenten/programming/physica/dep/cpython/PCbuild/amd64");
+	PyWideStringList_Append(&config.module_search_paths, L"C:/Users/Thijs/OneDrive/Documenten/programming/physica/dep/cpython/Lib/site-packages");
+
+
+	try {
+		py::initialize_interpreter(&config);
+		py::exec(R"(
+			import sys
+			print(f"Hello world", flush=True)
+			print(f"version {sys.version}")
+		)");
+	}
+	catch (py::error_already_set& e) {
+		// This will print the actual Python error message and traceback to C++ stderr
+		ERR << "Python Error: " << e.what() << "\n";
+	}
+
+	
+
+	/*
+	PyStatus s;
+	s = Py_InitializeFromConfig(&config);
+	if (PyStatus_Exception(s)) {
+		ERR << s.err_msg << "\n";
+	}
+
+	PyConfig_Clear(&config);
+
+	PyRun_SimpleString("print(\"hello world!\")");
+	*/
 	ssh_init(); //libssh test
 
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
@@ -222,7 +356,7 @@ inline void drawComponent(const Engine::String& name, PH::RpGui::Context* contex
 
 	
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
-	float lineHeight = 20.0f;
+	float lineHeight = 18.0f;
 	bool open = ImGui::TreeNodeEx((void*)PH::Base::uint32Hash((uint32)name.getChar(0)), treeNodeFlags, name.getC_Str());
 	ImGui::PopStyleVar();
 
@@ -262,6 +396,8 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 
 	RpGui::TransferFunction* tf = (RpGui::TransferFunction*)function;
 
+
+
 	char buffer[256];
 	PH::Base::stringCopy(tf->connection.remoteip.getC_Str(), buffer, 256);
 
@@ -278,6 +414,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 		if (tf->connection.open) {
 			TerminateThread(tf->connection.thread.handle, 0);
 		}
+
 
 		PH::Platform::ThreadCreateInfo threadinfo{};
 		threadinfo.threadworkmemorysize = 0;
@@ -449,7 +586,43 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		}
 	} ImGui::End();
 
+	static char pythoncommandbuffer[256];
 
+	if (ImGui::Begin("Python Commandwindow")) {
+		if (ImGui::InputText("cmd", pythoncommandbuffer, IM_ARRAYSIZE(pythoncommandbuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+			// This code only runs when Enter is pressed
+			try {
+				//py::initialize_interpreter(&config);
+				py::exec(pythoncommandbuffer);
+				
+			}
+			catch (py::error_already_set& e) {
+				// This will print the actual Python error message and traceback to C++ stderr
+				ERR << "Python Error: " << e.what() << "\n";
+			}
+
+			for (uint32 i = 0; i < sizeof(pythoncommandbuffer); i++) {
+				pythoncommandbuffer[i] = '\0';
+			}
+			ImGui::SetKeyboardFocusHere(-1);
+		}
+
+		if (ImGui::Button("run exec file")) {
+			PH::Platform::FileBuffer b;
+			if (PH::Platform::loadFile(&b, "res/exec.py")) {
+				INFO << (char*)b.data << "\n\n";
+				try {
+					py::exec((char*)b.data);
+				}
+				catch (py::error_already_set& e) {
+					ERR << "Python Error: " << e.what() << "\n";
+				}
+
+				PH::Platform::unloadFile(&b);
+			}
+		}
+
+	} ImGui::End();
 
 	static bool statsopen;
 	if (ImGui::Begin("stats")) {
@@ -458,6 +631,9 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 		ImGui::Text("amount of global descriptors %u", Engine::Renderer2D::getStats(RpGui::renderer2D.getContext()).useddescriptors);
 	} ImGui::End();
+
+	//static bool demowindowopen = true;
+	//ImGui::ShowDemoWindow(&demowindowopen);
 
 	PH::Engine::EndDockspace();
 
