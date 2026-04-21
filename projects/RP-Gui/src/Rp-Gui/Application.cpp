@@ -127,7 +127,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 		if (!tf.connection.remoteip.isEmpty()) {
 
 			tf.connection.semaphore = CreateSemaphoreEx(0, 0, 1, nullptr, 0, SEMAPHORE_ALL_ACCESS);
-			tf.connection.commandqueue = PH::Base::CircularWorkQueue<RpCommand, Engine::Allocator>::create(10);
+			tf.connection.commandqueue = PH::Base::CircularWorkQueue<RpCommand, Engine::Allocator>::create(30);
 
 			PH::Platform::ThreadCreateInfo threadinfo{};
 			threadinfo.threadworkmemorysize = 0;
@@ -136,6 +136,9 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 			threadinfo.threadproc = rp_connection_thread;
 
 			PH::Platform::createThread(threadinfo, &tf.connection.thread);
+
+			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
+			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil - b sinewave_generator_wrapper.bit.bin") });
 		}
 	}
 
@@ -252,6 +255,9 @@ inline void drawComponent(const Engine::String& name, PH::RpGui::Context* contex
 
 real32 dragspeed = 0.002;
 
+
+#define M_PI 3.14159265359
+
 void drawRpConnectionGui(void* function, RpGui::Context* context) {
 
 	RpGui::TransferFunction* tf = (RpGui::TransferFunction*)function;
@@ -280,6 +286,9 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 		threadinfo.threadproc = rp_connection_thread;
 
 		PH::Platform::createThread(threadinfo, &tf->connection.thread);
+
+		ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+		tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil - b sinewave_generator_wrapper.bit.bin") });
 	}
 
 	ImGui::PushID(id++);
@@ -303,15 +312,36 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 		}
 	}
 
+	real64 targetfs = 125000000.0 / 256.0;
+
 	for (auto& f : tf->filters) {
 		ImGui::PushID(id);
 
 		ImGui::Text("filter n%u", id);
 		if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) {
 			recalculateFilter(&f);
+
+			BiQuadCoefficients dcoeffs = bilinearTransform(getBandPassBiquadCoefficientsContinuous(prewarp(2 * M_PI * f.cutoff, targetfs), f.Qfactor), targetfs);
+
+			Engine::String rpcommand = generateRPfilterString(dcoeffs);
+
+			if (tf->connection.open) {
+				tf->connection.commandqueue.push({ rpcommand });
+				ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+			}
+
 		}
 		if(ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) {
 			recalculateFilter(&f);
+
+			BiQuadCoefficients dcoeffs = bilinearTransform(getBandPassBiquadCoefficientsContinuous(prewarp(2 * M_PI * f.cutoff, targetfs), f.Qfactor), targetfs);
+
+			Engine::String rpcommand = generateRPfilterString(dcoeffs);
+
+			if (tf->connection.open) {
+				tf->connection.commandqueue.push({ rpcommand });
+				ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+			}
 		}
 		ImGui::PopID();
 		id++;

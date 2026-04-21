@@ -47,7 +47,6 @@ namespace PH::RpGui {
 	}
 
 
-	//copied from: https://gist.github.com/felakuti4life/34b20a2517d63baa00b9
 	void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 fs)
 	{
 		double b0, b1, b2, a0, a1, a2;
@@ -56,25 +55,23 @@ namespace PH::RpGui {
 		b0 = acoefs[0]; b1 = acoefs[1]; b2 = acoefs[2];
 		a0 = acoefs[3]; a1 = acoefs[4]; a2 = acoefs[5];
 
+		real64 T = 1 / fs;
+		real64 K = 2 / T;
+		real64 Ks = K * K;
 
-		//where we're pinning to
-		real32 c = 2 * fs;
-		real32 c_sq = powf(c, 2);
+		az0 = a0 * Ks + a1 * K + a2;
 
-		//apply bilinear transform
-		az0 = (a2 * c_sq + a1 * c + a0);
+		bz0 = ((b0 * Ks) + (b1 * K) + b2) / az0;
+		bz1 = (2 * b2 - (2 * b0 * Ks)) / az0;
+		bz2 = ((b0 * Ks) - (b1 * K) + b2) / az0;
 
-		bz0 = (b2 * c_sq + b1 * c + b0) / az0;
-		bz1 = (-2 * b2 * c_sq + 2 * b0) / az0;
-		bz2 = (b2 * c_sq - b1 * c + b0) / az0;
+		az1 = ((2 * a2) - (2 * a0 * Ks)) / az0;
+		az2 = ((a0 * Ks) - (a1 * K) + a2) / az0;
 
-
-		az1 = (-2 * a2 * c_sq + 2 * a0) / az0;
-		az2 = (a2 * c_sq - a1 * c + a0) / az0;
 		az0 = 1.0f;
-		dcoefs[0] = bz0; dcoefs[1] = bz1; dcoefs[2] = bz2;
-		dcoefs[3] = az1; dcoefs[4] = az2;
 
+		dcoefs[0] = bz0; dcoefs[1] = bz1; dcoefs[2] = bz2;
+		dcoefs[3] = az0; dcoefs[4] = az1; dcoefs[5] = az2;
 	}
 
 	inline PH::int16 convertToFixedPoint(real64 in) {
@@ -95,17 +92,16 @@ namespace PH::RpGui {
 
 	}
 
-	inline BiQuadCoefficients getBandPassBiquadCoefficientsContinuous(void* params_) {
-		Filter* params = (Filter*)params_;
-
+	inline BiQuadCoefficients getBandPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
+		
 		BiQuadCoefficients result;
 		result.b0 = 1;
-		result.b1 = params->cutoff / params->Qfactor;
-		result.b2 = params->cutoff * params->cutoff;
+		result.b1 = cutoff / Qfactor;
+		result.b2 = cutoff * cutoff;
 
 		result.a0 = 1;
-		result.a1 = params->cutoff;
-		result.a2 = params->cutoff * params->cutoff;
+		result.a1 = cutoff;
+		result.a2 = cutoff * cutoff;
 
 		return result;
 	}
@@ -116,6 +112,18 @@ namespace PH::RpGui {
 		return result;
 	}
 
+	char valToHex(uint16 val) {
+		if (val >= 0 && val < 10) {
+			return val + '0';
+		}
+
+		if (val >= 10 && val < 16) {
+			return val + 'A' - 10;
+		}
+
+		return '0';
+	}
+
 
 	void writeHexVal(uint16 coeff, char* buffer) {
 
@@ -124,46 +132,57 @@ namespace PH::RpGui {
 			buffer[i] = '\0';
 		}
 
-		buffer[3] = coeff & 0x000F;
-		buffer[2] = (coeff >> 4) & 0x000F;
-		buffer[1] = (coeff >> 8) & 0x000F;
-		buffer[0] = (coeff >> 12) & 0x000F;
+		buffer[3] = valToHex(coeff & 0x000F);
+		buffer[2] = valToHex((coeff >> 4) & 0x000F);
+		buffer[1] = valToHex((coeff >> 8) & 0x000F);
+		buffer[0] = valToHex((coeff >> 12) & 0x000F);
 	}
 
 	Engine::String generateRPfilterString(const BiQuadCoefficients& dcoeffs) {
 
 		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(100);
 		
+
+		int16 a1 = convertToFixedPoint(dcoeffs.a1);
+		int16 a2 = convertToFixedPoint(dcoeffs.a2);
+
+		int16 b0 = convertToFixedPoint(dcoeffs.b0);
+		int16 b1 = convertToFixedPoint(dcoeffs.b1);
+		int16 b2 = convertToFixedPoint(dcoeffs.b2);
+
+		s << "export PATH=$PATH:/opt/redpitaya/bin;";
+
 		//first 2 coeffs at 0x41200000
 		s << "monitor 0x41200000 0x";
 		char buffer[5];
-		writeHexVal((uint16)dcoeffs.a1, buffer);
+		writeHexVal((uint16)a1, buffer);
 		s << buffer;
 
-		writeHexVal((uint16)dcoeffs.a2, buffer);
+		writeHexVal((uint16)a2, buffer);
 		s << buffer;
 
 		//next 2 coeffs at 0x41200008
 		s << "; monitor 0x41200008 0x";
-		writeHexVal((uint16)dcoeffs.b0, buffer);
+		writeHexVal((uint16)b0, buffer);
 		s << buffer;
 
-		writeHexVal((uint16)dcoeffs.b1, buffer);
+		writeHexVal((uint16)b1, buffer);
 		s << buffer;
 		
 
 		//last coeff at 0x41210000
 		s << "; monitor 0x41210000 0x";
-		writeHexVal((uint16)dcoeffs.b2, buffer);
+		writeHexVal((uint16)b2, buffer);
+		s << buffer;
 		s << "0000";
 
-		return s.getString<Engine::Allcator>();
-
-
+		Engine::String result = s.createString<Engine::Allocator>();
+		Base::Stream<Engine::Allocator>::destroy(&s);
+		return result;
 	}
 
 	void recalculateFilter(Filter* filter) {
-		filter->coeffs = getBandPassBiquadCoefficientsContinuous(filter);
+		filter->coeffs = getBandPassBiquadCoefficientsContinuous(filter->cutoff, filter->Qfactor);
 	}
 
 	void serializeFilter(const Filter& filter, YAML::Emitter& out) {

@@ -66,8 +66,8 @@ namespace PH::Base {
 		}
 
 		template<typename Allocator> 
-		PH::Base::String<Allocator> getString() {
-			return PH::Base::String<Allocator>::create(m_Data);
+		PH::Base::String<Allocator> createString() {
+			return PH::Base::String<Allocator>::create((char*)m_Data);
 		}
 
 	private:

@@ -185,11 +185,13 @@ namespace PH::RpGui {
 		WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
 
 		while (true && info->open) {
-			RpCommand* work = info->commandqueue.pop();
-			//if there is a command -> send it to the rp
-			if (work) {
+			RpCommand* workptr = info->commandqueue.pop();
 
-				INFO << "Client RP> " << work->command.getC_Str() << "\n";
+			//if there is a command -> send it to the rp
+			if (workptr != nullptr) {
+
+				RpCommand work = *workptr;
+				INFO <<  "RP> " << work.command.getC_Str() << "\n";
 
 				ssh_channel channel = NULL;
 				int rc;
@@ -210,7 +212,7 @@ namespace PH::RpGui {
 					continue;
 				}
 
-				rc = ssh_channel_request_exec(channel, work->command.getC_Str());
+				rc = ssh_channel_request_exec(channel, work.command.getC_Str());
 				if (rc != SSH_OK)
 				{
 					ssh_channel_close(channel);
@@ -222,7 +224,6 @@ namespace PH::RpGui {
 
 				nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
 
-				INFO << "RP client> ";
 				while (nbytes > 0) {
 					buffer[nbytes -1] = 0;
 ;					INFO << buffer << "\n";
@@ -242,6 +243,7 @@ namespace PH::RpGui {
 				ssh_channel_close(channel);
 				ssh_channel_free(channel);
 
+				Engine::String::destroy(&work.command);
 
 			}
 			else {
