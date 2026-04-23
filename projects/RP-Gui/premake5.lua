@@ -53,8 +53,7 @@ project "RP-GUI"
 	links
 	{
 		"base",
-		"Engine",
-		"%{Library.cpython}"
+		"Engine"
 	}
 
 	postbuildcommands 
@@ -77,14 +76,29 @@ project "RP-GUI"
 		runtime "Debug"
 		symbols "on"
 
+		links 
+		{
+			"%{Library.cpython_debug}"
+		}
+
 	filter "configurations:Release"
 		defines "PH_RELEASE"
 		runtime "Release"
 		optimize "on"
 
+		links 
+		{
+			"%{Library.cpython}"
+		}
+
 	filter "configurations:Dist"
 		defines "PH_DIST"
 		runtime "Release"
 		optimize "on"
+
+		links 
+		{
+			"%{Library.cpython}"
+		}
 
     

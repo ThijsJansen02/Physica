@@ -3,13 +3,15 @@ import os
 import sys
 import subprocess
 import RpGui as rp
+import numpy as np
 
 # caution: path[0] is reserved for script path (or '' in REPL)
 sys.path.insert(1, 'res')
 
-import execlib
+import sys, os
+sys.stdout = open('CONOUT$', 'w')
+sys.stderr = open('CONOUT$', 'w')
 
-execlib.pri()
 
 def openandprint(path):
     with open(path, "r") as file:
@@ -23,10 +25,9 @@ def ls():
 def printversion():
     print(f"version: {sys.version}")
 
-rp.setFilterCutoff(0, 500)
-rp.setFilterCutoff(1, 1000)
-rp.setFilterCutoff(2, 100)
+x = np.linspace(0, 10, 100, dtype=np.float32)
+y = 2 * np.sin(x)
 
-rp.setFilterQfactor(0, 100)
-rp.setFilterQfactor(1, 3.75)
-rp.setFilterQfactor(2, 100)
+rp.addPlot(x, y, "sin(x)")
+
+#rp.setFont("c:/windows/fonts/Times.ttf", 512, 32)

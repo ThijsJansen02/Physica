@@ -410,6 +410,8 @@ namespace PH::Platform {
 #define PH_GFX_CREATE_FRAMEBUFFERS(name) PH::bool32 name(PH::Platform::GFX::FramebufferCreateInfo* createinfos, PH::Platform::GFX::Framebuffer* framebuffers, PH::uint32 count)
 
 #define PH_GFX_CREATE_TEXTURES(name) PH::bool32 name(PH::Platform::GFX::TextureCreateInfo* createinfos, PH::Platform::GFX::Texture* textures, PH::uint32 count)
+#define PH_GFX_DESTROY_TEXTURES(name) PH::bool32 name(PH::Platform::GFX::Texture* textures, PH::uint32 count)
+
 
 #define PH_GFX_CREATE_SHADERS(name) PH::bool32 name(PH::Platform::GFX::ShaderCreateinfo* createinfos, PH::Platform::GFX::Shader* shaders, PH::uint32 count)
 #define PH_GFX_DESTROY_SHADERS(name) PH::bool32 name(PH::Platform::GFX::Shader* shaders, PH::uint32 count)
@@ -475,6 +477,7 @@ namespace PH::Platform {
 		typedef PH_GFX_BIND_GRAPHICS_PIPELINE(gfx_BindGraphicsPipelineFN);
 
 		typedef PH_GFX_CREATE_TEXTURES(gfx_CreateTexturesFN);
+		typedef PH_GFX_DESTROY_TEXTURES(gfx_DestroyTexturesFN);
 
 		typedef PH_GFX_CREATE_RENDERPASS_DESCRIPTIONS(gfx_CreateRenderpassDescriptionFN);
 		typedef PH_GFX_CREATE_FRAMEBUFFERS(gfx_CreateFramebuffersFN);
@@ -528,6 +531,7 @@ namespace PH::Platform {
 			PH::Platform::Intern::gfx_EndRenderpassFN* gfxendrenderpass;
 
 			PH::Platform::Intern::gfx_CreateTexturesFN* gfxcreatetextures;
+			PH::Platform::Intern::gfx_DestroyTexturesFN* gfxdestroytextures;
 
 			PH::Platform::Intern::gfx_CreateShadersFN* gfxcreateshaders;
 			PH::Platform::Intern::gfx_DestroyShadersFN* gfxdestroyshaders;
@@ -572,6 +576,7 @@ namespace PH::Platform {
 		extern Intern::gfx_CreateGraphicsPipelinesFN* createGraphicsPipelines;
 
 		extern Intern::gfx_CreateTexturesFN* createTextures;
+		extern Intern::gfx_DestroyTexturesFN* destroyTextures;
 
 		extern Intern::gfx_DrawImguiWidgetsFN* drawImguiWidgets;
 		extern Intern::gfx_CreateImguiImageFN* createImGuiImage;

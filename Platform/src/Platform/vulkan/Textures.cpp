@@ -158,6 +158,19 @@ namespace PH::Vulkan {
 		return sampler;
 	}
 
+	PH::bool32 destroyTexture(VulkanAppContext* context, PH::Platform::GFX::Texture* textures, PH::uint32 count) {
+		for (uint32 i = 0; i < count; i++) {
+			auto& texture = textures[i];
+			auto& textureimage = context->textureimages[texture];
+			vkDestroyImageView(context->device, textureimage.view, nullptr);
+			vkDestroyImage(context->device, textureimage.image, nullptr);
+			vkFreeMemory(context->device, textureimage.imagememory, nullptr);
+			vkDestroySampler(context->device, textureimage.sampler, nullptr);
+		}
+
+		return true;
+	}
+
 	PH::bool32 createTextures(
 		VulkanAppContext* context, 
 		PH::Platform::GFX::TextureCreateInfo* createinfos, 
@@ -294,8 +307,14 @@ namespace PH::Vulkan {
 		return true;
 	}
 
+	PH_GFX_DESTROY_TEXTURES(destroyTextures) {
+		return destroyTexture(context_s, textures, count);
+	}
+
 	PH_GFX_CREATE_TEXTURES(createTextures) {
 		return createTextures(context_s, createinfos, textures, count);
 	}
+
+
 
 }

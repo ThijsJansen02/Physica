@@ -102,6 +102,10 @@ namespace PH::Engine {
 
 	template<typename T> 
 	using ArrayList = PH::Base::ArrayList<T, Engine::Allocator>;
+
+	template<typename T>
+	using DynamicArray = PH::Base::DynamicArray<T, Engine::Allocator>;
+
 	using String = PH::Base::String<Engine::Allocator>;
 
 	typedef PH::Base::FilePath<Engine::Allocator> FilePath;

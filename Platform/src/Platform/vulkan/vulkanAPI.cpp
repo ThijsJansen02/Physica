@@ -90,8 +90,10 @@ namespace PH::Vulkan {
 		api->gfxbinddescriptorsets = PH::Vulkan::bindDescriptorSets;
 
 		api->gfxcreatetextures = PH::Vulkan::createTextures;
+		api->gfxdestroytextures = PH::Vulkan::destroyTextures;
 
 		api->gfxcreatebuffers = PH::Vulkan::createBuffers;
+		api->gfxdestroybuffers = PH::Vulkan::destroyBuffers;
 		api->gfxbindvertexbuffers = PH::Vulkan::bindVertexBuffers;
 		api->gfxbindindexbuffer = PH::Vulkan::bindIndexBuffer;
 		api->gfxcopybuffers = PH::Vulkan::copyBuffer;

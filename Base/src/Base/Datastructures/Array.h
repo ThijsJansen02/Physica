@@ -195,6 +195,15 @@ namespace PH::Base {
 			return array;
 		}
 
+		static void destroy(DynamicArray* array) {
+			if (array->m_Data) {
+				allocator::dealloc(array->m_Data);
+			}
+			array->m_Data = nullptr;
+			array->m_Count = 0;
+		}
+
+	
 		DynamicArray() : m_Data(nullptr), m_Count(0) {
 
 		}
@@ -313,6 +322,11 @@ namespace PH::Base {
 				 a.pushBack(el);
 			 }
 			 return a;
+		}
+
+		static void destroy(ArrayList* item) {
+			item->release();
+			return;
 		}
 
 		ArrayList() {

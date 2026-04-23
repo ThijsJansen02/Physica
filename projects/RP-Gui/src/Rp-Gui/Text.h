@@ -47,7 +47,12 @@ namespace PH::RpGui {
 		const uint32 charcount = 96;
 
 		PH::Platform::FileBuffer ttf_buffer;
-		PH::Platform::loadFile(&ttf_buffer, ttfpath);
+		
+		
+		if (!PH::Platform::loadFile(&ttf_buffer, ttfpath)) {
+			PH::Engine::WARN << "Failed to load font file at path " << ttfpath << "\n";
+			return result;
+		}
 
 		uint32 fontbitmapwidth = bitmapwidth;
 

@@ -680,7 +680,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	app.applicationReload(&api);
 	applicationReload(&api);
 
-
 	QueryPerformanceCounter(&systemstartcount);
 	QueryPerformanceFrequency(&PerformanceFrequency);
 

@@ -49,6 +49,7 @@ namespace PH::Platform {
 	Intern::gfx_BindGraphicsPipelineFN* GFX::bindGraphicsPipeline = nullptr;
 
 	Intern::gfx_CreateTexturesFN* GFX::createTextures = nullptr;
+	Intern::gfx_DestroyTexturesFN* GFX::destroyTextures = nullptr;
 
 	Intern::GFX_SetScissorsFN* GFX::setScissors = nullptr;
 	Intern::gfx_SetViewportsFN* GFX::setViewports = nullptr;
@@ -104,6 +105,7 @@ PH_DLL_EXPORT bool applicationReload(PH::Platform::Intern::PlatformAPI* platform
 	PH::Platform::GFX::setScissors = platform->gfxsetscissors;
 
 	PH::Platform::GFX::createTextures = platform->gfxcreatetextures;
+	PH::Platform::GFX::destroyTextures = platform->gfxdestroytextures;
 
 	PH::Platform::GFX::drawImguiWidgets = platform->gfxdrawimguiwidgets;
 	PH::Platform::GFX::createImGuiImage = platform->gfxcreateimguiimage;

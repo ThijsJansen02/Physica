@@ -268,6 +268,7 @@ namespace PH::Engine {
 			GFX::createTextures(&createinfo, &tex, 1);
 			return tex;
 		}
+		
 
 		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
 
@@ -329,7 +330,20 @@ namespace PH::Engine {
 			return pipeline;
 		}
 
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts) {
+		Engine::DynamicArray<uint8> compileGLSLSourceToVulkanBinary(const char* source, PH::Platform::GFX::ShaderStageFlags shaderstage) {
+
+			shaderc_shader_kind kind;
+
+			if (shaderstage & GFX::SHADER_STAGE_VERTEX_BIT) {
+				kind = shaderc_shader_kind::shaderc_vertex_shader;
+			}
+			else if (shaderstage & GFX::SHADER_STAGE_FRAGMENT_BIT) {
+				kind = shaderc_shader_kind::shaderc_fragment_shader;
+			}
+			else {
+				Engine::WARN << "unsupported shader stage for compilation\n";
+				return Engine::DynamicArray<uint8>::create(0);
+			}
 
 			//setup the shaderc comiler
 			shaderc::Compiler compiler;
@@ -341,35 +355,30 @@ namespace PH::Engine {
 			if (optimize)
 				options.SetOptimizationLevel(shaderc_optimization_level_performance);
 
-			//compile vertex shader
-			shaderc_shader_kind kind = shaderc_shader_kind::shaderc_vertex_shader;
-			std::string sourcecode = (const char*)vertsource.data;
-			shaderc::SpvCompilationResult compiledvertmodule = compiler.CompileGlslToSpv(sourcecode, kind, "ref");
-			if (compiledvertmodule.GetCompilationStatus() != shaderc_compilation_status_success)
+			//binary
+			std::string sourcecode = (const char*)source;
+			shaderc::SpvCompilationResult compiledmodule = compiler.CompileGlslToSpv(sourcecode, kind, "ref");
+			if (compiledmodule.GetCompilationStatus() != shaderc_compilation_status_success)
 			{
-				WARN << "Failed to compile shaderstage: Vertex Shader\n\n";
-				WARN << "Source Code: \n\n" << (const char*)vertsource.data << "\n\n";
-				WARN << compiledvertmodule.GetErrorMessage().c_str() << "\n";
-				return false;
+				WARN << "Failed to compile shader: \n\n";
+				WARN << "Source Code: \n\n" << (const char*)source << "\n\n";
+				WARN << compiledmodule.GetErrorMessage().c_str() << "\n";
+				return Engine::DynamicArray<uint8>::create(0);
 			}
 
-			sizeptr vertsize = (compiledvertmodule.cend() - compiledvertmodule.cbegin()) * sizeof(uint32);
+			sizeptr vertsize = (compiledmodule.cend() - compiledmodule.cbegin()) * sizeof(uint32);
 
-			kind = shaderc_shader_kind::shaderc_fragment_shader;
-			sourcecode = (const char*)fragsource.data;
+			Engine::DynamicArray<uint8> result = Engine::DynamicArray<uint8>::create(vertsize);
+			Base::copyMemory((void*)compiledmodule.cbegin(), (void*)result.raw(), vertsize);
+			return result;
+		}
 
-			shaderc::SpvCompilationResult compiledfragmodule = compiler.CompileGlslToSpv(sourcecode, kind, "ref");
-			if (compiledfragmodule.GetCompilationStatus() != shaderc_compilation_status_success)
-			{
-				WARN << "Failed to compile shaderstage: fragmentshader Shader\n\n";
-				WARN << "Source Code: \n\n" << (const char*)fragsource.data << "\n\n";
-				WARN << compiledfragmodule.GetErrorMessage().c_str() << "\n";
-				return false;
-			}
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts) {
 
-			sizeptr fragsize = (compiledfragmodule.cend() - compiledfragmodule.cbegin()) * sizeof(uint32);
+			auto vertexbinary = compileGLSLSourceToVulkanBinary((const char*)vertsource.data, GFX::SHADER_STAGE_VERTEX_BIT);
+			auto fragmentbinary = compileGLSLSourceToVulkanBinary((const char*)fragsource.data, GFX::SHADER_STAGE_FRAGMENT_BIT);
 
-			return createGraphicsPipelineFromBinaries(target, { (uint8*)compiledvertmodule.cbegin(), vertsize }, { (uint8*)compiledfragmodule.cbegin(), fragsize }, userlayouts);
+			return createGraphicsPipelineFromBinaries(target, vertexbinary.getArray(), fragmentbinary.getArray(), userlayouts);
 		}
 
 		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath, Base::Array<GFX::DescriptorSetLayout> userlayouts) {

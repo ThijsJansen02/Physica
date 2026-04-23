@@ -49,7 +49,7 @@ namespace PH::RpGui {
 		return RpGui::renderer2D.drawLine(v1t, v2t, color, thickness);
 	}
 
-	//draws a linestrip transformed from the corresponding range to the region on the display as given by the parameters
+	//VERY IMPORTANT: modifies the points array!!! draws a linestrip transformed from the corresponding range to the region on the display as given by the parameters
 	inline bool32 drawPlot(PH::Base::Array<glm::vec2> points, Box2D range, Box2D region, glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f }, glm::vec2 thickness = { 1.0f, 1.0f }) {
 
 		//transform from range to -1.0f, 1.0f

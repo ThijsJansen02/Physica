@@ -26,10 +26,41 @@ namespace PH::RpGui {
 		};
 	};
 
+#define FILTER_TYPE_COUNT 7
+
+	enum FilterType {
+		LOWPASS,
+		BANDPASS,
+		BANDSTOP,
+		HIGHPASS,
+		ALLPASS,
+		RESONANCE_ANTI_RESONANCE,
+		COEFFICIENTS
+	};
+
+	static const char* FilterTypeStrings[] = {
+		"lowpass",
+		"bandpass",
+		"bandstop",
+		"highpass",
+		"allpass",
+		"resonance anti resonance",
+		"coefficients"
+	};
+
 	struct Filter {
+		FilterType type;
+
 		real32 cutoff;
 		real32 Qfactor;
-		real32 gain;
+
+		union {
+			real32 gain;
+			struct {
+				real32 df;
+				real32 antiQfactor;
+			};
+		};
 
 		BiQuadCoefficients coeffs;
 	};
@@ -45,7 +76,6 @@ namespace PH::RpGui {
 	real64 prewarp(real64 w0, real64 fs) {
 		return 2 * fs * tan(w0 / (2 * fs));
 	}
-
 
 	void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 fs)
 	{
@@ -92,8 +122,50 @@ namespace PH::RpGui {
 
 	}
 
+	inline BiQuadCoefficients getResonanceAntiResonanceBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor, real64 df, real64 antiQfactor) {
+
+		cutoff = cutoff - (0.5 * df);
+
+		real64 antiCutoff = cutoff + (0.5 * df);
+
+		BiQuadCoefficients result;
+		result.b0 = 1.0f;
+		result.b1 = cutoff / Qfactor;
+		result.b2 = cutoff * cutoff;
+		result.a0 = 1.0f;
+		result.a1 = antiCutoff / antiQfactor;
+		result.a2 = antiCutoff * antiCutoff;
+		return result;
+	}
+
+	inline BiQuadCoefficients getlowPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
+		
+		BiQuadCoefficients result;
+		result.b0 = 0;
+		result.b1 = 0;
+		result.b2 = cutoff * cutoff;
+		result.a0 = 1;
+		result.a1 = cutoff / Qfactor;
+		result.a2 = cutoff * cutoff;
+		return result;
+	}
+
 	inline BiQuadCoefficients getBandPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
 		
+		BiQuadCoefficients result;
+		result.a0 = 1;
+		result.a1 = cutoff / Qfactor;
+		result.a2 = cutoff * cutoff;
+
+		result.b0 = 1;
+		result.b1 = cutoff;
+		result.b2 = cutoff * cutoff;
+
+		return result;
+	}
+
+	inline BiQuadCoefficients getBandStopBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
+
 		BiQuadCoefficients result;
 		result.b0 = 1;
 		result.b1 = cutoff / Qfactor;
@@ -104,6 +176,50 @@ namespace PH::RpGui {
 		result.a2 = cutoff * cutoff;
 
 		return result;
+	}
+
+	inline BiQuadCoefficients getHighPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
+
+		BiQuadCoefficients result;
+		result.b0 = 1.0f;
+		result.b1 = 0.0f;
+		result.b2 = 0.0f;
+
+		result.a0 = 1;
+		result.a1 = cutoff / Qfactor;
+		result.a2 = cutoff * cutoff;
+
+		return result;
+	}
+
+	inline BiQuadCoefficients getAllpassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
+		BiQuadCoefficients result;
+		result.b0 = 0.0f;
+		result.b1 = 0.0f;
+		result.b2 = 1.0f;
+		result.a0 = 0.0f;
+		result.a1 = 0.0f;
+		result.a2 = 1.0f;
+		return result;
+	}
+
+	inline BiQuadCoefficients calculateCoefficients(const Filter& filter) {
+		switch (filter.type) {
+			case FilterType::LOWPASS:
+				return getlowPassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
+			case FilterType::BANDPASS:
+				return getBandPassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
+			case FilterType::BANDSTOP:
+				return getBandStopBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
+			case FilterType::HIGHPASS:
+				return getHighPassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
+			case FilterType::RESONANCE_ANTI_RESONANCE:
+				return getResonanceAntiResonanceBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor, filter.df, filter.antiQfactor);	
+			case FilterType::ALLPASS:
+				return getAllpassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
+			case FilterType::COEFFICIENTS:
+				return filter.coeffs;
+		}
 	}
 
 	inline BiQuadCoefficients bilinearTransform(BiQuadCoefficients continuous, real64 targetfs) {
@@ -182,14 +298,22 @@ namespace PH::RpGui {
 	}
 
 	void recalculateFilter(Filter* filter) {
-		filter->coeffs = getBandPassBiquadCoefficientsContinuous(filter->cutoff, filter->Qfactor);
+		filter->coeffs = calculateCoefficients(*filter);
 	}
 
 	void serializeFilter(const Filter& filter, YAML::Emitter& out) {
 		out << YAML::BeginMap;
 		out << YAML::Key << "cutoff" << YAML::Value << filter.cutoff;
 		out << YAML::Key << "Qfactor" << YAML::Value << filter.Qfactor;
-		out << YAML::Key << "gain" << YAML::Value << filter.gain;
+		if (filter.type == FilterType::RESONANCE_ANTI_RESONANCE) {
+			out << YAML::Key << "df" << YAML::Value << filter.df;
+			out << YAML::Key << "antiQfactor" << YAML::Value << filter.antiQfactor;
+		}
+		else {
+			out << YAML::Key << "gain" << YAML::Value << filter.gain;
+		}
+
+		out << YAML::Key << "FilterType" << YAML::Value << (int)filter.type;
 		out << YAML::EndMap;
 	}
 
@@ -197,10 +321,17 @@ namespace PH::RpGui {
 		Filter result;
 		result.cutoff = filter["cutoff"].as<real32>();
 		result.Qfactor = filter["Qfactor"].as<real32>();
-		result.gain = filter["gain"].as<real32>();
+		result.type = (FilterType)filter["FilterType"].as<int>();
+		if (result.type == FilterType::RESONANCE_ANTI_RESONANCE) {
+			result.df = filter["df"].as<real32>();
+			result.antiQfactor = filter["antiQfactor"].as<real32>();
+		}
+		else {
+			result.gain = filter["gain"].as<real32>();
+		}
+
 
 		recalculateFilter(&result);
-
 		return result;
 	}
 

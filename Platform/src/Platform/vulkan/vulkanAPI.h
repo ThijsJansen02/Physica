@@ -93,6 +93,7 @@ namespace PH::Vulkan {
 	PH_GFX_BIND_DESCRIPTOR_SETS(bindDescriptorSets);
 
 	PH_GFX_CREATE_TEXTURES(createTextures);
+	PH_GFX_DESTROY_TEXTURES(destroyTextures);
 
 	PH_GFX_CREATE_SHADERS(createShaders);
 	PH_GFX_DESTROY_SHADERS(destroyShaders);

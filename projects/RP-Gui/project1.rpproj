@@ -4,10 +4,14 @@ TransferFunctions:
     filters:
       - cutoff: 500
         Qfactor: 100
-        gain: 1
+        df: 30
+        antiQfactor: 100
+        FilterType: 5
       - cutoff: 1000
         Qfactor: 3.75
         gain: 1
+        FilterType: 4
       - cutoff: 100
-        Qfactor: 100
+        Qfactor: 1000
         gain: 1
+        FilterType: 4
