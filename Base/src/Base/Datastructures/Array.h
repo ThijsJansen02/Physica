@@ -359,6 +359,18 @@ namespace PH::Base {
 			return m_End - m_Storage.begin();
 		}
 
+		bool32 remove(sizeptr index) {
+			PH_DEBUG_ASSERT(index < getCount())
+
+
+			m_Storage[index] = {};
+			for (uint32 i = index; i < getCount() - 1; i++) {
+				m_Storage[index] = m_Storage[index + 1];
+			}
+			--m_End;
+			return true;
+		}
+
 		void release() {
 			m_Storage.release();
 		}
