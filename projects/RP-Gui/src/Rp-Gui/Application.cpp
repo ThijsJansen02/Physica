@@ -17,10 +17,12 @@
 #include <Engine/imgui/DockSpace.h>
 #include <Engine/YamlExtensions.h>
 
+#include <shobjidl.h>
+
 #include "TransferFunction.h"
 
 #include "Context.h"
-#include "imgui_spectrum.h"
+
 
 #define PY_SSIZE_T_CLEA
 
@@ -29,12 +31,15 @@
 	#undef _DEBUG
 	#include <Python.h>
 	#define _DEBUG
+#else
+	#include <Python.h>
 #endif
 
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/embed.h>
 
+#include "embeddedpython.h"
 
 #include "Text.h"
 #include "Plot.h"
@@ -81,347 +86,34 @@ RpGui::TransferFunction createExampleTransferFunction() {
 
 namespace py = pybind11;
 
-#define M_PI 3.14159265359
+void loadShaders() {
 
-real64 targetfs = 125e6 / 256.0;
+	auto defaultquadvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_quadshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
+	auto defaultquadfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_quadshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
 
-void sentFilterToRp(Filter f, real64 targetfs, RpGui::RpConnection* connection) {
+	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(&RpGui::context->magnitudeplot.display,
+		defaultquadvert.getArray(),
+		defaultquadfrag.getArray(),
+		{ nullptr, 0 }
+	);
 
-	//if the filter type is resonance anti resonance the cutoff is average between both resonances, so we need to calculate the cutoff differently
-	f.cutoff = prewarp(2 * M_PI * f.cutoff, targetfs);
+	Engine::DynamicArray<uint8>::destroy(&defaultquadvert);
+	Engine::DynamicArray<uint8>::destroy(&defaultquadfrag);
 
-	BiQuadCoefficients dcoeffs = bilinearTransform(calculateCoefficients(f), targetfs);
+	auto defaultfontvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_fontshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
+	auto defaultfontfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_fontshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
 
-	Engine::String rpcommand = generateRPfilterString(dcoeffs);
-	if (connection->open) {
-		connection->commandqueue.push({ rpcommand });
-		ReleaseSemaphore(connection->semaphore, 1, nullptr);
-	}
+	RpGui::context->fontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(&RpGui::context->magnitudeplot.display,
+		defaultfontvert.getArray(),
+		defaultfontfrag.getArray(),
+		{ &RpGui::fontuserlayout, 1 }
+	);
+
+	Engine::DynamicArray<uint8>::destroy(&defaultfontvert);
+	Engine::DynamicArray<uint8>::destroy(&defaultfontfrag);
 }
 
-//actually usable functions in python!
-void setFilterCutoff(int filternumber, float cutoff) {
-	RpGui::context->activetransferfunctions[0].filters[filternumber].cutoff = cutoff;
-
-	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);	
-	sentFilterToRp(RpGui::context->activetransferfunctions[0].filters[filternumber], targetfs, &RpGui::context->activetransferfunctions[0].connection);
-}
-
-//actually usable functions in python!
-void setFilterQfactor(int filternumber, float qfactor) {
-	RpGui::context->activetransferfunctions[0].filters[filternumber].Qfactor = qfactor;
-
-	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);
-	sentFilterToRp(RpGui::context->activetransferfunctions[0].filters[filternumber], targetfs, &RpGui::context->activetransferfunctions[0].connection);
-}
-
-//actually usable functions in python!
-void addPlot(py::array_t<float> freq, py::array_t<float> magnitude, char* name) {
-	
-	auto freqbuf = freq.request();
-	float* freqptr = static_cast<float*>(freqbuf.ptr);
-	size_t freqsize = freqbuf.size;
-
-	auto magbuf = magnitude.request();
-	float* magptr = static_cast<float*>(magbuf.ptr);
-	size_t magsize = magbuf.size;
-
-	Engine::ArrayList<glm::vec2> points = Engine::ArrayList<glm::vec2>::create(freqsize);
-	for (uint32 i = 0; i < freqsize; i++) {
-		points.pushBack({ freqptr[i], magptr[i] });
-	}
-
-	INFO << "Adding plot with name: " << name << " and " << freqsize << " points\n";
-
-	RpGui::PlotData plotdata{};
-	plotdata.name = Engine::String::create(name);
-	plotdata.data = points;
-
-	RpGui::context->openedplots.pushBack(plotdata);
-}
-
-//removes a plot
-void removePlot(char* name) {
-	sizeptr index = 0;
-	for (auto& plt : RpGui::context->openedplots) {
-		if (Base::stringCompare(name, plt.name.getC_Str()) == true) {
-
-			//release the memory of the plot data and name
-			Engine::ArrayList<glm::vec2>::destroy(&plt.data);
-			Engine::String::destroy(&plt.name);	
-
-			INFO << "Removing plot with name: " << name << "\n";
-			RpGui::context->openedplots.remove(index);
-			index++;
-			return;
-		}
-	}
-}
-
-void setFont(char* font, int bitmapsize, int charactersize) {
-
-	RpGui::Font newfont = loadFont(font, bitmapsize, charactersize);
-	if (newfont.bitmapwidth == 0) {
-		ERR << "Failed to load font\n";
-		return;
-	}
-
-	/*
-	PH::Platform::GFX::destroyTextures(&RpGui::context->font.atlas, 1);	
-	PH::Platform::GFX::destroyBuffers(&RpGui::context->font.cdatabuffer, 1);
-	Engine::Allocator::dealloc(RpGui::context->font.cdata_cpu);
-	PH::Platform::GFX::destroyDescriptorSets(&RpGui::context->font.cdata, 1);
-	*/
-	RpGui::context->font = newfont;
-}
-
-PYBIND11_EMBEDDED_MODULE(hostimgui, m) {
-	m.doc() = "exposed imgui function for use in python";
-
-	py::class_<ImVec2>(m, "Vec2")
-		.def(py::init<float, float>())
-		.def_readwrite("x", &ImVec2::x)
-		.def_readwrite("y", &ImVec2::y);
-
-	py::class_<ImVec4>(m, "Vec4")
-		.def(py::init<float, float, float, float>())
-		.def_readwrite("x", &ImVec4::x)
-		.def_readwrite("y", &ImVec4::y)
-		.def_readwrite("z", &ImVec4::z)
-		.def_readwrite("w", &ImVec4::w);
-
-	py::enum_<ImGuiCol_>(m, "Col")
-		.value("Text", ImGuiCol_Text)
-		.value("TextDisabled", ImGuiCol_TextDisabled)
-		.value("WindowBg", ImGuiCol_WindowBg)
-		.value("ChildBg", ImGuiCol_ChildBg)
-		.value("PopupBg", ImGuiCol_PopupBg)
-		.value("Border", ImGuiCol_Border)
-		.value("FrameBg", ImGuiCol_FrameBg)
-		.value("FrameBgHovered", ImGuiCol_FrameBgHovered)
-		.value("FrameBgActive", ImGuiCol_FrameBgActive)
-		.value("TitleBg", ImGuiCol_TitleBg)
-		.value("TitleBgActive", ImGuiCol_TitleBgActive)
-		.value("Button", ImGuiCol_Button)
-		.value("ButtonHovered", ImGuiCol_ButtonHovered)
-		.value("ButtonActive", ImGuiCol_ButtonActive)
-		.value("Header", ImGuiCol_Header)
-		.value("HeaderHovered", ImGuiCol_HeaderHovered)
-		.value("HeaderActive", ImGuiCol_HeaderActive)
-		.value("Tab", ImGuiCol_Tab)
-		.value("TabActive", ImGuiCol_TabActive)
-		.value("TabHovered", ImGuiCol_TabHovered)
-		.value("TabSelected", ImGuiCol_TabSelected)
-		.value("TabUnfocussed", ImGuiCol_TabUnfocused)
-		.value("TabDimmed", ImGuiCol_TabDimmed)
-		.value("TabDimmedSelectedOverline", ImGuiCol_TabDimmedSelectedOverline)
-		.value("TabSelectedOverline", ImGuiCol_TabSelectedOverline)
-			.export_values();
-
-	py::class_<ImGuiStyle>(m, "Style")
-		// --- main scalar values ---
-		.def_readwrite("alpha", &ImGuiStyle::Alpha)
-		.def_readwrite("disabled_alpha", &ImGuiStyle::DisabledAlpha)
-		.def_readwrite("window_rounding", &ImGuiStyle::WindowRounding)
-		.def_readwrite("window_border_size", &ImGuiStyle::WindowBorderSize)
-		.def_readwrite("child_border_size", &ImGuiStyle::ChildBorderSize)
-		.def_readwrite("popup_border_size", &ImGuiStyle::PopupBorderSize)
-		.def_readwrite("frame_rounding", &ImGuiStyle::FrameRounding)
-		.def_readwrite("frame_border_size", &ImGuiStyle::FrameBorderSize)
-		.def_readwrite("indent_spacing", &ImGuiStyle::IndentSpacing)
-		.def_readwrite("columns_min_spacing", &ImGuiStyle::ColumnsMinSpacing)
-		.def_readwrite("scrollbar_size", &ImGuiStyle::ScrollbarSize)
-		.def_readwrite("scrollbar_rounding", &ImGuiStyle::ScrollbarRounding)
-		.def_readwrite("grab_min_size", &ImGuiStyle::GrabMinSize)
-		.def_readwrite("grab_rounding", &ImGuiStyle::GrabRounding)
-		.def_readwrite("log_slider_deadzone", &ImGuiStyle::LogSliderDeadzone)
-		.def_readwrite("tab_rounding", &ImGuiStyle::TabRounding)
-		.def_readwrite("tab_border_size", &ImGuiStyle::TabBorderSize)
-		.def_readwrite("mouse_cursor_scale", &ImGuiStyle::MouseCursorScale)
-
-		// --- alignment / enums (stored as ints) ---
-		.def_readwrite("window_menu_button_position",
-			&ImGuiStyle::WindowMenuButtonPosition)
-		.def_readwrite("color_button_position",
-			&ImGuiStyle::ColorButtonPosition)
-
-		// --- booleans ---
-		.def_readwrite("anti_aliased_lines", &ImGuiStyle::AntiAliasedLines)
-		.def_readwrite("anti_aliased_lines_use_tex",
-			&ImGuiStyle::AntiAliasedLinesUseTex)
-		.def_readwrite("anti_aliased_fill", &ImGuiStyle::AntiAliasedFill)
-
-		// --- vec2 fields ---
-		.def_readwrite("window_padding", &ImGuiStyle::WindowPadding)
-		.def_readwrite("window_min_size", &ImGuiStyle::WindowMinSize)
-		.def_readwrite("window_title_align", &ImGuiStyle::WindowTitleAlign)
-		.def_readwrite("frame_padding", &ImGuiStyle::FramePadding)
-		.def_readwrite("item_spacing", &ImGuiStyle::ItemSpacing)
-		.def_readwrite("item_inner_spacing", &ImGuiStyle::ItemInnerSpacing)
-		.def_readwrite("cell_padding", &ImGuiStyle::CellPadding)
-		.def_readwrite("touch_extra_padding", &ImGuiStyle::TouchExtraPadding)
-		.def_readwrite("display_window_padding", &ImGuiStyle::DisplayWindowPadding)
-		.def_readwrite("display_safe_area_padding", &ImGuiStyle::DisplaySafeAreaPadding)
-		.def_readwrite("selectable_text_align", &ImGuiStyle::SelectableTextAlign)
-
-		// --- curve tuning ---
-		.def_readwrite("curve_tessellation_tol",
-			&ImGuiStyle::CurveTessellationTol)
-		.def_readwrite("circle_tessellation_max_error",
-			&ImGuiStyle::CircleTessellationMaxError);
-
-	m.def("getStyle", []() -> ImGuiStyle& {
-		return ImGui::GetStyle();
-		}, py::return_value_policy::reference);
-
-	m.def("getColor", [](ImGuiCol_ col) -> ImVec4& {
-		return ImGui::GetStyle().Colors[col];
-		}, py::return_value_policy::reference);
-
-	m.def("setColor", [](ImGuiCol_ col, ImVec4 c) {
-		ImGui::GetStyle().Colors[col] = c;
-		});
-}
-
-// Bind it to a Python module
-PYBIND11_EMBEDDED_MODULE(RpGui, m) {
-	m.doc() = "C++ functions for my RpGui";
-	m.def("setFilterCutoff", &setFilterCutoff, "sets the cutoff of a filter",
-		py::arg("a"), py::arg("b"));
-	m.def("setFilterQfactor", &setFilterQfactor, "set the qfactor of a filter",
-		py::arg("filternumber"), py::arg("qfactor"));
-	m.def("addPlot", &addPlot, "adds a plot to the GUI with the given frequency and magnitude data and name",
-		py::arg("freq"), py::arg("magnitude"), py::arg("name"));
-	m.def("removePlot", &removePlot, "removes a plot from the GUI with the given name",
-		py::arg("name"));
-}
-
-static wchar_t* charToWChar(const char* text)
-{
-	size_t size = strlen(text) + 1;
-	wchar_t* wa = (wchar_t*)Engine::Allocator::alloc(size * sizeof(wchar_t));
-	mbstowcs(wa, text, size);
-	return wa;
-}
-
-void initPython() {
-	PyConfig config{};
-	// 1. Initialize with default Python configuration
-	PyConfig_InitIsolatedConfig(&config);
-
-	config.isolated = 1;
-
-	// This is important:
-	config.install_signal_handlers = 1;
-
-	// Ensure stdio is initialized properly
-	config.buffered_stdio = 1;
-
-	//set home
-	const wchar_t* pyhome = charToWChar(RpGui::context->pythonhome.getC_Str());
-	PyConfig_SetString(&config, &config.home, pyhome);
-
-	//PyConfig_SetString(&config, &config.path, pyhome);
-
-	PyConfig_SetString(&config, &config.program_name, L"RP-GUI");	
-
-	config.module_search_paths_set = 1;
-
-	INFO << "Python home set to: " << RpGui::context->pythonhome.getC_Str() << "\n";
-
-	Engine::String libpath = Engine::String::create(RpGui::context->pythonhome.getC_Str()).append("\\Lib");
-	const wchar_t* pylibpath = charToWChar(libpath.getC_Str());
-	PyWideStringList_Append(&config.module_search_paths, pylibpath);
-
-	PyWideStringList_Append(&config.module_search_paths, pyhome);
-
-	Engine::String buildpath = Engine::String::create(RpGui::context->pythonhome.getC_Str()).append("\\python313.zip");
-	const wchar_t* pybuildpath = charToWChar(buildpath.getC_Str());
-	PyWideStringList_Append(&config.module_search_paths, pybuildpath);
-
-	Engine::String packages = Engine::String::create(RpGui::context->pythonhome.getC_Str()).append("\\Lib\\site-packages");
-	const wchar_t* pypackagespath = charToWChar(packages.getC_Str());
-	PyWideStringList_Append(&config.module_search_paths, pypackagespath);
-
-
-	try {
-		py::initialize_interpreter(&config);
-	}
-	catch (py::error_already_set& e) {
-		// This will print the actual Python error message and traceback to C++ stderr
-		ERR << "Python Error: " << e.what() << "\n";
-	}
-	catch (std::runtime_error& e) {
-		ERR << "Runtime Error: " << e.what() << "\n";
-	}
-	catch (std::exception& e) {
-		ERR << "Exception: " << e.what() << "\n";
-	}
-}
-
-Engine::DynamicArray<uint8> checkCompileBinaries(const char* path, Platform::GFX::ShaderStageFlags stage) {
-
-	Platform::FileBuffer buffer;
-	Engine::String binpath = Engine::String::create(path).append(".bin");
-
-	Engine::DynamicArray<uint8> result;
-
-	if (Platform::loadFile(&buffer, binpath.getC_Str())) {
-		result = Engine::DynamicArray<uint8>::create(buffer.size);
-		Base::copyMemory(buffer.data, result.raw(), buffer.size);
-		Platform::unloadFile(&buffer);
-	}
-	
-	//no binaries exist, try to compile the shader source and save the binaries for later use, so we don't have to compile the shader every time we run the application, which can be slow, especially on older hardware. This is a simple caching mechanism that can significantly improve load times after the first run.
-	else if (Platform::loadFile(&buffer, path)) {
-		result = Engine::Renderer2D::compileGLSLSourceToVulkanBinary((const char*)buffer.data, stage);
-
-		Platform::FileBuffer writebuffer{};
-		writebuffer.data = result.raw();
-		writebuffer.size = result.getCapacity();
-
-		INFO << "Compiled shader source from path: " << path << " to binary and saved it to path: " << binpath.getC_Str() << "\n";
-
-		Platform::writeFile(writebuffer, binpath.getC_Str());
-		Platform::unloadFile(&buffer);
-	}
-	else {
-		ERR << "Failed to load shader source from path: " << path << "\n";
-	}
-
-	Engine::String::destroy(&binpath);
-	return result;
-}
-
-PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
-
-	//sets up the engine allocators and other systems that rely on the engine allocator, such as the console log stream
-	PH::Engine::EngineInitInfo engineinit{};
-	engineinit.memory = (PH::uint8*)context.appmemory;
-	engineinit.memorysize = context.appmemsize;
-	engineinit.platformcontext = &context;
-	PH::Engine::init(engineinit);
-
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.Colors[ImGuiCol_FrameBg] = ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f };
-	
-
-	ssh_init(); //libssh test
-
-
-	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
-
-	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "magnitude");
-	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "phase");
-
-	RpGui::context->openedplots = Engine::ArrayList<PlotData>::create(1);
-
-	//lock the xaxis for both plots together
-	RpGui::context->magnitudeplot.xlock = &RpGui::context->phaseplot;
-	RpGui::context->phaseplot.xlock = &RpGui::context->magnitudeplot;
-
-	RpGui::context->openproject = Engine::String::create("project1.rpproj");
-
+void deserializeApplication() {
 
 	auto ini = Engine::FileIO::loadYamlfile("RpGui.ini");
 	//loading the application settings
@@ -451,43 +143,11 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 			RpGui::context->pythonhome.append("\\..\\..\\dep\\embeddedpython");
 		}
 	}
+}
 
-#if 1
-	initPython();
-#endif
+void deserializeProject(const char* projectdir) {
 
-	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/arial.ttf", 512, 32.0f);
-
-	auto defaultquadvert = checkCompileBinaries("res/shaders/default_quadshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
-	auto defaultquadfrag = checkCompileBinaries("res/shaders/default_quadshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
-
-	RpGui::context->pipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(&RpGui::context->magnitudeplot.display,
-		defaultquadvert.getArray(),
-		defaultquadfrag.getArray(),
-		{ nullptr, 0 }
-	);
-
-	Engine::DynamicArray<uint8>::destroy(&defaultquadvert);
-	Engine::DynamicArray<uint8>::destroy(&defaultquadfrag);
-
-	auto defaultfontvert = checkCompileBinaries("res/shaders/default_fontshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
-	auto defaultfontfrag = checkCompileBinaries("res/shaders/default_fontshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
-
-	RpGui::context->fontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(&RpGui::context->magnitudeplot.display,
-		defaultfontvert.getArray(),
-		defaultfontfrag.getArray(),
-		{ &RpGui::fontuserlayout, 1 }
-	);
-
-	Engine::DynamicArray<uint8>::destroy(&defaultfontvert);
-	Engine::DynamicArray<uint8>::destroy(&defaultfontfrag);
-	
-
-
-	//setup example transferfunctions; should in the future be loaded from a serialized document
-	RpGui::context->activetransferfunctions = Engine::ArrayList<TransferFunction>::create(1);
-
-	auto proj = Engine::FileIO::loadYamlfile(RpGui::context->openproject.getC_Str());
+	auto proj = Engine::FileIO::loadYamlfile(projectdir);
 	if (proj) {
 		auto transferfunctions = proj["TransferFunctions"];
 		for (const auto& tf : transferfunctions) {
@@ -515,99 +175,101 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 			PH::Platform::createThread(threadinfo, &tf.connection.thread);
 
 			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
-			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil - b sinewave_generator_wrapper.bit.bin") });
+			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 
 			for (auto f : tf.filters) {
 				sentFilterToRp(f, targetfs, &tf.connection);
 			}
 		}
 	}
+}
+
+#define EMBED_PYTHON
 
 
+PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
+
+	//sets up the engine allocators and other systems that rely on the engine allocator, such as the console log stream
+	PH::Engine::EngineInitInfo engineinit{};
+	engineinit.memory = (PH::uint8*)context.appmemory;
+	engineinit.memorysize = context.appmemsize;
+	engineinit.platformcontext = &context;
+	PH::Engine::init(engineinit);
+
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.Colors[ImGuiCol_FrameBg] = ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+	
+	ssh_init(); //libssh test
+
+
+	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
+
+	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "magnitude");
+	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "phase");
+
+	RpGui::context->openedplots = Engine::ArrayList<PlotData>::create(1);
+
+	//lock the xaxis for both plots together
+	RpGui::context->magnitudeplot.xlock = &RpGui::context->phaseplot;
+	RpGui::context->phaseplot.xlock = &RpGui::context->magnitudeplot;
+
+	RpGui::context->openproject = Engine::String::create("project1.rpproj");
+
+	//buffer for drawing the plots
+	RpGui::context->buffer = Engine::ArrayList<glm::vec2>::create(10);
+	RpGui::context->font = RpGui::loadFont("c:/windows/fonts/arial.ttf", 512, 32.0f);
+
+	RpGui::context->plottitle = Engine::String::create("Frequency Response");
+
+	//setup example transferfunctions; should in the future be loaded from a serialized document
+	RpGui::context->activetransferfunctions = Engine::ArrayList<TransferFunction>::create(1);
+
+
+	loadShaders();
+	deserializeApplication();
+
+#ifdef EMBED_PYTHON
+	initPython(RpGui::context->pythonhome.getC_Str());
+#endif
+
+
+
+	deserializeProject(RpGui::context->openproject.getC_Str());
+
+
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigWindowsMoveFromTitleBarOnly = true;
+	
+
+
+	//init the renderer
 	Engine::Renderer2D::InitInfo init{};
 	init.currentpipeline = RpGui::context->pipeline2D;
 	init.descriptorsetlayouts = { nullptr, 0 };
 	init.instancebuffersize = 8 * MEGA_BYTE;
 	init.shadowmapdimensions = 0;
 
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigWindowsMoveFromTitleBarOnly = true;
-
-
-	RpGui::context->buffer = Engine::ArrayList<glm::vec2>::create(10);
-
 	RpGui::renderer2D = Engine::Renderer2D::Wrapper::create(init);
 	return true;
 }
 	//this is going to be the function that draws the plot, it takes in the vertices of the plot, the range of the plot and the region of the plot, and it draws the plot using the renderer2D wrapper, this is going to be called from the drawTransferFunctionMagnitude and drawTransferFunctionPhase functions, which are going to generate the vertices for the plot based on the transfer function and then call this function to draw the plot, this is going to allow us to separate the logic of generating the vertices for the plot from the logic of drawing the plot, which is going to make it easier to maintain and extend in the future, for example if we want to add support for different types of plots or different types of data sources for the plots, we can just generate different vertices for those plots and then call this function to draw them without having to duplicate any code.
 
-void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer) {
-
-	static int32 nsamples = 2000;
-
-	real64 xrange = plot->range.right - plot->range.left;
-	real64 dx = xrange / (real64)nsamples;
-
-	buffer->clear();
-
-	//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
-
-	//this is dangerous because if there is an floating point error in dx than this function can blow up!
-	for (real64 x = plot->range.left; x <= plot->range.right; x += dx) {
-
-		Base::Complex<real64> y = 1.0f;
-
-		for (auto& filter : function->filters) {
-			y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
-		}
-
-
-		buffer->pushBack(glm::vec2{x, 20.0f * log10f(y.modulus())});
-	}
-
-	drawPlot(buffer->getArray(), plot->range, plot->region);
-}
-
-void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer) {
-
-	static int32 nsamples = 2000;
-
-	real32 xrange = plot->range.right - plot->range.left;
-	real32 dx = xrange / (real32)nsamples;
-
-	buffer->clear();
-
-	//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
-	for (real32 x = plot->range.left; x <= plot->range.right; x += dx) {
-
-		Base::Complex<real64> y = 1.0f;
-
-		for (auto& filter : function->filters) {
-			y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
-		}
-
-
-		buffer->pushBack(glm::vec2{ x, y.arg() });
-	}
-
-	drawPlot(buffer->getArray(), plot->range, plot->region);
-}
-
-typedef void (*UIfunc) (void*, RpGui::Context*);
+typedef void (*UIfunc) (void*, RpGui::Context*, int32&);
 
 template<UIfunc func>
-inline void drawComponent(const Engine::String& name, PH::RpGui::Context* context, void* comp)
+inline void drawComponent(const Engine::String& name, PH::RpGui::Context* context, void* comp, int32& id)
 {
 	const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding;
 	
 	ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
 	
+	ImGui::PushID(id++);
 	//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
 	float lineHeight = 18.0f;
 	bool open = ImGui::TreeNodeEx((void*)PH::Base::uint32Hash((uint32)name.getChar(0)), treeNodeFlags, name.getC_Str());
 	//ImGui::PopStyleVar();
-
 
 	ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
 	if (ImGui::Button("+", ImVec2{ lineHeight, lineHeight }))
@@ -626,18 +288,19 @@ inline void drawComponent(const Engine::String& name, PH::RpGui::Context* contex
 
 	if (open)
 	{
-		func(comp, context);
+		func(comp, context, id);
 		ImGui::TreePop();
 	}
 
 	if (removeComponent) {
 			
 	}
+	ImGui::PopID();
 }
 
 real32 dragspeed = 0.002;
 
-void drawRpConnectionGui(void* function, RpGui::Context* context) {
+void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	RpGui::TransferFunction* tf = (RpGui::TransferFunction*)function;
 
@@ -646,13 +309,10 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 	char buffer[256];
 	PH::Base::stringCopy(tf->connection.remoteip.getC_Str(), buffer, 256);
 
-
-	uint32 id = 0;
 	ImGui::PushID(id++);
 	if (ImGui::InputText("", buffer, 256)) {
 		tf->connection.remoteip.set(buffer);
 	}
-	ImGui::PopID();
 
 	ImGui::SameLine();
 	if (ImGui::Button("connect")) {
@@ -670,17 +330,17 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 		PH::Platform::createThread(threadinfo, &tf->connection.thread);
 
 		ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
-		tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil - b sinewave_generator_wrapper.bit.bin") });
+		tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 	}
+	ImGui::PopID();
 
 
 
 	ImGui::PushID(id++);
 	PH::Base::stringCopy(tf->currentcommand.getC_Str(), buffer, 256);
-	if (ImGui::InputText("", buffer, 256)) {
+	if (ImGui::InputText("##transferfunctionname", buffer, 256)) {
 		tf->currentcommand.set(buffer);
 	}
-	ImGui::PopID();
 
 	ImGui::SameLine();
 	if (ImGui::Button("send")) {
@@ -695,11 +355,12 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 			INFO << "red pitaya with adress " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
 		}
 	}
+	ImGui::PopID();
 
 	real64 targetfs = 125000000.0 / 256.0;
 
 	for (auto& f : tf->filters) {
-		ImGui::PushID(id);
+		ImGui::PushID(id++);
 
 		ImGui::Text("filter n%u", id);
 		if (ImGui::BeginCombo("type", RpGui::FilterTypeStrings[f.type])) {
@@ -758,14 +419,75 @@ void drawRpConnectionGui(void* function, RpGui::Context* context) {
 			}
 		}
 
-
-
 		ImGui::PopID();
+
+
 		id++;
 		//ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed);
 	}
+}
 
+void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {
+	PlotData* plotdata = (PlotData*)function;
+	char buffer[256];
+	PH::Base::stringCopy(plotdata->name.getC_Str(), buffer, 256);
 
+	ImGui::PushID(id++);
+	if (ImGui::InputText("##plotdataname", buffer, 256)) {
+		plotdata->name.set(buffer);
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("remove")) {
+		//remove the plot from the openedplots array
+		for (uint32 i = 0; i < RpGui::context->openedplots.getCount(); i++) {
+			if (&RpGui::context->openedplots[i] == plotdata) {
+				RpGui::context->openedplots.remove(i);
+				break;
+			}
+		}
+	}
+
+	ImGui::ColorEdit3("color", &plotdata->color.r);
+	ImGui::PopID();
+}
+
+Engine::String OpenFileDialog()
+{
+	IFileOpenDialog* pFileOpen = nullptr;
+	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr,
+		CLSCTX_ALL, IID_PPV_ARGS(&pFileOpen));
+
+	if (SUCCEEDED(hr))
+	{
+		hr = pFileOpen->Show(nullptr);
+
+		if (SUCCEEDED(hr))
+		{
+			IShellItem* pItem;
+			hr = pFileOpen->GetResult(&pItem);
+
+			if (SUCCEEDED(hr))
+			{
+				PWSTR pszFilePath = nullptr;
+				hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+				if (SUCCEEDED(hr))
+				{
+					std::wstring ws(pszFilePath);
+					CoTaskMemFree(pszFilePath);
+					pItem->Release();
+					pFileOpen->Release();
+
+					std::string cstr = std::string(ws.begin(), ws.end());
+					return Engine::String::create(cstr.c_str());
+				}
+				pItem->Release();
+			}
+		}
+		pFileOpen->Release();
+	}
+
+	return Engine::String::create("");
 }
 
 
@@ -773,8 +495,6 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 	PH::Engine::beginNewFrame(&context);
 	PH::Engine::Events::startNewFrame();
-
-	
 
 	real32 scrollspeed = 0.001f;
 
@@ -791,13 +511,41 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	RpGui::renderer2D.begin();
 
 	PH::Engine::BeginDockspace();
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Open..."))
+			{
+				Engine::String path = OpenFileDialog();
+				if (!path.isEmpty())
+				{
+					// Use the selected file
+					//INFO << path.getC_Str() << " was selected.\n";
 
-	ImGui::BeginMenuBar();
-	ImGui::MenuItem("File");
-	ImGui::EndMenuBar();
+					try {
+						char buffer[1024];
+						sprintf_s(buffer, sizeof(buffer), "OpenCSVandWriteToGUI(r\"%s\")", path.getC_Str());
+
+						INFO << "python command ran: " << buffer << "\n";
+
+						py::exec(buffer);
+					}
+					catch (py::error_already_set& e) {
+						// This will print the actual Python error message and traceback to C++ stderr
+						ERR << "Python Error: " << e.what() << "\n";
+					}
+				}
+				Engine::String::destroy(&path);
+			}
+
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+
 
 	static real32 textscale = 0.5f;
-
 
 	//draw the magnitude plot for the bandpass filter
 	RpGui::PlotViewPanel* plot = &RpGui::context->magnitudeplot;
@@ -813,20 +561,34 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	for (auto& transferfunction : RpGui::context->activetransferfunctions) {
 		drawTransferFunctionMagnitude(plot, &transferfunction, &RpGui::context->buffer);
 	}
+	
 
-	for (auto& plt : RpGui::context->openedplots) {
-
-		Engine::ArrayList<glm::vec2> data = Engine::ArrayList<glm::vec2>::create(plt.data.getArray());
-
-		drawPlot(data.getArray(), plot->range, plot->region, {1.0f, 0.0f, 0.0f, 1.0f}, {1.0f, 1.0f});
-
-		Engine::ArrayList<glm::vec2>::destroy(&data);
+	for (auto& plotdata : RpGui::context->openedplots) {
+		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
+		drawPlot(copy.getArray(), plot->range, plot->region, plotdata.color);
+		Engine::DynamicArray<glm::vec2>::destroy(&copy);
 	}
+
 
 	//start drawing the text
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->fontpipeline2D, { &RpGui::context->font.cdata, 1 });
 	RpGui::renderer2D.pushTexture(RpGui::context->font.atlas);
 	RpGui::drawPlotScaleValues(plot->range, plot->region, &RpGui::context->font, textscale);
+	drawXlabel(plot->region, &RpGui::context->font, "frequency (Hz)", textscale);
+	drawTitle(plot->region, &RpGui::context->font, RpGui::context->plottitle.getC_Str(), 1.0f);
+	drawYlabel(plot->region, &RpGui::context->font, "magnitude (dB)", textscale);
+
+	//draw legemd
+
+	real32 y = plot->region.top - 50.0f;
+	real32 x = plot->region.right - 300.0f;
+	for (auto plotdata : RpGui::context->openedplots) {
+
+		drawText(&RpGui::context->font, plotdata.name.getC_Str(), { x, y }, textscale, plotdata.color);
+
+		y -= 20.0f;
+	}
+
 
 	RpGui::renderer2D.flush({ nullptr, 0 });
 
@@ -850,28 +612,39 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		drawTransferFunctionPhase(plot, &transferfunction, &RpGui::context->buffer);
 	}
 
+	
+	for (auto& plotdata : RpGui::context->openedplots) {
+		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.phasedata.getArray());
+		drawPlot(copy.getArray(), plot->range, plot->region, plotdata.color);
+		Engine::DynamicArray<glm::vec2>::destroy(&copy);
+	}
+
 	//start drawing the text
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->fontpipeline2D, { &RpGui::context->font.cdata, 1 });
 	RpGui::renderer2D.pushTexture(RpGui::context->font.atlas);
 	RpGui::drawPlotScaleValues(plot->range, plot->region, &RpGui::context->font, textscale);
+	drawXlabel(plot->region, &RpGui::context->font, "frequency (Hz)", textscale);
+	drawYlabel(plot->region, &RpGui::context->font, "Phase (radians)", textscale);
 
 	RpGui::renderer2D.flush({ nullptr, 0 });
 
 	//end renderpass for this display
 	plot->endRenderPass();
 
-
-
-
 	RpGui::context->phaseplot.ImGuiDraw();
 	RpGui::context->magnitudeplot.ImGuiDraw();
 
 	PH::Engine::beginRenderPass(*Engine::getParentDisplay());
 
+	int32 id = 0;
 	static bool functionpanelopen;
 	if (ImGui::Begin("functions")) {
 		for (auto& tf : RpGui::context->activetransferfunctions) {
-			drawComponent<drawRpConnectionGui>(tf.name, RpGui::context, (void*) & tf);
+			drawComponent<drawRpConnectionGui>(tf.name, RpGui::context, (void*)&tf, id);
+		}
+
+		for (auto& PlotData : RpGui::context->openedplots) {
+			drawComponent<drawPlotDataGui>(PlotData.name, RpGui::context, (void*)&PlotData, id);
 		}
 	} ImGui::End();
 

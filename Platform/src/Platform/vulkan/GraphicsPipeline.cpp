@@ -224,7 +224,7 @@ namespace PH::Vulkan {
 			multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
 			VkPipelineColorBlendAttachmentState colorblendattachment{};
-			colorblendattachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+			colorblendattachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT;// | VK_COLOR_COMPONENT_A_BIT;
 			colorblendattachment.blendEnable = VK_TRUE;
 			colorblendattachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 			colorblendattachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

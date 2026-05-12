@@ -1,11 +1,64 @@
 
-
+#include "transferfunction.h"
 #include "PlotViewPanel.h"
 #include "RpGui.h"
 #include <Engine/Events.h>
 
 
 namespace PH::RpGui {
+
+	void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer) {
+
+		static int32 nsamples = 2000;
+
+		real64 xrange = plot->range.right - plot->range.left;
+		real64 dx = xrange / (real64)nsamples;
+
+		buffer->clear();
+
+		//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
+
+		//this is dangerous because if there is an floating point error in dx than this function can blow up!
+		for (real64 x = plot->range.left; x <= plot->range.right; x += dx) {
+
+			Base::Complex<real64> y = 1.0f;
+
+			for (auto& filter : function->filters) {
+				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
+			}
+
+
+			buffer->pushBack(glm::vec2{ x, 20.0f * log10f(y.modulus()) });
+		}
+
+		drawPlot(buffer->getArray(), plot->range, plot->region);
+	}
+
+	void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer) {
+
+		static int32 nsamples = 2000;
+
+		real32 xrange = plot->range.right - plot->range.left;
+		real32 dx = xrange / (real32)nsamples;
+
+		buffer->clear();
+
+		//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
+		for (real32 x = plot->range.left; x <= plot->range.right; x += dx) {
+
+			Base::Complex<real64> y = 1.0f;
+
+			for (auto& filter : function->filters) {
+				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
+			}
+
+
+			buffer->pushBack(glm::vec2{ x, -y.arg() });
+		}
+
+		drawPlot(buffer->getArray(), plot->range, plot->region);
+	}
+
 	
 	PlotViewPanel PlotViewPanel::create(Box2D range, const char* name)  {
 
@@ -17,6 +70,8 @@ namespace PH::RpGui {
 		result.region.top = (real32)result.display.framebuffersize.y;
 
 		result.name = Engine::String::create(name);
+
+		result.openedplots = Engine::ArrayList<PlotData>::create(0);
 
 		result.range = range;
 
@@ -71,6 +126,29 @@ namespace PH::RpGui {
 		auto& io = ImGui::GetIO();
 
 		if (ImGui::Begin(name.getC_Str())) {
+
+			/*
+			ImGui::InvisibleButton("drop_target", ImGui::GetContentRegionAvail());
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("MY_PAYLOAD"))
+				{
+					IM_ASSERT(payload->DataSize == sizeof(int));
+					const char* payload_n = *(const char**)payload->Data;
+
+					auto incomming = Engine::String::create(Base::SubString::create(payload_n, payload->DataSize));
+
+					INFO << "payload: " << payload_n << "\n";
+					
+					Engine::String::destroy(&incomming);
+
+				}
+				ImGui::EndDragDropTarget();
+			}
+			*/
+
+
 			real32 titlebarheight = ImGui::GetFrameHeight();
 
 			//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 0, 0 });

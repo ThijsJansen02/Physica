@@ -147,7 +147,25 @@ namespace PH::RpGui {
 		return true;
 	}
 
-	inline bool32 drawPlotScaleValues(Box2D range, Box2D region, Font* font, real32 scale = 1.0f) {
+	inline bool32 drawTitle(Box2D region, Font* font, const char* label, real32 scale = 0.5f) {
+		glm::vec4 position = { -200.0f + region.left + (region.right - region.left) * 0.5f, region.top - 30.0f, 0.0f, 1.0f };
+		drawText(font, label, glm::vec2(position), scale);
+		return true;
+	}
+
+	inline bool32 drawXlabel(Box2D region, Font* font, const char* label, real32 scale = 0.5f) {
+		glm::vec4 position = { -100.0f + region.left + (region.right - region.left) * 0.5f, region.bottom + 30.0f, 0.0f, 1.0f };
+		drawText(font, label, glm::vec2(position), scale);
+		return true;
+	}
+
+	inline bool32 drawYlabel(Box2D region, Font* font, const char* label, real32 scale = 0.5f) {
+		glm::vec4 position = { region.left + 80.0f, -50.0f + region.bottom + (region.top - region.bottom) * 0.5f, 0.0f, 1.0f };
+		drawText(font, label, glm::vec2(position), glm::radians(90.0f), scale);
+		return true;
+	}
+
+	inline bool32 drawPlotScaleValues(Box2D range, Box2D region, Font* font, real32 scale = 1.0f, bool32 xlog = true, bool32 ylog = true) {
 		//transform from range to -1.0f, 1.0f
 		real32 width = region.right - region.left;
 		real32 height = region.top - region.bottom;
@@ -178,12 +196,56 @@ namespace PH::RpGui {
 		glm::vec2 padding = { 5.0f, 5.0f };
 
 		//draw lines in x direction
-		for (real32 x = xstart; x <= range.right; x += xstep) {
-			char buffer[64];
-			snprintf(buffer, 64, "%4.2f", x);
+		for (real64 x = xstart; x <= range.right; x += xstep) {
 
-			glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
-			drawText(font, buffer, glm::vec2(position) + padding, scale);
+			if (xlog) {
+
+				if (x < 3.0f) {
+
+					real64 value = pow(10.0, x);
+					char buffer[64];
+					snprintf(buffer, 64, "%4.2fhz", value);
+					glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
+					drawText(font, buffer, glm::vec2(position) + padding, scale);
+				}
+
+				if (x >= 3 && x < 6) {
+					real64 value = pow(10.0, x - 3.0f);
+
+					char buffer[64];
+					snprintf(buffer, 64, "%4.2fkHz", value);
+					glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
+					drawText(font, buffer, glm::vec2(position) + padding, scale);
+				}
+
+				if (x >= 6 && x < 9) {
+
+					real64 value = pow(10.0, x - 6.0f);
+
+					char buffer[64];
+					snprintf(buffer, 64, "%4.2fMHz", value);
+					glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
+					drawText(font, buffer, glm::vec2(position) + padding, scale);
+				}
+
+				if (x >= 9 && x < 12) {
+
+					real64 value = pow(10.0, x - 9.0f);
+
+					char buffer[64];
+					snprintf(buffer, 64, "%4.2fGHz", value);
+					glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
+					drawText(font, buffer, glm::vec2(position) + padding, scale);
+				}
+
+			}
+			else {
+				char buffer[64];
+				snprintf(buffer, 64, "%4.2fHz", powf(10.0f, x));
+
+				glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
+				drawText(font, buffer, glm::vec2(position) + padding, scale);
+			}
 		}
 
 		//draw lines in y direction

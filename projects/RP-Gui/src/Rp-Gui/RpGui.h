@@ -5,6 +5,10 @@
 
 namespace PH::RpGui {
 
+	#define M_PI 3.14159265359
+
+	static real64 targetfs = 125e6 / 256.0;
+
 	using namespace PH::Platform;
 	struct Context;
 

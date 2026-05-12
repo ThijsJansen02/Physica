@@ -42,65 +42,65 @@ namespace PH::Base {
 		}
 	};
 
-	real32 Complex<real32>::arg() {
+	inline real32 Complex<real32>::arg() {
 		return atan2f(imag, real);
 	}
 
-	real64 Complex<real64>::arg() {
+	inline real64 Complex<real64>::arg() {
 		return atan2(imag, real);
 	}
 
-	real32 Complex<real32>::modulus() {
+	inline real32 Complex<real32>::modulus() {
 		return sqrtf(modulus_squared());
 	}
 
-	real64 Complex<real64>::modulus() {
+	inline real64 Complex<real64>::modulus() {
 		return sqrt(modulus_squared());
 	}
 	
 	template<typename leftT, typename rightT>
-	Complex<rightT> operator*(leftT left, Complex<rightT> right) {
+	inline Complex<rightT> operator*(leftT left, Complex<rightT> right) {
 		return { left * right.real, left * right.imag };
 	}
 
 	template<typename leftT, typename rightT>
-	Complex<leftT> operator+(Complex<leftT> left, rightT right) {
+	inline Complex<leftT> operator+(Complex<leftT> left, rightT right) {
 		return { left.real + right, left.imag };
 	}
 
 
 	template<typename leftT, typename rightT>
-	Complex<leftT> operator+(leftT left, Complex<rightT>  right) {
+	inline Complex<leftT> operator+(leftT left, Complex<rightT>  right) {
 		return right + left;
 	}
 
 	template<typename leftT, typename rightT>
-	Complex<leftT> operator-(Complex<leftT> left, rightT right) {
+	inline Complex<leftT> operator-(Complex<leftT> left, rightT right) {
 		return left + -1.0f * right;
 	}
 
 	template<typename T>
-	Complex<T> operator+(Complex<T> left, Complex<T> right) {
+	inline Complex<T> operator+(Complex<T> left, Complex<T> right) {
 		return { left.real + right.real, left.imag - right.imag };
 	}
 
 	template<typename T>
-	Complex<T> operator-(Complex<T> left, Complex<T> right) {
+	inline Complex<T> operator-(Complex<T> left, Complex<T> right) {
 		return left - (-1.0f * right);
 	}
 
 	template<typename T>
-	Complex<T> operator/(Complex<T> left, T right) {
+	inline Complex<T> operator/(Complex<T> left, T right) {
 		return { left.real / right, left.imag / right };
 	}
 
 	template<typename T>
-	Complex<T> operator*(Complex<T> left, Complex<T> right) {
+	inline Complex<T> operator*(Complex<T> left, Complex<T> right) {
 		return { left.real * right.real - left.imag * right.imag, left.imag * right.real + left.real * right.imag };
 	}
 
 	template<typename T>
-	Complex<T> operator/(Complex<T> left, Complex<T> right) {
+	inline Complex<T> operator/(Complex<T> left, Complex<T> right) {
 
 		T devisor = (right * right.conjugate()).real;
 		return (left * right.conjugate()) / devisor;

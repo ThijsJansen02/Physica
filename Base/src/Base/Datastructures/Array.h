@@ -195,6 +195,19 @@ namespace PH::Base {
 			return array;
 		}
 
+		static DynamicArray create(Array<T> src) {
+
+			DynamicArray array;
+			array.m_Data = (type*)allocator::alloc(src.count * sizeof(type));
+			array.m_Count = src.count;
+
+			for (uint32 i = 0; i < src.count; i++) {
+				array.m_Data[i] = src.data[i];
+			}
+
+			return array;
+		}
+
 		static void destroy(DynamicArray* array) {
 			if (array->m_Data) {
 				allocator::dealloc(array->m_Data);
@@ -377,6 +390,10 @@ namespace PH::Base {
 
 		Array<type> getArray() const {
 			return Array<type>::create(raw(), getCount());
+		}
+
+		type& getLast() {
+			return *(m_End - 1);
 		}
 
 		bool32 contains(const type& el) const {

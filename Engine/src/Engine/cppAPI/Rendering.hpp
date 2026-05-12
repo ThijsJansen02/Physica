@@ -33,6 +33,10 @@ namespace PH::Engine {
 				return Renderer2D::drawQuadWithID(position, size, color, objectid, m_Context);
 			}
 
+			bool32 drawQuadWithID(const glm::mat4& transform, const glm::vec4& color, uint32 objectid) {
+				return Renderer2D::drawQuadWithID(transform, color, objectid, m_Context);
+			}
+
 			bool32 drawColoredQuad(const glm::mat4& transform, glm::vec4 color) {
 				return Renderer2D::drawColoredQuad(transform, color, m_Context);
 			}

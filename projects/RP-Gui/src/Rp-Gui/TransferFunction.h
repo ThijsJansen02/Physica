@@ -1,6 +1,8 @@
 #pragma once
-#include <Engine/Engine.h>
 #include "RpConnection.h"
+
+#include "RpGui.h"
+#include <Engine/Engine.h>
 #include <Base/Math/Complex.h>
 #include <Base/Datastructures/Stream.h>
 
@@ -73,11 +75,12 @@ namespace PH::RpGui {
 		Engine::ArrayList<Filter> filters;
 	};
 
-	real64 prewarp(real64 w0, real64 fs) {
+	inline real64 prewarp(real64 w0, real64 fs) {
 		return 2 * fs * tan(w0 / (2 * fs));
 	}
 
-	void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 fs)
+
+	inline void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 fs)
 	{
 		double b0, b1, b2, a0, a1, a2;
 		double bz0, bz1, bz2, az0, az1, az2;
@@ -122,19 +125,16 @@ namespace PH::RpGui {
 
 	}
 
-	inline BiQuadCoefficients getResonanceAntiResonanceBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor, real64 df, real64 antiQfactor) {
+	inline BiQuadCoefficients getResonanceAntiResonanceBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor, real64 anticutoff, real64 antiQfactor) {
 
-		cutoff = cutoff - (0.5 * df);
-
-		real64 antiCutoff = cutoff + (0.5 * df);
 
 		BiQuadCoefficients result;
 		result.b0 = 1.0f;
 		result.b1 = cutoff / Qfactor;
 		result.b2 = cutoff * cutoff;
 		result.a0 = 1.0f;
-		result.a1 = antiCutoff / antiQfactor;
-		result.a2 = antiCutoff * antiCutoff;
+		result.a1 = anticutoff / antiQfactor;
+		result.a2 = anticutoff * anticutoff;
 		return result;
 	}
 
@@ -204,6 +204,7 @@ namespace PH::RpGui {
 	}
 
 	inline BiQuadCoefficients calculateCoefficients(const Filter& filter) {
+
 		switch (filter.type) {
 			case FilterType::LOWPASS:
 				return getlowPassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
@@ -214,7 +215,7 @@ namespace PH::RpGui {
 			case FilterType::HIGHPASS:
 				return getHighPassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
 			case FilterType::RESONANCE_ANTI_RESONANCE:
-				return getResonanceAntiResonanceBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor, filter.df, filter.antiQfactor);	
+				return getResonanceAntiResonanceBiquadCoefficientsContinuous(filter.cutoff - (0.5f * filter.df), filter.Qfactor, filter.cutoff + (0.5f * filter.df), filter.antiQfactor);	
 			case FilterType::ALLPASS:
 				return getAllpassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
 			case FilterType::COEFFICIENTS:
@@ -228,7 +229,7 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	char valToHex(uint16 val) {
+	inline char valToHex(uint16 val) {
 		if (val >= 0 && val < 10) {
 			return val + '0';
 		}
@@ -241,7 +242,7 @@ namespace PH::RpGui {
 	}
 
 
-	void writeHexVal(uint16 coeff, char* buffer) {
+	inline void writeHexVal(uint16 coeff, char* buffer) {
 
 		//clear the buffer
 		for (uint32 i = 0; i < 5; i++) {
@@ -254,7 +255,7 @@ namespace PH::RpGui {
 		buffer[0] = valToHex((coeff >> 12) & 0x000F);
 	}
 
-	Engine::String generateRPfilterString(const BiQuadCoefficients& dcoeffs) {
+	inline Engine::String generateRPfilterString(const BiQuadCoefficients& dcoeffs) {
 
 		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(100);
 		
@@ -297,11 +298,11 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	void recalculateFilter(Filter* filter) {
+	inline void recalculateFilter(Filter* filter) {
 		filter->coeffs = calculateCoefficients(*filter);
 	}
 
-	void serializeFilter(const Filter& filter, YAML::Emitter& out) {
+	inline void serializeFilter(const Filter& filter, YAML::Emitter& out) {
 		out << YAML::BeginMap;
 		out << YAML::Key << "cutoff" << YAML::Value << filter.cutoff;
 		out << YAML::Key << "Qfactor" << YAML::Value << filter.Qfactor;
@@ -317,7 +318,7 @@ namespace PH::RpGui {
 		out << YAML::EndMap;
 	}
 
-	Filter deserializeFilter(const YAML::Node& filter) {
+	inline Filter deserializeFilter(const YAML::Node& filter) {
 		Filter result;
 		result.cutoff = filter["cutoff"].as<real32>();
 		result.Qfactor = filter["Qfactor"].as<real32>();
@@ -335,7 +336,7 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	void serializeTransferFunction(const TransferFunction& function, YAML::Emitter& out) {
+	inline void serializeTransferFunction(const TransferFunction& function, YAML::Emitter& out) {
 
 		out << YAML::BeginMap;
 		out << YAML::Key << "name" << YAML::Value << function.name.getC_Str();
@@ -350,7 +351,7 @@ namespace PH::RpGui {
 		out << YAML::EndMap;
 	}
 
-	TransferFunction deserializeTransferFunction(const YAML::Node& t) {
+	inline TransferFunction deserializeTransferFunction(const YAML::Node& t) {
 		TransferFunction result;
 		result.currentcommand = Engine::String::create("");
 		result.name = t["name"].as<Engine::String>();
@@ -365,4 +366,29 @@ namespace PH::RpGui {
 		return result;
 	}
 
+
+	inline void sentFilterToRp(Filter f, real64 targetfs, RpGui::RpConnection* connection) {
+
+		//if the filter type is resonance anti resonance the cutoff is average between both resonances, so we need to calculate the cutoff differently
+		//f.antiQfactor = prewarp(2 * M_PI * f.antiQfactor, targetfs);
+
+		BiQuadCoefficients dcoeffs = {};
+
+		if (f.type == FilterType::RESONANCE_ANTI_RESONANCE) {
+			real64 cutoff1 = prewarp(2 * M_PI * (f.cutoff - (0.5f * f.df)), targetfs);
+			real64 cutoff2 = prewarp(2 * M_PI * (f.cutoff + (0.5f * f.df)), targetfs);
+
+			dcoeffs = bilinearTransform(getResonanceAntiResonanceBiquadCoefficientsContinuous(cutoff1, f.Qfactor, cutoff2, f.antiQfactor), targetfs);
+		}
+		else {
+			f.cutoff = prewarp(2 * M_PI * f.cutoff, targetfs);
+			dcoeffs = bilinearTransform(calculateCoefficients(f), targetfs);
+		}
+
+		Engine::String rpcommand = generateRPfilterString(dcoeffs);
+		if (connection->open) {
+			connection->commandqueue.push({ rpcommand });
+			ReleaseSemaphore(connection->semaphore, 1, nullptr);
+		}
+	}
 }

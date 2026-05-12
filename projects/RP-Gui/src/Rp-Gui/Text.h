@@ -140,7 +140,8 @@ namespace PH::RpGui {
 		);
 	}
 
-	inline void drawText(Font* font, const char* text, glm::vec2 position, real32 scale) {
+
+	inline void drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color = {1.0f, 1.0f, 1.0f, 1.0f}) {
 
 		real32 x = 0.0f;
 		real32 y = 0.0f;
@@ -158,13 +159,45 @@ namespace PH::RpGui {
 				drawFromBottomLeft(
 					glm::vec3(bottomleft + glm::vec2(position.x, position.y), 0.0f),
 					size,
-					glm::vec4(1.0f),
+					color,
 					*text - 32
 				);
 			}
 			++text;
 		}
+	}
 
+	inline void drawText(Font* font, const char* text, glm::vec2 position, real32 rotation, real32 scale) {
 
+		real32 x = 0.0f;
+		real32 y = 0.0f;
+
+		glm::mat3 rot = glm::mat3(
+			0.0f, 1.0f, 0.0f,
+			-1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f
+		);
+
+		while (*text) {
+			if (*text >= 32 && *text < 128) {
+				stbtt_aligned_quad q;
+				stbtt_GetBakedQuad(font->cdata_cpu, font->bitmapwidth, font->bitmapwidth, *text - 32, &x, &y, &q, 1);//1=opengl & d3d10+,0=d3d9
+
+				glm::vec2 bottomleft = scale * glm::vec2{ q.x0, -q.y1 };
+				glm::vec2 topright = scale * glm::vec2{ q.x1, -q.y0 };
+
+				glm::vec2 size = topright - bottomleft;
+
+				glm::vec3 middle = glm::vec3(glm::vec2(bottomleft) + (size / 2.0f), 0.0f);
+
+				glm::mat4 transform = glm::mat4(glm::vec4{size.x, 0.0f, 0.0f, 0.0f}, glm::vec4{0.0f, size.y, 0.0f, 0.0f}, glm::vec4{0.0f, 0.0f, 1.0f, 0.0f}, glm::vec4{middle.x, middle.y, middle.z, 1.0f});
+
+				transform = glm::translate(glm::mat4(1.0f), {position.x, position.y, 0.0f}) * glm::rotate(glm::mat4(1.0f), rotation, {0.0f, 0.0f, 1.0f}) * transform;
+				
+				RpGui::renderer2D.drawQuadWithID(transform, glm::vec4(1.0), *text - 32);
+				
+			}
+			++text;
+		}
 	}
 }

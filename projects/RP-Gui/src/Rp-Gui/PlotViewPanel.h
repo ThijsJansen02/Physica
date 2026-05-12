@@ -13,6 +13,16 @@
 
 namespace PH::RpGui {
 
+	struct TransferFunction;
+
+	struct PlotData {
+		glm::vec4 color;
+
+		Engine::String name;
+		Engine::ArrayList<glm::vec2> data;
+		Engine::ArrayList<glm::vec2> phasedata;
+	};
+
 	class PlotViewPanel {
 	public:
 		Engine::ImGuiDisplay display;
@@ -24,6 +34,8 @@ namespace PH::RpGui {
 		bool32 ishovered;
 
 		Engine::String name;
+
+		Engine::ArrayList<PlotData> openedplots;
 
 		PlotViewPanel* xlock = nullptr;
 
@@ -52,6 +64,8 @@ namespace PH::RpGui {
 
 	};
 
+	void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer);
+	void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer);
 
 
 }

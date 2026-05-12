@@ -24,7 +24,7 @@
 
 namespace PH::RpGui {
 	
-	int verify_knownhost(ssh_session session)
+	inline int verify_knownhost(ssh_session session)
 	{
 		enum ssh_known_hosts_e state;
 		unsigned char* hash = NULL;
@@ -127,7 +127,7 @@ namespace PH::RpGui {
 	};
 
 	//open ssh connection in a seperate thread to test the thread safety of libssh, and to test the performance of libssh when used in a separate thread. also to test the performance of libssh when used in a separate thread with a separate memory allocator
-	PH::int32 rp_connection_thread(
+	inline PH::int32 rp_connection_thread(
 		void* userdata
 	) {
 

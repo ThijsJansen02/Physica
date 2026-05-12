@@ -97,6 +97,20 @@ namespace PH::Engine {
 			return true;
 		}
 
+
+		bool32 drawQuadWithID(glm::mat4 transform, glm::vec4 color, uint32 objectid, Renderer2D::Context* context) {
+			ColoredQuadInstance instance{};
+			instance.scalerot = { transform[0][0],transform[0][1],transform[1][0],transform[1][1] };
+			instance.position = transform[3];
+			instance.color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+			instance.textureindex = objectid;
+
+			context->quads.push(instance);
+			return true;
+		}
+
+
 		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, real32 rotation, glm::vec4 color, Renderer2D::Context* context) {
 			real32 cosp = cos(rotation);
 			real32 sinp = sin(rotation);
@@ -269,6 +283,39 @@ namespace PH::Engine {
 			return tex;
 		}
 		
+		Engine::DynamicArray<uint8> checkCompileBinaries(const char* path, Platform::GFX::ShaderStageFlags stage) {
+
+			Platform::FileBuffer buffer;
+			Engine::String binpath = Engine::String::create(path).append(".bin");
+
+			Engine::DynamicArray<uint8> result;
+
+			if (Platform::loadFile(&buffer, binpath.getC_Str())) {
+				result = Engine::DynamicArray<uint8>::create(buffer.size);
+				Base::copyMemory(buffer.data, result.raw(), buffer.size);
+				Platform::unloadFile(&buffer);
+			}
+
+			//no binaries exist, try to compile the shader source and save the binaries for later use, so we don't have to compile the shader every time we run the application, which can be slow, especially on older hardware. This is a simple caching mechanism that can significantly improve load times after the first run.
+			else if (Platform::loadFile(&buffer, path)) {
+				result = Engine::Renderer2D::compileGLSLSourceToVulkanBinary((const char*)buffer.data, stage);
+
+				Platform::FileBuffer writebuffer{};
+				writebuffer.data = result.raw();
+				writebuffer.size = result.getCapacity();
+
+				INFO << "Compiled shader source from path: " << path << " to binary and saved it to path: " << binpath.getC_Str() << "\n";
+
+				Platform::writeFile(writebuffer, binpath.getC_Str());
+				Platform::unloadFile(&buffer);
+			}
+			else {
+				ERR << "Failed to load shader source from path: " << path << "\n";
+			}
+
+			Engine::String::destroy(&binpath);
+			return result;
+		}
 
 		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
 
