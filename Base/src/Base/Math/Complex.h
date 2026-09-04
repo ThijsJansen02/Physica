@@ -68,7 +68,6 @@ namespace PH::Base {
 		return { left.real + right, left.imag };
 	}
 
-
 	template<typename leftT, typename rightT>
 	inline Complex<leftT> operator+(leftT left, Complex<rightT>  right) {
 		return right + left;

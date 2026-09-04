@@ -18,6 +18,8 @@ namespace PH::RpGui {
 	struct PlotData {
 		glm::vec4 color;
 
+		real32 thickness = 1.5f;
+
 		Engine::String name;
 		Engine::ArrayList<glm::vec2> data;
 		Engine::ArrayList<glm::vec2> phasedata;

@@ -5,9 +5,11 @@
 
 namespace PH::RpGui {
 
-	#define M_PI 3.14159265359
+	#define M_PI 3.141592653589793238462643383279502884197169399
+	#define RP_FPGA_SAMPLERATE 125000000
 
-	static real64 targetfs = 125e6 / 256.0;
+	static real64 targetfs = 125e6 / 128.0;
+	static uint32 standard_decimation = 256;
 
 	using namespace PH::Platform;
 	struct Context;

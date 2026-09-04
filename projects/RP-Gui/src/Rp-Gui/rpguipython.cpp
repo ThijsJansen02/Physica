@@ -26,7 +26,7 @@ void setFilterCutoff(int filternumber, float cutoff) {
 	RpGui::context->activetransferfunctions[0].filters[filternumber].cutoff = cutoff;
 
 	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);
-	sentFilterToRp(RpGui::context->activetransferfunctions[0].filters[filternumber], RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection);
+	sentFilterToRp(RpGui::context->activetransferfunctions[0].filters[filternumber], RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection, RpGui::context->activetransferfunctions[0].lowprecision);
 }
 
 //actually usable functions in python!
@@ -34,7 +34,7 @@ void setFilterQfactor(int filternumber, float qfactor) {
 	RpGui::context->activetransferfunctions[0].filters[filternumber].Qfactor = qfactor;
 
 	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);
-	sentFilterToRp(RpGui::context->activetransferfunctions[0].filters[filternumber], RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection);
+	sentFilterToRp(RpGui::context->activetransferfunctions[0].filters[filternumber], RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection, RpGui::context->activetransferfunctions[0].lowprecision);
 }
 
 //actually usable functions in python!
@@ -175,7 +175,7 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 
 	py::class_<RpGui::TransferFunction>(m, "TransferFunction")
 		.def("WriteToRp", [](RpGui::TransferFunction& tf, RpGui::Filter& filter) {
-			sentFilterToRp(filter, RpGui::targetfs, &tf.connection);
+			sentFilterToRp(filter, RpGui::targetfs, &tf.connection, tf.lowprecision);
 		}, py::arg("Filter"))
 
 		.def_readwrite("filters", &RpGui::TransferFunction::filters)

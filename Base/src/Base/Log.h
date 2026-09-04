@@ -66,6 +66,13 @@ namespace PH::Base {
 			return *this;
 		}
 
+		LogStream& operator<<(real64 value) {
+			char buffer[32];
+			sprintf_s<32>(buffer, "%f", value);
+			log(buffer);
+			return *this;
+		}
+
 	private:
 		SubString streamformat;
 	};

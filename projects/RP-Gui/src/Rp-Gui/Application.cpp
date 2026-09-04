@@ -178,13 +178,40 @@ void deserializeProject(const char* projectdir) {
 			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 
 			for (auto f : tf.filters) {
-				sentFilterToRp(f, targetfs, &tf.connection);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf.decimation, &tf.connection, tf.lowprecision);
 			}
 		}
 	}
 }
 
 #define EMBED_PYTHON
+
+void writeCSV(const Engine::DynamicArray<int16>& input, const Engine::DynamicArray<int16>& output, const char* filename) {
+
+	Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(1024);
+
+	s << "input,output\n";
+
+	PH_DEBUG_ASSERT(input.getCapacity() == output.getCapacity(), "input and output arrays must have the same length!");
+
+	char buffer[16];
+
+	for (uint64 i = 0; i < input.getCapacity(); i++) {
+		PH::Base::int16ToStr(input[i], buffer, 16);
+		 
+		s << buffer << ",";
+
+		PH::Base::int16ToStr(output[i], buffer, 16);
+
+		s << buffer << "\n";
+	}
+
+	PH::Platform::FileBuffer file;
+	file.data = s.raw();
+	file.size = s.getSize();
+
+	PH::Platform::writeFile(file, filename);
+}
 
 
 PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
@@ -225,6 +252,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	RpGui::context->activetransferfunctions = Engine::ArrayList<TransferFunction>::create(1);
 
 
+
 	loadShaders();
 	deserializeApplication();
 
@@ -247,7 +275,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	Engine::Renderer2D::InitInfo init{};
 	init.currentpipeline = RpGui::context->pipeline2D;
 	init.descriptorsetlayouts = { nullptr, 0 };
-	init.instancebuffersize = 8 * MEGA_BYTE;
+	init.instancebuffersize = 256 * MEGA_BYTE;
 	init.shadowmapdimensions = 0;
 
 	RpGui::renderer2D = Engine::Renderer2D::Wrapper::create(init);
@@ -332,6 +360,36 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 		ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
 		tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 	}
+	
+	if (ImGui::Button("reload bitfile")) {
+		if(tf->connection.connected) {
+			ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+			tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; fpgautil -b sinewave_generator_wrapper.bit.bin") });
+
+			if (!tf->filters.empty()) {
+				auto f = tf->filters[0];
+				recalculateFilter(&f);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+			}
+		}
+		else {
+			INFO << "red pitaya with adress " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
+		}
+	}
+
+	ImGui::SameLine();
+	if (ImGui::Button("reset")) {
+		if (tf->connection.connected) {
+			ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+			tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; monitor 0x41230000 1; sleep 0.001; monitor 0x41230000 0") });
+		}
+		else {
+			INFO << "red pitaya with adress " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
+		}
+	}
+	ImGui::SameLine();
+	ImGui::Checkbox("low precision", (bool*) & tf->lowprecision);
+
 	ImGui::PopID();
 
 
@@ -355,9 +413,10 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			INFO << "red pitaya with adress " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
 		}
 	}
-	ImGui::PopID();
 
-	real64 targetfs = 125000000.0 / 256.0;
+	ImGui::InputInt("Decimation", (int32*) & tf->decimation);
+
+	ImGui::PopID();
 
 	for (auto& f : tf->filters) {
 		ImGui::PushID(id++);
@@ -373,7 +432,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 					
 					f.type = (FilterType)filtertype;
 					recalculateFilter(&f);
-					sentFilterToRp(f, targetfs, &tf->connection);
+					sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 				}
 				if (selected) {
 					ImGui::SetItemDefaultFocus();
@@ -386,36 +445,36 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 			if (ImGui::DragFloat("characteristic frequency", &f.cutoff, f.cutoff * dragspeed)) {
 				recalculateFilter(&f);
-				sentFilterToRp(f, targetfs, &tf->connection);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 
 			}
 			if (ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) {
 				recalculateFilter(&f);
 
-				sentFilterToRp(f, targetfs, &tf->connection);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 
 			}
 
 			if (ImGui::DragFloat("Df", &f.df, f.df* dragspeed)) {
 				recalculateFilter(&f);
-				sentFilterToRp(f, targetfs, &tf->connection);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 			}
 			
 			if (ImGui::DragFloat("anti resonant Q factor", &f.antiQfactor, f.antiQfactor * dragspeed)) {
 				recalculateFilter(&f);
-				sentFilterToRp(f, targetfs, &tf->connection);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 			}
 
 		}
 		else {
 			if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) {
 				recalculateFilter(&f);
-				sentFilterToRp(f, targetfs, &tf->connection);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 
 			}
 			if(ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) {
 				recalculateFilter(&f);
-				sentFilterToRp(f, targetfs, &tf->connection);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 			}
 		}
 
@@ -437,6 +496,8 @@ void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {
 		plotdata->name.set(buffer);
 	}
 	ImGui::SameLine();
+
+
 	if (ImGui::Button("remove")) {
 		//remove the plot from the openedplots array
 		for (uint32 i = 0; i < RpGui::context->openedplots.getCount(); i++) {
@@ -447,6 +508,7 @@ void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {
 		}
 	}
 
+	ImGui::DragFloat("linethickness", &plotdata->thickness, plotdata->thickness * 0.1f);
 	ImGui::ColorEdit3("color", &plotdata->color.r);
 	ImGui::PopID();
 }
@@ -565,7 +627,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 	for (auto& plotdata : RpGui::context->openedplots) {
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
-		drawPlot(copy.getArray(), plot->range, plot->region, plotdata.color);
+		drawPlot(copy.getArray(), plot->range, plot->region, plotdata.color, glm::vec2{plotdata.thickness, plotdata.thickness});
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
 	}
 
@@ -615,7 +677,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	
 	for (auto& plotdata : RpGui::context->openedplots) {
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.phasedata.getArray());
-		drawPlot(copy.getArray(), plot->range, plot->region, plotdata.color);
+		drawPlot(copy.getArray(), plot->range, plot->region, plotdata.color, glm::vec2{ plotdata.thickness, plotdata.thickness });
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
 	}
 

@@ -1,11 +1,14 @@
 TransferFunctions:
   - name: example function
-    remote: example plot
+    remote: rp-f083c2.local
+    decimation: 128
+    lowprecision: 0
     filters:
-      - cutoff: 250000
-        Qfactor: 0.7
-        gain: 200
-        FilterType: 0
+      - cutoff: 30000
+        Qfactor: 338.177
+        df: 897.519
+        antiQfactor: 353.973
+        FilterType: 5
       - cutoff: 2500000
         Qfactor: 0.7
         gain: 1

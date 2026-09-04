@@ -61,7 +61,7 @@ namespace PH::Base {
 			return m_Data;
 		}
 
-		void* getSize() {
+		sizeptr getSize() {
 			return m_Writeptr;
 		}
 

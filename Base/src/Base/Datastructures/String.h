@@ -1,5 +1,7 @@
 #pragma once 
 #include "Base/Memory.h"
+#include <string.h>
+#include <stdio.h>
 
 namespace PH::Base {
 
@@ -59,6 +61,10 @@ namespace PH::Base {
 		*dst = 0;
 
 		return _maxsize - maxsize;
+	}
+
+	inline void int16ToStr(int16 val, char* buffer, sizeptr size) {
+		sprintf_s(buffer, size, "%d", val);
 	}
 
 	/// <summary>

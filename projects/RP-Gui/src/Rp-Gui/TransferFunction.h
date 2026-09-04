@@ -73,6 +73,8 @@ namespace PH::RpGui {
 		Engine::String currentcommand;
 		RpConnection connection;
 		Engine::ArrayList<Filter> filters;
+		bool32 lowprecision = false;
+		uint32 decimation;
 	};
 
 	inline real64 prewarp(real64 w0, real64 fs) {
@@ -101,24 +103,26 @@ namespace PH::RpGui {
 		az1 = ((2 * a2) - (2 * a0 * Ks)) / az0;
 		az2 = ((a0 * Ks) - (a1 * K) + a2) / az0;
 
-		az0 = 1.0f;
+		az0 = 1.0;
 
 		dcoefs[0] = bz0; dcoefs[1] = bz1; dcoefs[2] = bz2;
 		dcoefs[3] = az0; dcoefs[4] = az1; dcoefs[5] = az2;
 	}
 
+
 	inline PH::int16 convertToFixedPoint(real64 in) {
 		uint64 mult = 1 << 14;
-		int64 result = in * mult;
-		return (PH::int16)result;
+		real64 result = in * mult;
+		return (PH::int16)(result > 0.0f ? result + 0.5 : result - 0.5);
 	}
 
-
-	inline Base::Complex<real32> bandpass(Base::Complex<real32> s, void* params_) {
-
-		Filter* params = (Filter*)params_;
-		return (params->cutoff * params->cutoff + (params->cutoff / params->Qfactor) * s + s * s) / (params->cutoff * params->cutoff + (params->cutoff) * s + s * s);
+	//should maybe floor or round the value correctly but I can do that another time
+	inline PH::int32 convertToFixedPoint32(real64 in) {
+		uint64 mult = 1 << 30;
+		real64 result = in * mult;
+		return (PH::int32)(result > 0.0f ? result + 0.5 : result - 0.5);
 	}
+
 
 	inline Base::Complex<real64> applyFilter(Base::Complex<real64> s, const BiQuadCoefficients& coeffs) {
 		return (coeffs.b0 * s * s + coeffs.b1 * s + coeffs.b2) / (coeffs.a0 * s * s + coeffs.a1 * s + coeffs.a2);
@@ -241,6 +245,20 @@ namespace PH::RpGui {
 		return '0';
 	}
 
+	inline void writeHexVal32(uint32 coeff, char* buffer) {
+		//clear the buffer
+		for (uint32 i = 0; i < 9; i++) {
+			buffer[i] = '\0';
+		}
+		buffer[7] = valToHex(coeff & 0x0000000F);
+		buffer[6] = valToHex((coeff >> 4) & 0x0000000F);
+		buffer[5] = valToHex((coeff >> 8) & 0x0000000F);
+		buffer[4] = valToHex((coeff >> 12) & 0x0000000F);
+		buffer[3] = valToHex((coeff >> 16) & 0x0000000F);
+		buffer[2] = valToHex((coeff >> 20) & 0x0000000F);
+		buffer[1] = valToHex((coeff >> 24) & 0x0000000F);
+		buffer[0] = valToHex((coeff >> 28) & 0x0000000F);
+	}
 
 	inline void writeHexVal(uint16 coeff, char* buffer) {
 
@@ -253,6 +271,46 @@ namespace PH::RpGui {
 		buffer[2] = valToHex((coeff >> 4) & 0x000F);
 		buffer[1] = valToHex((coeff >> 8) & 0x000F);
 		buffer[0] = valToHex((coeff >> 12) & 0x000F);
+	}
+
+	inline Engine::String generateRpFilterString32(const BiQuadCoefficients& dcoeffs) {
+		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(100);
+
+		int32 a1 = convertToFixedPoint32(dcoeffs.a1);
+		int32 a2 = convertToFixedPoint32(dcoeffs.a2);
+
+		int32 b0 = convertToFixedPoint32(dcoeffs.b0);
+		int32 b1 = convertToFixedPoint32(dcoeffs.b1);
+		int32 b2 = convertToFixedPoint32(dcoeffs.b2);
+
+		s << "export PATH=$PATH:/opt/redpitaya/bin;";
+
+		//first coeff at 0x41200000
+		char buffer[9];
+		s << " monitor 0x41200000 0x";
+		writeHexVal32(b0, buffer);
+		s << buffer;
+
+		s << "; monitor 0x41200008 0x";
+		writeHexVal32(b1, buffer);
+		s << buffer;
+
+		s << "; monitor 0x41210000 0x";
+		writeHexVal32(b2, buffer);
+		s << buffer;
+
+		s << "; monitor 0x41210008 0x";
+		writeHexVal32(a1, buffer);
+		s << buffer;
+
+		s << "; monitor 0x41220000 0x";
+		writeHexVal32(a2, buffer);
+		s << buffer;
+
+		Engine::String result = s.createString<Engine::Allocator>();
+		Base::Stream<Engine::Allocator>::destroy(&s);
+
+		return result;
 	}
 
 	inline Engine::String generateRPfilterString(const BiQuadCoefficients& dcoeffs) {
@@ -286,7 +344,6 @@ namespace PH::RpGui {
 		writeHexVal((uint16)b1, buffer);
 		s << buffer;
 		
-
 		//last coeff at 0x41210000
 		s << "; monitor 0x41210000 0x";
 		writeHexVal((uint16)b2, buffer);
@@ -341,6 +398,8 @@ namespace PH::RpGui {
 		out << YAML::BeginMap;
 		out << YAML::Key << "name" << YAML::Value << function.name.getC_Str();
 		out << YAML::Key << "remote" << YAML::Value << function.connection.remoteip.getC_Str();
+		out << YAML::Key << "decimation" << YAML::Value << function.decimation;
+		out << YAML::Key << "lowprecision" << YAML::Value << function.lowprecision;
 		out << YAML::Key << "filters" << YAML::Value << YAML::BeginSeq;
 
 		for (const auto& filter : function.filters) {
@@ -358,6 +417,20 @@ namespace PH::RpGui {
 		result.connection.remoteip = t["remote"].as<Engine::String>();
 		result.filters = Engine::ArrayList<Filter>::create(1);
 
+		if (t["lowprecision"]) {
+			result.lowprecision = t["lowprecision"].as<bool32>();
+		}
+		else {
+			result.lowprecision = false;
+		}
+
+		if (t["decimation"]) {
+			result.decimation = (real64)t["decimation"].as<uint32>();
+		}
+		else {
+			result.decimation = RpGui::standard_decimation;
+		}
+
 		for (auto& f : t["filters"]) {
 			Filter f_ = deserializeFilter(f);
 			result.filters.pushBack(f_);
@@ -367,7 +440,7 @@ namespace PH::RpGui {
 	}
 
 
-	inline void sentFilterToRp(Filter f, real64 targetfs, RpGui::RpConnection* connection) {
+	inline void sentFilterToRp(Filter f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision) {
 
 		//if the filter type is resonance anti resonance the cutoff is average between both resonances, so we need to calculate the cutoff differently
 		//f.antiQfactor = prewarp(2 * M_PI * f.antiQfactor, targetfs);
@@ -381,13 +454,22 @@ namespace PH::RpGui {
 			dcoeffs = bilinearTransform(getResonanceAntiResonanceBiquadCoefficientsContinuous(cutoff1, f.Qfactor, cutoff2, f.antiQfactor), targetfs);
 		}
 		else {
-			f.cutoff = prewarp(2 * M_PI * f.cutoff, targetfs);
+			f.cutoff = prewarp(2 * M_PI * (real64)f.cutoff, targetfs);
 			dcoeffs = bilinearTransform(calculateCoefficients(f), targetfs);
 		}
+		Engine::String rpcommand;
 
-		Engine::String rpcommand = generateRPfilterString(dcoeffs);
+		if (lowprecision) {
+			rpcommand = generateRPfilterString(dcoeffs);
+		}
+		else {
+			rpcommand = generateRpFilterString32(dcoeffs);
+		}
+
 		if (connection->open) {
 			connection->commandqueue.push({ rpcommand });
+			connection->commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; monitor 0x41230000 1; sleep 0.001; monitor 0x41230000 0") });
+			//connection->commandqueue.push({ Engine::String::create("monitor 0x41230000 0") });
 			ReleaseSemaphore(connection->semaphore, 1, nullptr);
 		}
 	}
