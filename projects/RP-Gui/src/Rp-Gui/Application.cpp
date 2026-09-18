@@ -466,7 +466,44 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			}
 
 		}
-		else {
+
+		if (f.type == FilterType::COEFFICIENTS) {
+
+			//B coefficients
+			if (ImGui::InputDouble("b0", &f.coeffs.b0)) {
+				recalculateFilter(&f);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+			}
+
+			if (ImGui::InputDouble("b1", &f.coeffs.b1)) {
+				recalculateFilter(&f);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+			}
+
+			if (ImGui::InputDouble("b2", &f.coeffs.b2)) {
+				recalculateFilter(&f);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+			}
+
+			//A coefficients
+			if (ImGui::InputDouble("a0", &f.coeffs.a0)) {
+				recalculateFilter(&f);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+			}
+
+			if (ImGui::InputDouble("a1", &f.coeffs.a1)) {
+				recalculateFilter(&f);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+			}
+
+			if (ImGui::InputDouble("a2", &f.coeffs.a2)) {
+				recalculateFilter(&f);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+			}
+
+		}
+
+		if (f.type != FilterType::COEFFICIENTS && f.type != FilterType::RESONANCE_ANTI_RESONANCE) {
 			if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) {
 				recalculateFilter(&f);
 				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
@@ -568,7 +605,6 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	}
 
 	auto& io = ImGui::GetIO();
-
 
 	RpGui::renderer2D.begin();
 

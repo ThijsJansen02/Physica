@@ -6,14 +6,31 @@ TransferFunctions:
     filters:
       - cutoff: 30000
         Qfactor: 338.177
-        df: 897.519
-        antiQfactor: 353.973
-        FilterType: 5
-      - cutoff: 2500000
-        Qfactor: 0.7
+        gain: 897.519
+        FilterType: 6
+        b0: 7.66674561620423e-09
+        b1: 3.5746201700796666e-06
+        b2: 0.6666666666666666
+        a0: 9.013881263543296e-09
+        a1: 2.0155038632486366e-07
+        a2: 0.6666666666666666
+      - cutoff: 0
+        Qfactor: 1
         gain: 1
         FilterType: 4
-      - cutoff: 10120.521
-        Qfactor: 30
+        b0: 0
+        b1: 0
+        b2: 1
+        a0: 0
+        a1: 0
+        a2: 1
+      - cutoff: 0
+        Qfactor: 1
         gain: 1
         FilterType: 4
+        b0: 0
+        b1: 0
+        b2: 1
+        a0: 0
+        a1: 0
+        a2: 1

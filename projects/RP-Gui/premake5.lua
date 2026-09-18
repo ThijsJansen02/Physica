@@ -59,7 +59,9 @@ project "RP-GUI"
 	postbuildcommands 
 	{
 		--"copy /b /y 'P:\\My Documents\\BRP\\GUI\\ProjectPhysica\\bin\\Debug-windows-x86_64\\RP-GUI\\RP-GUI.dll' 'P:\\My Documents\\BRP\\GUI\\ProjectPhysica\\bin\\Debug-windows-x86_64\\Platform'"
-		"{COPYFILE} \"%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{cfg.buildtarget.name}\" \"%{wks.location}/bin/" .. outputdir .. "/Platform\""
+		"{COPYFILE} \"%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/%{cfg.buildtarget.name}\" \"%{wks.location}/bin/" .. outputdir .. "/Platform\"",
+		"{COPYFILE} \"%{wks.location}/dep/embeddedpython/python313.dll\" \"%{wks.location}/bin/" .. outputdir .. "/Platform\"",
+		"{COPYFILE} \"%{wks.location}/dep/shaderc/lib/shaderc_shared.dll\" \"%{wks.location}/bin/" .. outputdir .. "/Platform\""
 	}
 
 	filter "system:windows"

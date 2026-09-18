@@ -165,6 +165,8 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 			}
 		}
 
+		Engine::INFO << "transferfunction with name: " << name << " does not exist! creating new transferfunction";
+
 		//if no transfer function with the given name exists, create a new one and return it
 		RpGui::TransferFunction newTf;
 		newTf.name = Engine::String::create(name);

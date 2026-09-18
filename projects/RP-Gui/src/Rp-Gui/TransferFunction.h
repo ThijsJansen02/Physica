@@ -64,6 +64,7 @@ namespace PH::RpGui {
 			};
 		};
 
+		//not bilinear transformed
 		BiQuadCoefficients coeffs;
 	};
 
@@ -72,6 +73,7 @@ namespace PH::RpGui {
 		Engine::String name;
 		Engine::String currentcommand;
 		RpConnection connection;
+
 		Engine::ArrayList<Filter> filters;
 		bool32 lowprecision = false;
 		uint32 decimation;
@@ -126,7 +128,6 @@ namespace PH::RpGui {
 
 	inline Base::Complex<real64> applyFilter(Base::Complex<real64> s, const BiQuadCoefficients& coeffs) {
 		return (coeffs.b0 * s * s + coeffs.b1 * s + coeffs.b2) / (coeffs.a0 * s * s + coeffs.a1 * s + coeffs.a2);
-
 	}
 
 	inline BiQuadCoefficients getResonanceAntiResonanceBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor, real64 anticutoff, real64 antiQfactor) {
@@ -370,8 +371,16 @@ namespace PH::RpGui {
 		else {
 			out << YAML::Key << "gain" << YAML::Value << filter.gain;
 		}
-
 		out << YAML::Key << "FilterType" << YAML::Value << (int)filter.type;
+
+		out << YAML::Key << "b0" << YAML::Value << filter.coeffs.b0;
+		out << YAML::Key << "b1" << YAML::Value << filter.coeffs.b1;
+		out << YAML::Key << "b2" << YAML::Value << filter.coeffs.b2;
+
+		out << YAML::Key << "a0" << YAML::Value << filter.coeffs.a0;
+		out << YAML::Key << "a1" << YAML::Value << filter.coeffs.a1;
+		out << YAML::Key << "a2" << YAML::Value << filter.coeffs.a2;
+
 		out << YAML::EndMap;
 	}
 
@@ -386,6 +395,15 @@ namespace PH::RpGui {
 		}
 		else {
 			result.gain = filter["gain"].as<real32>();
+		}
+
+		if (result.type == FilterType::COEFFICIENTS) {
+			result.coeffs.a0 = filter["a0"].as<real64>();
+			result.coeffs.a1 = filter["a1"].as<real64>();
+			result.coeffs.a2 = filter["a2"].as<real64>();
+			result.coeffs.b0 = filter["b0"].as<real64>();
+			result.coeffs.b1 = filter["b1"].as<real64>();
+			result.coeffs.b2 = filter["b2"].as<real64>();
 		}
 
 
@@ -453,10 +471,16 @@ namespace PH::RpGui {
 
 			dcoeffs = bilinearTransform(getResonanceAntiResonanceBiquadCoefficientsContinuous(cutoff1, f.Qfactor, cutoff2, f.antiQfactor), targetfs);
 		}
+
+		else if (f.type == FilterType::COEFFICIENTS) {
+			dcoeffs = bilinearTransform(f.coeffs, targetfs / (2 * M_PI));
+		}
+
 		else {
 			f.cutoff = prewarp(2 * M_PI * (real64)f.cutoff, targetfs);
 			dcoeffs = bilinearTransform(calculateCoefficients(f), targetfs);
 		}
+
 		Engine::String rpcommand;
 
 		if (lowprecision) {
@@ -468,7 +492,7 @@ namespace PH::RpGui {
 
 		if (connection->open) {
 			connection->commandqueue.push({ rpcommand });
-			connection->commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; monitor 0x41230000 1; sleep 0.001; monitor 0x41230000 0") });
+			connection->commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; monitor 0x41230000 1; monitor 0x41230000 0") });
 			//connection->commandqueue.push({ Engine::String::create("monitor 0x41230000 0") });
 			ReleaseSemaphore(connection->semaphore, 1, nullptr);
 		}

@@ -44,6 +44,7 @@ namespace PH::RpGui {
 			SSH_PUBLICKEY_HASH_SHA256,
 			&hash,
 			&hlen);
+
 		ssh_key_free(srv_pubkey);
 		if (rc < 0) {
 			return -1;
@@ -150,6 +151,7 @@ namespace PH::RpGui {
 		ssh_options_set(my_ssh_session, SSH_OPTIONS_HOST, info->remoteip.getC_Str());
 		ssh_options_set(my_ssh_session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
 		ssh_options_set(my_ssh_session, SSH_OPTIONS_PORT, &port);
+		ssh_options_set(my_ssh_session, SSH_OPTIONS_USER, "root");
 
 		rc = ssh_connect(my_ssh_session);
 		if (rc != SSH_OK)
