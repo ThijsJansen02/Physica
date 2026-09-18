@@ -332,7 +332,8 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	RpGui::TransferFunction* tf = (RpGui::TransferFunction*)function;
 
-
+	static bool b_update = false;
+	static bool b_auto_update = false;
 
 	char buffer[256];
 	PH::Base::stringCopy(tf->connection.remoteip.getC_Str(), buffer, 256);
@@ -390,6 +391,11 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	ImGui::SameLine();
 	ImGui::Checkbox("low precision", (bool*) & tf->lowprecision);
 
+	b_update = ImGui::Button("Update");
+
+	ImGui::SameLine();
+	ImGui::Checkbox("Auto Update", &b_auto_update);
+
 	ImGui::PopID();
 
 
@@ -418,8 +424,12 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	ImGui::PopID();
 
+	static RpGui::Filter* lastFilter = nullptr;
+
 	for (auto& f : tf->filters) {
 		ImGui::PushID(id++);
+
+		static bool b_dirty = false;
 
 		ImGui::Text("filter n%u", id);
 		if (ImGui::BeginCombo("type", RpGui::FilterTypeStrings[f.type])) {
@@ -431,8 +441,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 				if (ImGui::Selectable(RpGui::FilterTypeStrings[filtertype], selected)) {
 					
 					f.type = (FilterType)filtertype;
-					recalculateFilter(&f);
-					sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+					lastFilter = &f;
 				}
 				if (selected) {
 					ImGui::SetItemDefaultFocus();
@@ -442,85 +451,45 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 		}
 
 		if (f.type == FilterType::RESONANCE_ANTI_RESONANCE) {
-
-			if (ImGui::DragFloat("characteristic frequency", &f.cutoff, f.cutoff * dragspeed)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-
-			}
-			if (ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) {
-				recalculateFilter(&f);
-
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-
-			}
-
-			if (ImGui::DragFloat("Df", &f.df, f.df* dragspeed)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
-			
-			if (ImGui::DragFloat("anti resonant Q factor", &f.antiQfactor, f.antiQfactor * dragspeed)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
-
+			if (ImGui::DragFloat("characteristic frequency", &f.cutoff, f.cutoff * dragspeed)) b_dirty = true;
+			if (ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) b_dirty = true;
+			if (ImGui::DragFloat("Df", &f.df, f.df* dragspeed)) b_dirty = true;
+			if (ImGui::DragFloat("anti resonant Q factor", &f.antiQfactor, f.antiQfactor * dragspeed)) b_dirty = true;
 		}
-
-		if (f.type == FilterType::COEFFICIENTS) {
-
+		else if (f.type == FilterType::COEFFICIENTS) {
 			//B coefficients
-			if (ImGui::InputDouble("b0", &f.coeffs.b0)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
-
-			if (ImGui::InputDouble("b1", &f.coeffs.b1)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
-
-			if (ImGui::InputDouble("b2", &f.coeffs.b2)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
+			if (ImGui::InputDouble("b0", &f.coeffs.b0)) b_dirty = true;
+			if (ImGui::InputDouble("b1", &f.coeffs.b1)) b_dirty = true;
+			if (ImGui::InputDouble("b2", &f.coeffs.b2)) b_dirty = true;
 
 			//A coefficients
-			if (ImGui::InputDouble("a0", &f.coeffs.a0)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
-
-			if (ImGui::InputDouble("a1", &f.coeffs.a1)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
-
-			if (ImGui::InputDouble("a2", &f.coeffs.a2)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
-
+			if (ImGui::InputDouble("a0", &f.coeffs.a0)) b_dirty = true;
+			if (ImGui::InputDouble("a1", &f.coeffs.a1)) b_dirty = true;
+			if (ImGui::InputDouble("a2", &f.coeffs.a2)) b_dirty = true;
+		}
+		else {
+			if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) b_dirty = true;
+			if (ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) b_dirty = true;
 		}
 
-		if (f.type != FilterType::COEFFICIENTS && f.type != FilterType::RESONANCE_ANTI_RESONANCE) {
-			if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-
-			}
-			if(ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) {
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
-			}
+		if (b_dirty) {
+			lastFilter = &f;
+			b_update |= b_auto_update;
+			b_dirty = false;
 		}
 
 		ImGui::PopID();
 
-
 		id++;
 		//ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed);
 	}
+
+	if (lastFilter) {
+		recalculateFilter(lastFilter);
+		if (b_update) sentFilterToRp(*lastFilter, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+		b_update = false;
+	}
+
 }
 
 void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {

@@ -4,33 +4,34 @@ TransferFunctions:
     decimation: 128
     lowprecision: 0
     filters:
-      - cutoff: 30000
-        Qfactor: 338.177
-        gain: 897.519
-        FilterType: 6
-        b0: 7.66674561620423e-09
-        b1: 3.5746201700796666e-06
-        b2: 0.6666666666666666
-        a0: 9.013881263543296e-09
-        a1: 2.0155038632486366e-07
-        a2: 0.6666666666666666
-      - cutoff: 0
-        Qfactor: 1
-        gain: 1
-        FilterType: 4
-        b0: 0
+      - cutoff: 2004.453
+        Qfactor: 283.425
+        gain: 954.701
+        FilterType: 3
+        b0: 1
         b1: 0
-        b2: 1
-        a0: 0
-        a1: 0
-        a2: 1
-      - cutoff: 0
-        Qfactor: 1
-        gain: 1
-        FilterType: 4
-        b0: 0
+        b2: 0
+        a0: 1
+        a1: 7.072252233433506
+        a2: 4017831.840953842
+      - cutoff: 1180.849
+        Qfactor: 258.35
+        gain: 2
+        FilterType: 3
+        b0: 1
         b1: 0
-        b2: 1
-        a0: 0
-        a1: 0
-        a2: 1
+        b2: 0
+        a0: 1
+        a1: 4.570733389300928
+        a2: 1394404.3584946543
+      - cutoff: 1331.958
+        Qfactor: 53.481
+        df: 400
+        antiQfactor: 370.179
+        FilterType: 5
+        b0: 1
+        b1: 21.165610761353843
+        b2: 1281328.9314508438
+        a0: 1
+        a1: 4.138425106296154
+        a2: 2346895.337700844
