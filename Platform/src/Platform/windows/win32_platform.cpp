@@ -258,7 +258,7 @@ bool win32_initializeWindow(HWND* hwnd, HINSTANCE hInstance, int nCmdShow, void*
 	*hwnd = CreateWindowEx(
 		0,                              // Optional window styles.
 		CLASS_NAME,                     // Window class
-		L"Learn to Program Windows",    // Window text
+		L"Unnamed Application",			// Window text
 		WS_OVERLAPPEDWINDOW,            // Window style
 
 		// Size and position

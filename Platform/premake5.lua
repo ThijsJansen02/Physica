@@ -34,10 +34,6 @@ project "Platform"
 		"%{Library.vulkan}"
 	}
 
-	dependson {
-		'RP-GUI'
-	}
-
 	defines 
 	{
 		"PH_STATIC_BUILD"

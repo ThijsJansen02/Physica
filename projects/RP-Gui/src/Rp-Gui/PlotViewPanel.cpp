@@ -18,12 +18,12 @@ namespace PH::RpGui {
 
 		//draw the specified function, is going to change in the future to allow for different functions and parameters, for now its just a bandpass filter
 
-		//this is dangerous because if there is an floating point error in dx than this function can blow up!
+		//this is dangerous because if there is an floating point error in dx then this function can blow up!
 		for (real64 x = plot->range.left; x <= plot->range.right; x += dx) {
 
 			Base::Complex<real64> y = 1.0f;
 
-			for (auto& filter : function->filters) {
+			for (const auto& filter : function->filters) {
 				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
 			}
 
@@ -53,7 +53,7 @@ namespace PH::RpGui {
 			}
 
 
-			buffer->pushBack(glm::vec2{ x, -y.arg() });
+			buffer->pushBack(glm::vec2{ x, -y.arg() * 180.0f / M_PI });
 		}
 
 		drawPlot(buffer->getArray(), plot->range, plot->region);

@@ -56,6 +56,10 @@ project "RP-GUI"
 		"Engine"
 	}
 
+	dependson {
+		'Platform'
+	}
+
 	postbuildcommands 
 	{
 		--"copy /b /y 'P:\\My Documents\\BRP\\GUI\\ProjectPhysica\\bin\\Debug-windows-x86_64\\RP-GUI\\RP-GUI.dll' 'P:\\My Documents\\BRP\\GUI\\ProjectPhysica\\bin\\Debug-windows-x86_64\\Platform'"

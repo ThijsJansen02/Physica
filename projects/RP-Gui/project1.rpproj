@@ -1,37 +1,37 @@
 TransferFunctions:
   - name: example function
     remote: rp-f083c2.local
-    decimation: 128
+    decimation: 4
     lowprecision: 0
     filters:
-      - cutoff: 2004.453
-        Qfactor: 283.425
+      - cutoff: 5917.702
+        Qfactor: 2.194
         gain: 954.701
         FilterType: 3
         b0: 1
         b1: 0
         b2: 0
         a0: 1
-        a1: 7.072252233433506
-        a2: 4017831.840953842
-      - cutoff: 1180.849
-        Qfactor: 258.35
+        a1: 2697.2206622624794
+        a2: 35019198.7176218
+      - cutoff: 2000
+        Qfactor: 63.295
         gain: 2
         FilterType: 3
         b0: 1
         b1: 0
         b2: 0
         a0: 1
-        a1: 4.570733389300928
-        a2: 1394404.3584946543
-      - cutoff: 1331.958
-        Qfactor: 53.481
-        df: 400
-        antiQfactor: 370.179
+        a1: 31.598073431673914
+        a2: 4000000
+      - cutoff: 900
+        Qfactor: 1
+        df: 200
+        antiQfactor: 183.587
         FilterType: 5
         b0: 1
-        b1: 21.165610761353843
-        b2: 1281328.9314508438
+        b1: 800
+        b2: 640000
         a0: 1
-        a1: 4.138425106296154
-        a2: 2346895.337700844
+        a1: 5.447008608527674
+        a2: 1000000

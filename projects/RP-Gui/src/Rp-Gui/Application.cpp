@@ -47,6 +47,8 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb/stb_truetype.h>
 
+void SetupImGuiStyle();
+
 using namespace PH;
 
 namespace PH::RpGui {
@@ -60,12 +62,11 @@ namespace PH::RpGui {
 
 using namespace PH::RpGui;
 
-
 RpGui::TransferFunction createExampleTransferFunction() {
 	TransferFunction examplefunction{};
 
 	examplefunction.currentcommand = Engine::String::create("");
-	examplefunction.name = Engine::String::create("example function");
+	examplefunction.name = Engine::String::create("Example Function");
 	examplefunction.connection.remoteip = Engine::String::create("root@rp-f083c2.local");
 
 	examplefunction.filters = Engine::ArrayList<Filter>::create(3);
@@ -121,8 +122,8 @@ void deserializeApplication() {
 
 		const auto& plotviewpanels = ini["PlotViewPanels"];
 		if (plotviewpanels) {
-			RpGui::context->magnitudeplot.deserialize(plotviewpanels["magnitude"]);
-			RpGui::context->phaseplot.deserialize(plotviewpanels["phase"]);
+			RpGui::context->magnitudeplot.deserialize(plotviewpanels["Magnitude"]);
+			RpGui::context->phaseplot.deserialize(plotviewpanels["Phase"]);
 		}
 
 
@@ -147,9 +148,9 @@ void deserializeApplication() {
 
 void deserializeProject(const char* projectdir) {
 
-	auto proj = Engine::FileIO::loadYamlfile(projectdir);
+	const auto proj = Engine::FileIO::loadYamlfile(projectdir);
 	if (proj) {
-		auto transferfunctions = proj["TransferFunctions"];
+		const auto transferfunctions = proj["TransferFunctions"];
 		for (const auto& tf : transferfunctions) {
 			RpGui::context->activetransferfunctions.pushBack(deserializeTransferFunction(tf));
 		}
@@ -177,7 +178,7 @@ void deserializeProject(const char* projectdir) {
 			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
 			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 
-			for (auto f : tf.filters) {
+			for (const auto& f : tf.filters) {
 				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf.decimation, &tf.connection, tf.lowprecision);
 			}
 		}
@@ -192,7 +193,7 @@ void writeCSV(const Engine::DynamicArray<int16>& input, const Engine::DynamicArr
 
 	s << "input,output\n";
 
-	PH_DEBUG_ASSERT(input.getCapacity() == output.getCapacity(), "input and output arrays must have the same length!");
+	PH_DEBUG_ASSERT(input.getCapacity() == output.getCapacity(), "Input and output arrays must have the same length!");
 
 	char buffer[16];
 
@@ -223,16 +224,14 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	engineinit.platformcontext = &context;
 	PH::Engine::init(engineinit);
 
-	ImGuiStyle& style = ImGui::GetStyle();
-	style.Colors[ImGuiCol_FrameBg] = ImVec4{ 0.0f, 0.0f, 0.0f, 1.0f };
+	SetupImGuiStyle();
 	
 	ssh_init(); //libssh test
 
-
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
 
-	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "magnitude");
-	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "phase");
+	RpGui::context->magnitudeplot = RpGui::PlotViewPanel::create({ -10.0f, -10.0f, 10.0f, 10.0f }, "Magnitude");
+	RpGui::context->phaseplot = RpGui::PlotViewPanel::create({ -10.0f, -180.0f, 10.0f, 180.0f }, "Phase");
 
 	RpGui::context->openedplots = Engine::ArrayList<PlotData>::create(1);
 
@@ -251,8 +250,6 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	//setup example transferfunctions; should in the future be loaded from a serialized document
 	RpGui::context->activetransferfunctions = Engine::ArrayList<TransferFunction>::create(1);
 
-
-
 	loadShaders();
 	deserializeApplication();
 
@@ -260,16 +257,10 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	initPython(RpGui::context->pythonhome.getC_Str());
 #endif
 
-
-
 	deserializeProject(RpGui::context->openproject.getC_Str());
-
-
 
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigWindowsMoveFromTitleBarOnly = true;
-	
-
 
 	//init the renderer
 	Engine::Renderer2D::InitInfo init{};
@@ -281,7 +272,15 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	RpGui::renderer2D = Engine::Renderer2D::Wrapper::create(init);
 	return true;
 }
-	//this is going to be the function that draws the plot, it takes in the vertices of the plot, the range of the plot and the region of the plot, and it draws the plot using the renderer2D wrapper, this is going to be called from the drawTransferFunctionMagnitude and drawTransferFunctionPhase functions, which are going to generate the vertices for the plot based on the transfer function and then call this function to draw the plot, this is going to allow us to separate the logic of generating the vertices for the plot from the logic of drawing the plot, which is going to make it easier to maintain and extend in the future, for example if we want to add support for different types of plots or different types of data sources for the plots, we can just generate different vertices for those plots and then call this function to draw them without having to duplicate any code.
+/*
+	This is going to be the function that draws the plot, it takes in the vertices of the plot, the range of the plot and the region of the plot,
+	and it draws the plot using the renderer2D wrapper, this is going to be called from the drawTransferFunctionMagnitude and drawTransferFunctionPhase functions,
+	which are going to generate the vertices for the plot based on the transfer function and then call this function to draw the plot,
+	this is going to allow us to separate the logic of generating the vertices for the plot from the logic of drawing the plot,
+	which is going to make it easier to maintain and extend in the future, for example if we want to add support for different types of plots or different types of data sources for the plots,
+	we can just generate different vertices for those plots and then call this function to draw them without having to duplicate any code.
+*/
+
 
 typedef void (*UIfunc) (void*, RpGui::Context*, int32&);
 
@@ -308,7 +307,7 @@ inline void drawComponent(const Engine::String& name, PH::RpGui::Context* contex
 	bool removeComponent = false;
 	if (ImGui::BeginPopup("Settings"))
 	{
-		if (ImGui::MenuItem("Remove component"))
+		if (ImGui::MenuItem("Remove Component"))
 			removeComponent = true;
 
 		ImGui::EndPopup();
@@ -335,6 +334,8 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	static bool b_update = false;
 	static bool b_auto_update = false;
 
+	ImGui::Text("Device Address");
+
 	char buffer[256];
 	PH::Base::stringCopy(tf->connection.remoteip.getC_Str(), buffer, 256);
 
@@ -344,7 +345,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	}
 
 	ImGui::SameLine();
-	if (ImGui::Button("connect")) {
+	if (ImGui::Button("Connect")) {
 		if (tf->connection.open) {
 			TerminateThread(tf->connection.thread.handle, 0);
 		}
@@ -361,8 +362,8 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 		ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
 		tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 	}
-	
-	if (ImGui::Button("reload bitfile")) {
+
+	if (ImGui::Button("Reload Bitfile")) {
 		if(tf->connection.connected) {
 			ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
 			tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; fpgautil -b sinewave_generator_wrapper.bit.bin") });
@@ -374,40 +375,30 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			}
 		}
 		else {
-			INFO << "red pitaya with adress " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
+			INFO << "Red Pitaya with address " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
 		}
 	}
 
 	ImGui::SameLine();
-	if (ImGui::Button("reset")) {
+	if (ImGui::Button("Reset")) {
 		if (tf->connection.connected) {
 			ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
 			tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; monitor 0x41230000 1; sleep 0.001; monitor 0x41230000 0") });
 		}
 		else {
-			INFO << "red pitaya with adress " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
+			INFO << "Red Pitaya with address " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
 		}
 	}
-	ImGui::SameLine();
-	ImGui::Checkbox("low precision", (bool*) & tf->lowprecision);
 
-	b_update = ImGui::Button("Update");
+	ImGui::Text("SSH Command");
 
-	ImGui::SameLine();
-	ImGui::Checkbox("Auto Update", &b_auto_update);
-
-	ImGui::PopID();
-
-
-
-	ImGui::PushID(id++);
 	PH::Base::stringCopy(tf->currentcommand.getC_Str(), buffer, 256);
 	if (ImGui::InputText("##transferfunctionname", buffer, 256)) {
 		tf->currentcommand.set(buffer);
 	}
 
 	ImGui::SameLine();
-	if (ImGui::Button("send")) {
+	if (ImGui::Button("Send")) {
 		if (tf->connection.connected) {
 
 			PH::RpGui::RpCommand c{};
@@ -416,9 +407,19 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			tf->currentcommand.set("");
 		}
 		else {
-			INFO << "red pitaya with adress " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
+			INFO << "Red Pitaya with address " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
 		}
 	}
+
+	ImGui::SeparatorText("Filter Settings");
+
+	b_update = ImGui::Button("Update");
+
+	ImGui::SameLine();
+	ImGui::Checkbox("Auto Update", &b_auto_update);
+
+	ImGui::SameLine();
+	ImGui::Checkbox("Low Precision", (bool*)&tf->lowprecision);
 
 	ImGui::InputInt("Decimation", (int32*) & tf->decimation);
 
@@ -426,13 +427,14 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	static RpGui::Filter* lastFilter = nullptr;
 
+	id = 0;
 	for (auto& f : tf->filters) {
 		ImGui::PushID(id++);
 
 		static bool b_dirty = false;
 
-		ImGui::Text("filter n%u", id);
-		if (ImGui::BeginCombo("type", RpGui::FilterTypeStrings[f.type])) {
+		ImGui::Text("Filter #%u", id);
+		if (ImGui::BeginCombo("Type", RpGui::FilterTypeStrings[f.type])) {
 
 			for (uint32 filtertype = 0; filtertype < FILTER_TYPE_COUNT; filtertype++) {
 
@@ -451,25 +453,25 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 		}
 
 		if (f.type == FilterType::RESONANCE_ANTI_RESONANCE) {
-			if (ImGui::DragFloat("characteristic frequency", &f.cutoff, f.cutoff * dragspeed)) b_dirty = true;
-			if (ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) b_dirty = true;
+			if (ImGui::DragFloat("Characteristic Frequency", &f.cutoff, f.cutoff * dragspeed)) b_dirty = true;
+			if (ImGui::DragFloat("Q Factor", &f.Qfactor, f.Qfactor * dragspeed)) b_dirty = true;
 			if (ImGui::DragFloat("Df", &f.df, f.df* dragspeed)) b_dirty = true;
-			if (ImGui::DragFloat("anti resonant Q factor", &f.antiQfactor, f.antiQfactor * dragspeed)) b_dirty = true;
+			if (ImGui::DragFloat("Anti Resonant Q Factor", &f.antiQfactor, f.antiQfactor * dragspeed)) b_dirty = true;
 		}
 		else if (f.type == FilterType::COEFFICIENTS) {
-			//B coefficients
+			// B coefficients
 			if (ImGui::InputDouble("b0", &f.coeffs.b0)) b_dirty = true;
 			if (ImGui::InputDouble("b1", &f.coeffs.b1)) b_dirty = true;
 			if (ImGui::InputDouble("b2", &f.coeffs.b2)) b_dirty = true;
 
-			//A coefficients
+			// A coefficients
 			if (ImGui::InputDouble("a0", &f.coeffs.a0)) b_dirty = true;
 			if (ImGui::InputDouble("a1", &f.coeffs.a1)) b_dirty = true;
 			if (ImGui::InputDouble("a2", &f.coeffs.a2)) b_dirty = true;
 		}
 		else {
 			if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) b_dirty = true;
-			if (ImGui::DragFloat("Q factor", &f.Qfactor, f.Qfactor * dragspeed)) b_dirty = true;
+			if (ImGui::DragFloat("Q Factor", &f.Qfactor, f.Qfactor * dragspeed)) b_dirty = true;
 		}
 
 		if (b_dirty) {
@@ -480,7 +482,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 		ImGui::PopID();
 
-		id++;
+		//id++;
 		//ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed);
 	}
 
@@ -504,7 +506,7 @@ void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {
 	ImGui::SameLine();
 
 
-	if (ImGui::Button("remove")) {
+	if (ImGui::Button("Remove")) {
 		//remove the plot from the openedplots array
 		for (uint32 i = 0; i < RpGui::context->openedplots.getCount(); i++) {
 			if (&RpGui::context->openedplots[i] == plotdata) {
@@ -514,8 +516,8 @@ void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {
 		}
 	}
 
-	ImGui::DragFloat("linethickness", &plotdata->thickness, plotdata->thickness * 0.1f);
-	ImGui::ColorEdit3("color", &plotdata->color.r);
+	ImGui::DragFloat("Line Thickness", &plotdata->thickness, plotdata->thickness * 0.1f);
+	ImGui::ColorEdit3("Color", &plotdata->color.r);
 	ImGui::PopID();
 }
 
@@ -614,25 +616,32 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 	static real32 textscale = 0.5f;
 
+	ImGuiStyle& style = ImGui::GetStyle();
+	ImVec4* colors = style.Colors;
+	const glm::vec4 backgroundColor = glm::vec4(glm::vec3(colors[ImGuiCol_MenuBarBg].x, colors[ImGuiCol_MenuBarBg].y, colors[ImGuiCol_MenuBarBg].z) * 0.5f, 1.0f);
+
 	//draw the magnitude plot for the bandpass filter
 	RpGui::PlotViewPanel* plot = &RpGui::context->magnitudeplot;
 	plot->beginRenderPass();
-	
+	Box2D region = plot->region;
+
 	//start drawing the plot, first set the pipeline and the view and projection matrices, then draw the background and the plot itself, then end the renderer and flush it to the GPU
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->pipeline2D);
 	RpGui::renderer2D.pushView(glm::mat4(1.0f));
-	RpGui::renderer2D.pushProjection(glm::ortho(0.0f, (real32)plot->region.right, (real32)plot->region.top, 0.0f));
+	RpGui::renderer2D.pushProjection(glm::ortho(0.0f, region.right, region.top, 0.0f));
+
+	// Draw background
+	RpGui::renderer2D.drawColoredQuad(glm::vec3(region.right/2.0f, region.top/2.0f, 0.0f), { region.right, region.top }, backgroundColor);
 
 	//draw the plot with lines and the plot itself
-	drawPlotScaleLines(plot->range, plot->region);
+	drawPlotScaleLines(plot->range, region);
 	for (auto& transferfunction : RpGui::context->activetransferfunctions) {
 		drawTransferFunctionMagnitude(plot, &transferfunction, &RpGui::context->buffer);
 	}
-	
 
-	for (auto& plotdata : RpGui::context->openedplots) {
+	for (const auto& plotdata : RpGui::context->openedplots) {
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
-		drawPlot(copy.getArray(), plot->range, plot->region, plotdata.color, glm::vec2{plotdata.thickness, plotdata.thickness});
+		drawPlot(copy.getArray(), plot->range, region, plotdata.color, glm::vec2{plotdata.thickness, plotdata.thickness});
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
 	}
 
@@ -640,16 +649,15 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	//start drawing the text
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->fontpipeline2D, { &RpGui::context->font.cdata, 1 });
 	RpGui::renderer2D.pushTexture(RpGui::context->font.atlas);
-	RpGui::drawPlotScaleValues(plot->range, plot->region, &RpGui::context->font, textscale);
-	drawXlabel(plot->region, &RpGui::context->font, "frequency (Hz)", textscale);
-	drawTitle(plot->region, &RpGui::context->font, RpGui::context->plottitle.getC_Str(), 1.0f);
-	drawYlabel(plot->region, &RpGui::context->font, "magnitude (dB)", textscale);
+	RpGui::drawPlotScaleValues(plot->range, region, &RpGui::context->font, textscale);
+	drawXlabel(region, &RpGui::context->font, "Frequency [Hz]", textscale);
+	drawTitle(region, &RpGui::context->font, RpGui::context->plottitle.getC_Str(), 1.0f);
+	drawYlabel(region, &RpGui::context->font, "Magnitude [dB]", textscale);
 
-	//draw legemd
-
-	real32 y = plot->region.top - 50.0f;
-	real32 x = plot->region.right - 300.0f;
-	for (auto plotdata : RpGui::context->openedplots) {
+	// Draw legend
+	real32 y = region.top - 50.0f;
+	real32 x = region.right - 300.0f;
+	for (const auto& plotdata : RpGui::context->openedplots) {
 
 		drawText(&RpGui::context->font, plotdata.name.getC_Str(), { x, y }, textscale, plotdata.color);
 
@@ -665,16 +673,20 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	//draw the phase plot which is now just exactly the same as the magnitude plot
 	plot = &RpGui::context->phaseplot;
 	plot->beginRenderPass();
+	region = plot->region;
 
 	//start drawing the plot, first set the pipeline and the view and projection matrices, then draw the background and the plot itself, then end the renderer and flush it to the GPU
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->pipeline2D);
 	RpGui::renderer2D.pushView(glm::mat4(1.0f));
 	
 	//fix set projection to allow multiple windows!
-	RpGui::renderer2D.pushProjection(glm::ortho(0.0f, (real32)plot->region.right, (real32)plot->region.top, 0.0f));
+	RpGui::renderer2D.pushProjection(glm::ortho(0.0f, (real32)region.right, (real32)region.top, 0.0f));
+
+	// Draw background
+	RpGui::renderer2D.drawColoredQuad(glm::vec3(region.right / 2.0f, region.top / 2.0f, 0.0f), { region.right, region.top }, backgroundColor);
 
 	//draw the plot with lines and the plot itself
-	drawPlotScaleLines(plot->range, plot->region);
+	drawPlotScaleLines(plot->range, region);
 	for (auto& transferfunction : RpGui::context->activetransferfunctions) {
 		drawTransferFunctionPhase(plot, &transferfunction, &RpGui::context->buffer);
 	}
@@ -682,16 +694,16 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	
 	for (auto& plotdata : RpGui::context->openedplots) {
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.phasedata.getArray());
-		drawPlot(copy.getArray(), plot->range, plot->region, plotdata.color, glm::vec2{ plotdata.thickness, plotdata.thickness });
+		drawPlot(copy.getArray(), plot->range, region, plotdata.color, glm::vec2{ plotdata.thickness, plotdata.thickness });
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
 	}
 
 	//start drawing the text
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->fontpipeline2D, { &RpGui::context->font.cdata, 1 });
 	RpGui::renderer2D.pushTexture(RpGui::context->font.atlas);
-	RpGui::drawPlotScaleValues(plot->range, plot->region, &RpGui::context->font, textscale);
-	drawXlabel(plot->region, &RpGui::context->font, "frequency (Hz)", textscale);
-	drawYlabel(plot->region, &RpGui::context->font, "Phase (radians)", textscale);
+	RpGui::drawPlotScaleValues(plot->range, region, &RpGui::context->font, textscale);
+	drawXlabel(region, &RpGui::context->font, "Frequency [Hz]", textscale);
+	drawYlabel(region, &RpGui::context->font, "Phase [deg]", textscale);
 
 	RpGui::renderer2D.flush({ nullptr, 0 });
 
@@ -716,8 +728,6 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	} ImGui::End();
 
 	static char pythoncommandbuffer[256];
-
-	ImGui::ShowDemoWindow();
 
 	if (ImGui::Begin("Python Commandwindow")) {
 		if (ImGui::InputText("cmd", pythoncommandbuffer, IM_ARRAYSIZE(pythoncommandbuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
@@ -756,15 +766,12 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	} ImGui::End();
 
 	static bool statsopen;
-	if (ImGui::Begin("stats")) {
-		ImGui::Text("framerate %f", 1.0f / Engine::getTimeStep());
-		ImGui::Text("mousepos %f, %f", Engine::Events::getMousePos().x, Engine::getParentDisplay()->viewport.y - Engine::Events::getMousePos().y);
+	if (ImGui::Begin("Stats")) {
+		ImGui::Text("Framerate %f fps", 1.0f / Engine::getTimeStep());
+		ImGui::Text("MousePos %f, %f", Engine::Events::getMousePos().x, Engine::getParentDisplay()->viewport.y - Engine::Events::getMousePos().y);
 
-		ImGui::Text("amount of global descriptors %u", Engine::Renderer2D::getStats(RpGui::renderer2D.getContext()).useddescriptors);
+		ImGui::Text("Amount of global descriptors %u", Engine::Renderer2D::getStats(RpGui::renderer2D.getContext()).useddescriptors);
 	} ImGui::End();
-
-	//static bool demowindowopen = true;
-	//ImGui::ShowDemoWindow(&demowindowopen);
 
 	PH::Engine::EndDockspace();
 
@@ -782,7 +789,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 
 PH_DLL_EXPORT PH_APPLICATION_DESTROY(applicationDestroy) {
 
-	PH::RpGui::INFO << "destroying Rp-Gui application...\n";
+	PH::RpGui::INFO << "Destroying Rp-Gui application...\n";
 
 	{
 		YAML::Emitter out;
@@ -813,4 +820,101 @@ PH_DLL_EXPORT PH_APPLICATION_DESTROY(applicationDestroy) {
 	
 	//system("PAUSE");
 	return true;
+}
+
+void SetupImGuiStyle()
+{
+	// Style sourced from https://github.com/ocornut/imgui/issues/707#issuecomment-4107169777
+
+	ImGuiStyle& style = ImGui::GetStyle();
+	ImVec4* colors = style.Colors;
+
+	// --- 1. Sizing and Spacing (Clean & Balanced) ---
+	style.WindowPadding = ImVec2(10.0f, 10.0f);
+	style.FramePadding = ImVec2(6.0f, 4.0f);
+	style.ItemSpacing = ImVec2(8.0f, 6.0f);
+	style.ScrollbarSize = 14.0f;
+	style.GrabMinSize = 12.0f;
+
+	// --- 2. Borders & Rounding ---
+	style.WindowRounding = 6.0f;
+	style.FrameRounding = 4.0f;
+	style.PopupRounding = 4.0f;
+	style.ScrollbarRounding = 12.0f;
+	style.GrabRounding = 4.0f;
+	style.TabRounding = 4.0f;
+
+	style.WindowBorderSize = 1.0f;
+	style.FrameBorderSize = 1.0f;
+
+	// --- 3. The Dracula Color Palette ---
+	// Background: #282a36 | Selection: #44475a | Foreground: #f8f8f2
+	// Comment: #6272a4    | Cyan: #8be9fd      | Green: #50fa7b
+	// Orange: #ffb86c     | Pink: #ff79c6      | Purple: #bd93f9
+	// Red: #ff5555        | Yellow: #f1fa8c
+
+	// Text
+	colors[ImGuiCol_Text] = ImVec4(0.97f, 0.97f, 0.95f, 1.00f); // #f8f8f2
+	colors[ImGuiCol_TextDisabled] = ImVec4(0.38f, 0.45f, 0.64f, 1.00f); // #6272a4
+
+	// Backgrounds
+	colors[ImGuiCol_WindowBg] = ImVec4(0.16f, 0.16f, 0.21f, 1.00f); // #282a36
+	colors[ImGuiCol_ChildBg] = ImVec4(0.16f, 0.16f, 0.21f, 0.00f);
+	colors[ImGuiCol_PopupBg] = ImVec4(0.16f, 0.16f, 0.21f, 0.96f);
+
+	// Borders
+	colors[ImGuiCol_Border] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f); // #44475a
+	colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+
+	// Frames (Inputs, etc.)
+	colors[ImGuiCol_FrameBg] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f); // #44475a
+	colors[ImGuiCol_FrameBgHovered] = ImVec4(0.38f, 0.45f, 0.64f, 1.00f); // #6272a4
+	colors[ImGuiCol_FrameBgActive] = ImVec4(0.48f, 0.55f, 0.74f, 1.00f);
+
+	// Title Bars
+	colors[ImGuiCol_TitleBg] = ImVec4(0.13f, 0.14f, 0.18f, 1.00f); // Darker
+	colors[ImGuiCol_TitleBgActive] = ImVec4(0.16f, 0.16f, 0.21f, 1.00f);
+	colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.13f, 0.14f, 0.18f, 1.00f);
+
+	// Menus
+	colors[ImGuiCol_MenuBarBg] = ImVec4(0.13f, 0.14f, 0.18f, 1.00f);
+
+	// Scrollbars
+	colors[ImGuiCol_ScrollbarBg] = ImVec4(0.16f, 0.16f, 0.21f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.38f, 0.45f, 0.64f, 1.00f);
+	colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.48f, 0.55f, 0.74f, 1.00f);
+
+	// Interactables
+	colors[ImGuiCol_CheckMark] = ImVec4(0.31f, 0.98f, 0.48f, 1.00f); // #50fa7b (Green)
+	colors[ImGuiCol_SliderGrab] = ImVec4(0.74f, 0.58f, 0.98f, 1.00f); // #bd93f9 (Purple)
+	colors[ImGuiCol_SliderGrabActive] = ImVec4(0.84f, 0.68f, 1.00f, 1.00f);
+	colors[ImGuiCol_Button] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f);
+	colors[ImGuiCol_ButtonHovered] = ImVec4(1.00f, 0.47f, 0.78f, 1.00f); // #ff79c6 (Pink)
+	colors[ImGuiCol_ButtonActive] = ImVec4(0.80f, 0.37f, 0.62f, 1.00f);
+	colors[ImGuiCol_Header] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f);
+	colors[ImGuiCol_HeaderHovered] = ImVec4(0.38f, 0.45f, 0.64f, 1.00f);
+	colors[ImGuiCol_HeaderActive] = ImVec4(0.48f, 0.55f, 0.74f, 1.00f);
+
+	// Tabs
+	colors[ImGuiCol_Tab] = ImVec4(0.16f, 0.16f, 0.21f, 1.00f);
+	colors[ImGuiCol_TabHovered] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f);
+	colors[ImGuiCol_TabActive] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f);
+	colors[ImGuiCol_TabUnfocused] = ImVec4(0.13f, 0.14f, 0.18f, 1.00f);
+	colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.16f, 0.16f, 0.21f, 1.00f);
+
+	// Tables
+	colors[ImGuiCol_TableHeaderBg] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f);
+	colors[ImGuiCol_TableBorderStrong] = ImVec4(0.38f, 0.45f, 0.64f, 1.00f);
+	colors[ImGuiCol_TableBorderLight] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f);
+
+	// Misc
+	colors[ImGuiCol_PlotLines] = ImVec4(0.55f, 0.91f, 0.99f, 1.00f); // #8be9fd (Cyan)
+	colors[ImGuiCol_TextSelectedBg] = ImVec4(0.27f, 0.28f, 0.35f, 1.00f);
+	colors[ImGuiCol_NavHighlight] = ImVec4(0.74f, 0.58f, 0.98f, 1.00f);
+
+#ifdef IMGUI_HAS_DOCK
+	colors[ImGuiCol_DockingPreview] = ImVec4(0.74f, 0.58f, 0.98f, 0.50f);
+	colors[ImGuiCol_DockingEmptyBg] = ImVec4(0.16f, 0.16f, 0.21f, 1.00f);
+#endif
 }

@@ -41,13 +41,13 @@ namespace PH::RpGui {
 	};
 
 	static const char* FilterTypeStrings[] = {
-		"lowpass",
-		"bandpass",
-		"bandstop",
-		"highpass",
-		"allpass",
-		"resonance anti resonance",
-		"coefficients"
+		"Low-Pass",
+		"Band-Pass",
+		"Band-Stop",
+		"High-Pass",
+		"All-Pass",
+		"Resonance Anti-Resonance",
+		"Coefficients"
 	};
 
 	struct Filter {
@@ -224,6 +224,8 @@ namespace PH::RpGui {
 			case FilterType::ALLPASS:
 				return getAllpassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
 			case FilterType::COEFFICIENTS:
+				return filter.coeffs;
+			default:
 				return filter.coeffs;
 		}
 	}
@@ -449,7 +451,7 @@ namespace PH::RpGui {
 			result.decimation = RpGui::standard_decimation;
 		}
 
-		for (auto& f : t["filters"]) {
+		for (const auto& f : t["filters"]) {
 			Filter f_ = deserializeFilter(f);
 			result.filters.pushBack(f_);
 		}
