@@ -23,8 +23,8 @@ namespace PH::RpGui {
 
 			Base::Complex<real64> y = 1.0f;
 
-			for (const auto& filter : function->filters) {
-				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
+			for (const auto filter : function->filters) {
+				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter->getBiquadCoefficients());
 			}
 
 
@@ -48,8 +48,8 @@ namespace PH::RpGui {
 
 			Base::Complex<real64> y = 1.0f;
 
-			for (auto& filter : function->filters) {
-				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.coeffs);
+			for (const auto filter : function->filters) {
+				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter->getBiquadCoefficients());
 			}
 
 

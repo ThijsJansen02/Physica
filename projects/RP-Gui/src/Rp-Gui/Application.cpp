@@ -69,18 +69,17 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	examplefunction.name = Engine::String::create("Example Function");
 	examplefunction.connection.remoteip = Engine::String::create("root@rp-f083c2.local");
 
-	examplefunction.filters = Engine::ArrayList<Filter>::create(3);
-	Filter filter1{};
-	filter1.cutoff = 1000.0f;
-	filter1.gain = 1.0f;
-	filter1.Qfactor = 30.0f;
-	filter1.type = FilterType::BANDPASS;
+	LowPassFilter* filter = new LowPassFilter();
+	filter->cutoff = 1000.0f;
+	filter->qfactor = 30.0f;
+	LowPassFilter* filter1 = new LowPassFilter(*filter);
+	LowPassFilter* filter2 = new LowPassFilter(*filter);
 
-	examplefunction.filters.pushBack(filter1);
-	filter1.cutoff = 4000.0f;
-	examplefunction.filters.pushBack(filter1);
-	filter1.cutoff = 10000.0f;
-	examplefunction.filters.pushBack(filter1);
+	examplefunction.filters.push_back(filter);
+	filter1->cutoff = 4000.0f;
+	examplefunction.filters.push_back(filter1);
+	filter->cutoff = 10000.0f;
+	examplefunction.filters.push_back(filter2);
 
 	return examplefunction;
 }
@@ -178,8 +177,8 @@ void deserializeProject(const char* projectdir) {
 			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
 			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 
-			for (const auto& f : tf.filters) {
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf.decimation, &tf.connection, tf.lowprecision);
+			for (const auto f : tf.filters) {
+				sentFilterToRp(*f, RP_FPGA_SAMPLERATE / tf.decimation, &tf.connection, tf.lowprecision);
 			}
 		}
 	}
@@ -370,8 +369,8 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 			if (!tf->filters.empty()) {
 				auto f = tf->filters[0];
-				recalculateFilter(&f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+				recalculateFilter(*f);
+				sentFilterToRp(*f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 			}
 		}
 		else {
@@ -425,25 +424,26 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	ImGui::PopID();
 
-	static RpGui::Filter* lastFilter = nullptr;
+	static Filter* selectedFilter = nullptr;
 
 	id = 0;
-	for (auto& f : tf->filters) {
+	for (Filter* f : tf->filters) {
 		ImGui::PushID(id++);
 
 		static bool b_dirty = false;
 
 		ImGui::Text("Filter #%u", id);
-		if (ImGui::BeginCombo("Type", RpGui::FilterTypeStrings[f.type])) {
+		if (ImGui::BeginCombo("Type", FilterTypeStrings[f->type()])) {
 
-			for (uint32 filtertype = 0; filtertype < FILTER_TYPE_COUNT; filtertype++) {
+			for (uint32 filtertype = 0; filtertype < ARRAY_LENGTH(FilterTypeStrings); filtertype++) {
 
-				bool selected = (f.type == filtertype);
+				bool selected = (f->type() == filtertype);
 
-				if (ImGui::Selectable(RpGui::FilterTypeStrings[filtertype], selected)) {
-					
-					f.type = (FilterType)filtertype;
-					lastFilter = &f;
+				if (ImGui::Selectable(FilterTypeStrings[filtertype], selected)) {
+					// Replace filter with the new type
+					delete f;
+					f = Filter::getType(static_cast<FilterType>(filtertype));
+					selectedFilter = f;
 				}
 				if (selected) {
 					ImGui::SetItemDefaultFocus();
@@ -452,43 +452,24 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			ImGui::EndCombo();
 		}
 
-		if (f.type == FilterType::RESONANCE_ANTI_RESONANCE) {
-			if (ImGui::DragFloat("Characteristic Frequency", &f.cutoff, f.cutoff * dragspeed)) b_dirty = true;
-			if (ImGui::DragFloat("Q Factor", &f.Qfactor, f.Qfactor * dragspeed)) b_dirty = true;
-			if (ImGui::DragFloat("Df", &f.df, f.df* dragspeed)) b_dirty = true;
-			if (ImGui::DragFloat("Anti Resonant Q Factor", &f.antiQfactor, f.antiQfactor * dragspeed)) b_dirty = true;
+		for (const auto& parameter : f->parameters)
+		{
+			if (ImGui::DragFloat(parameter.first, (float*)parameter.second, *parameter.second * dragspeed)) b_dirty = true;
 		}
-		else if (f.type == FilterType::COEFFICIENTS) {
-			// B coefficients
-			if (ImGui::InputDouble("b0", &f.coeffs.b[0])) b_dirty = true;
-			if (ImGui::InputDouble("b1", &f.coeffs.b[1])) b_dirty = true;
-			if (ImGui::InputDouble("b2", &f.coeffs.b[2])) b_dirty = true;
-
-			// A coefficients
-			if (ImGui::InputDouble("a0", &f.coeffs.a[0])) b_dirty = true;
-			if (ImGui::InputDouble("a1", &f.coeffs.a[1])) b_dirty = true;
-			if (ImGui::InputDouble("a2", &f.coeffs.a[2])) b_dirty = true;
-		}
-		else {
-			if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) b_dirty = true;
-			if (ImGui::DragFloat("Q Factor", &f.Qfactor, f.Qfactor * dragspeed)) b_dirty = true;
-		}
+		
 
 		if (b_dirty) {
-			lastFilter = &f;
+			selectedFilter = f;
 			b_update |= b_auto_update;
 			b_dirty = false;
 		}
 
 		ImGui::PopID();
-
-		//id++;
-		//ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed);
 	}
 
-	if (lastFilter) {
-		recalculateFilter(lastFilter);
-		if (b_update) sentFilterToRp(*lastFilter, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+	if (selectedFilter) {
+		recalculateFilter(*selectedFilter);
+		if (b_update) sentFilterToRp(*selectedFilter, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 		b_update = false;
 	}
 

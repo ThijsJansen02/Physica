@@ -14,6 +14,7 @@
 
 #include "Context.h"
 #include <Engine/Engine.h>
+#include <Filter.h>
 
 
 namespace py = pybind11;
@@ -22,19 +23,13 @@ using namespace PH;
 //using namespace PH::RpGui;
 
 // actually usable functions in python!
-void setFilterCutoff(int filternumber, float cutoff) {
-	RpGui::context->activetransferfunctions[0].filters[filternumber].cutoff = cutoff;
+void setFilterParameter(int filternumber, const char* name, real64 value)
+{
+	*RpGui::context->activetransferfunctions[0].filters[filternumber]->parameters[name] = value;
 
-	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);
-	sentFilterToRp(RpGui::context->activetransferfunctions[0].filters[filternumber], RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection, RpGui::context->activetransferfunctions[0].lowprecision);
-}
-
-//actually usable functions in python!
-void setFilterQfactor(int filternumber, float qfactor) {
-	RpGui::context->activetransferfunctions[0].filters[filternumber].Qfactor = qfactor;
-
-	recalculateFilter(&RpGui::context->activetransferfunctions[0].filters[filternumber]);
-	sentFilterToRp(RpGui::context->activetransferfunctions[0].filters[filternumber], RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection, RpGui::context->activetransferfunctions[0].lowprecision);
+	RpGui::context->activetransferfunctions[0].filters[filternumber]->calculateCoefficients();
+	sentFilterToRp(*RpGui::context->activetransferfunctions[0].filters[filternumber],
+		RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection, RpGui::context->activetransferfunctions[0].lowprecision);
 }
 
 //actually usable functions in python!
@@ -122,7 +117,7 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 
 	m.doc() = "C++ functions for my RpGui";
 
-	bind_array<RpGui::Filter>(m, "FilterList");
+	//bind_array<Filter>(m, "FilterList");
 
 	py::class_<glm::vec4>(m, "Vec4")
 		.def(py::init<float, float, float, float>())
@@ -131,32 +126,41 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 		.def_readwrite("z", &glm::vec4::z)
 		.def_readwrite("w", &glm::vec4::w);
 
-	py::enum_<RpGui::FilterType>(m, "FilterType")
-		.value("LOWPASS", RpGui::FilterType::LOWPASS)
-		.value("HIGHPASS", RpGui::FilterType::HIGHPASS)
-		.value("BANDSTOP", RpGui::FilterType::BANDSTOP)
-		.value("BANDPASS", RpGui::FilterType::BANDPASS)
-		.value("ALLPASS", RpGui::FilterType::ALLPASS)
-		.value("RESONANCE_ANTI_RESONANCE", RpGui::FilterType::RESONANCE_ANTI_RESONANCE)
-		.value("COEFFICIENTS", RpGui::FilterType::COEFFICIENTS);
+	py::enum_<FilterType>(m, "FilterType")
+		.value("LOWPASS", FilterType::LOWPASS)
+		.value("HIGHPASS", FilterType::HIGHPASS)
+		.value("BANDSTOP", FilterType::BANDSTOP)
+		.value("BANDPASS", FilterType::BANDPASS)
+		.value("ALLPASS", FilterType::ALLPASS)
+		.value("RESONANCE_ANTI_RESONANCE", FilterType::RESONANCE_ANTI_RESONANCE)
+		.value("COEFFICIENTS", FilterType::COEFFICIENTS);
 
-	py::class_<RpGui::Filter>(m, "Filter")
-		.def_readwrite("type", &RpGui::Filter::type)
-		.def_readwrite("cutoff", &RpGui::Filter::cutoff)
-		.def_readwrite("Qfactor", &RpGui::Filter::Qfactor)
-		.def_readwrite("antiQfactor", &RpGui::Filter::antiQfactor)
-		.def_readwrite("df", &RpGui::Filter::df)
-		.def("recalculate", [](RpGui::Filter& f) {
-		recalculateFilter(&f);
-			})
-
-		.def("getCoeffs", [](RpGui::Filter& self) {
-		return py::array_t<double>(
-			6,
-			(double*)&self.coeffs,
-			py::cast(&self) // tie lifetime to object
-		);
-			});
+	
+	//py::class_<Filter> filterClass = py::class_<Filter>(m, "Filter");
+	//TODO: fix this mess. this is the downside of OOP :(
+	//for (const auto& param : Filter::parameters)
+	//{
+	//	filterClass.def_readwrite(param.first);
+	//}
+	//filterClass.def_readwrite("type", &Filter::type)
+	//.def_readwrite("cutoff", &Filter::parameters)
+	//.def_readwrite("Qfactor", &Filter::Qfactor)
+	//.def_readwrite("antiQfactor", &Filter::antiQfactor)
+	//.def_readwrite("df", &Filter::df)
+	//.def("recalculate", [](Filter& f)
+	//	{
+	//		f.calculateCoefficients();
+	//	})
+	//.def("setParameter", [](Filter& self, const char* name, real64 value) {
+	//return py::dtype<double>(self.parameters["name"]);
+	//	})
+	//filterClass.def("getCoeffs", [](Filter& self) {
+	//return py::array_t<double>(
+	//	6,
+	//	(double*)&self.getBiquadCoefficients(),
+	//	py::cast(&self) // tie lifetime to object
+	//);
+	//	});
 
 	m.def("getTransferFunction", [](const char* name) -> RpGui::TransferFunction& {
 		for (auto& tf : RpGui::context->activetransferfunctions) {
@@ -170,13 +174,12 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 		//if no transfer function with the given name exists, create a new one and return it
 		RpGui::TransferFunction newTf;
 		newTf.name = Engine::String::create(name);
-		newTf.filters = Engine::ArrayList<RpGui::Filter>::create(0);
 		return RpGui::context->activetransferfunctions.pushBack(newTf);
 
 		}, py::return_value_policy::reference);
 
 	py::class_<RpGui::TransferFunction>(m, "TransferFunction")
-		.def("WriteToRp", [](RpGui::TransferFunction& tf, RpGui::Filter& filter) {
+		.def("WriteToRp", [](RpGui::TransferFunction& tf, Filter& filter) {
 			sentFilterToRp(filter, RpGui::targetfs, &tf.connection, tf.lowprecision);
 		}, py::arg("Filter"))
 
