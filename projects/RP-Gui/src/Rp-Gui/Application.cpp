@@ -802,6 +802,14 @@ PH_DLL_EXPORT PH_APPLICATION_DESTROY(applicationDestroy) {
 		Engine::FileIO::writeYamlFile(out, RpGui::context->openproject.getC_Str());
 	}
 
+	for (auto& tf : RpGui::context->activetransferfunctions)
+	{
+		for (const auto& f : tf.filters)
+		{
+			delete f;
+		}
+		tf.filters.clear();
+	}
 	
 	//system("PAUSE");
 	return true;
