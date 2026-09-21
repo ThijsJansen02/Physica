@@ -17,6 +17,7 @@ IncludeDir["zep"] = "%{wks.location}/dep/zep/include"
 IncludeDir["editor"] = "%{wks.location}/Editor/src"
 IncludeDir["stb"] = "%{wks.location}/dep/stb_"
 IncludeDir["pybind11"] = "%{wks.location}/dep/pybind11/include"
+IncludeDir["labcore"] = "%{wks.location}/LabCore/src"
 
 --IncludeDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/include"
 IncludeDir["cpython"] = "%{wks.location}/dep/embeddedpython/include"

@@ -55,7 +55,7 @@ namespace PH::Engine {
 			
 			//currently used pipeline
 			Platform::GFX::GraphicsPipeline currentpipeline;
-			Base::Array<Platform::GFX::DescriptorSetLayout> descriptorsetlayouts;
+			//Base::Array<Platform::GFX::DescriptorSetLayout> descriptorsetlayouts;
 
 			uint32 shadowmapdimensions;
 
@@ -80,9 +80,11 @@ namespace PH::Engine {
 		bool32 drawQuadWithID(glm::mat4 transform, glm::vec4 color, uint32 objectid, Renderer2D::Context* m_Context);
 		bool32 drawQuadWithID(const glm::vec3& position, const glm::vec2& scale, const glm::vec4& color, uint32 objectid, Renderer2D::Context* m_Context);
 
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
 		Engine::DynamicArray<uint8> compileGLSLSourceToVulkanBinary(const char* source, PH::Platform::GFX::ShaderStageFlags shaderstage);
+		
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
 		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(Platform::GFX::RenderpassDescription renderpass, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
 		
 		//checks weather binaries exist and loads them, otherwise compiles them from source and saves the binaries, returns the binaries either way
 		Engine::DynamicArray<uint8> checkCompileBinaries(const char* path, Platform::GFX::ShaderStageFlags stage);

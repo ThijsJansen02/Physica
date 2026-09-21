@@ -317,8 +317,8 @@ namespace PH::Engine {
 			return result;
 		}
 
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
-
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(Platform::GFX::RenderpassDescription renderpass, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
+			
 			//create the shader modules
 			Platform::GFX::ShaderCreateinfo vertcreate{};
 			vertcreate.chachedir = nullptr;
@@ -358,7 +358,7 @@ namespace PH::Engine {
 			//adding it all together in the pipeline create;
 			PH::Platform::GFX::GraphicsPipelineCreateinfo pipelinecreate{};
 			pipelinecreate.layouts = layouts.getArray();
-			pipelinecreate.renderpass = target->renderpass;
+			pipelinecreate.renderpass = renderpass;
 			pipelinecreate.shaderstages = { shaders, 2 };
 			pipelinecreate.topology = Platform::GFX::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			pipelinecreate.vertexbindingdescriptions = { quadvertexbindingdescription, ARRAY_LENGTH(quadvertexbindingdescription) };
@@ -368,13 +368,17 @@ namespace PH::Engine {
 			Platform::GFX::GraphicsPipeline pipeline;
 
 			if (!Platform::GFX::createGraphicsPipelines(&pipelinecreate, &pipeline, 1)) {
- 				Engine::WARN << "failed to create graphicspipeline!\n";
+				Engine::WARN << "failed to create graphicspipeline!\n";
 			}
 
 			//destroying the layouts array
 			layouts.release();
 
 			return pipeline;
+		}
+
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
+			return createGraphicsPipelineFromBinaries(target->renderpass, vertsource, fragsource, userlayouts);
 		}
 
 		Engine::DynamicArray<uint8> compileGLSLSourceToVulkanBinary(const char* source, PH::Platform::GFX::ShaderStageFlags shaderstage) {
@@ -616,6 +620,7 @@ namespace PH::Engine {
 		}
 
 		bool32 updateDescriptorSet(Context* context) {
+
 			GFX::DescriptorWrite write{};
 			write.dynamicwrite = true;
 

@@ -228,6 +228,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	
 	ssh_init(); //libssh test
 
+	RpGui::INFO << "RpGui initializing...\n";
 
 	RpGui::context = (RpGui::Context*)Engine::Allocator::alloc(sizeof(RpGui::Context));
 
@@ -274,7 +275,6 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	//init the renderer
 	Engine::Renderer2D::InitInfo init{};
 	init.currentpipeline = RpGui::context->pipeline2D;
-	init.descriptorsetlayouts = { nullptr, 0 };
 	init.instancebuffersize = 256 * MEGA_BYTE;
 	init.shadowmapdimensions = 0;
 
@@ -604,7 +604,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		RpGui::context->phaseplot.onEvent(&event);
 	}
 
-	auto& io = ImGui::GetIO();
+	auto& io = ImGui::GetIO();	
 
 	RpGui::renderer2D.begin();
 

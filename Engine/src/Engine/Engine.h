@@ -2,6 +2,7 @@
 #include <Platform/platformAPI.h>
 
 #include <Base/Base.h>
+#include <Base/random.h>
 #include <Base/Memory.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -129,6 +130,10 @@ namespace PH::Engine {
 	
 	//returns the parent display, the parentdisplay is the display created by the platform which is blitted to the screen
 	Display* getParentDisplay();
+
+	inline UUID createRandomUUID() {
+		return Base::pcg_hash((uint32)(PH::Platform::getTimeMs() * 1000.0f));
+	}
 
 	PH::Platform::GFX::Buffer createDynamicUniformBuffer(sizeptr size);
 }
