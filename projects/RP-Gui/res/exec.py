@@ -14,6 +14,8 @@ import sys, os
 sys.stdout = open('CONOUT$', 'w')
 sys.stderr = open('CONOUT$', 'w')
 
+print("inited python libraries!")
+
 def OpenCSVandWriteToGUI(path):
     print(path)
     data_rp = np.loadtxt(path, delimiter=",", comments=["%", "#"], unpack=True)
