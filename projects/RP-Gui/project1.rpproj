@@ -1,33 +1,31 @@
 TransferFunctions:
   - name: Example Function
     remote: root@rp-f083c2.local
-    decimation: 1
+    decimation: 4
     lowprecision: 0
     filters:
-      - filter-type: 0
-        Cutoff Frequency: 10000.002125978473
-        Q Factor: 30.000003853589295
-        b0: 0
-        b1: 0
-        b2: 1
-        a0: 0
-        a1: 0
-        a2: 0
-      - filter-type: 0
-        Cutoff Frequency: 10000.002132683996
-        Q Factor: 30.000003868788482
-        b0: 0
-        b1: 0
-        b2: 1
-        a0: 0
-        a1: 0
-        a2: 0
-      - filter-type: 0
-        Cutoff Frequency: 10000.00212329626
-        Q Factor: 30.000003853589295
-        b0: 0
-        b1: 0
-        b2: 1
-        a0: 0
-        a1: 0
-        a2: 0
+      - filter-type: 5
+        Cutoff Frequency: 1100
+        Q Factor: 10
+        Anti-Cutoff Frequency: 900
+        Anti-Q Factor: 10
+        _b0: 1
+        _b1: 110
+        _b2: 1210000
+        _a0: 1
+        _a1: 90
+        _a2: 810000
+      - filter-type: 4
+        _b0: 0
+        _b1: 0
+        _b2: 1
+        _a0: 0
+        _a1: 0
+        _a2: 1
+      - filter-type: 4
+        _b0: 0
+        _b1: 0
+        _b2: 1
+        _a0: 0
+        _a1: 0
+        _a2: 1

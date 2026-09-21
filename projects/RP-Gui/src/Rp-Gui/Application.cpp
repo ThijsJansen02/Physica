@@ -84,6 +84,11 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	return examplefunction;
 }
 
+bool DragDouble(const char* label, double* v, float v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0)
+{
+	return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, format, flags);
+}
+
 namespace py = pybind11;
 
 void loadShaders() {
@@ -324,8 +329,6 @@ inline void drawComponent(const Engine::String& name, PH::RpGui::Context* contex
 	ImGui::PopID();
 }
 
-real32 dragspeed = 0.002;
-
 void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	RpGui::TransferFunction* tf = (RpGui::TransferFunction*)function;
@@ -425,24 +428,25 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	ImGui::PopID();
 
 	static Filter* selectedFilter = nullptr;
+	const real64 dragSpeed = 0.02f;
 
 	id = 0;
 	for (Filter* f : tf->filters) {
-		ImGui::PushID(id++);
+		ImGui::PushID(id);
 
 		static bool b_dirty = false;
 
 		ImGui::Text("Filter #%u", id);
-		if (ImGui::BeginCombo("Type", FilterTypeStrings[f->type()])) {
+		if (ImGui::BeginCombo("Type", f->typeStr())) {
 
 			for (uint32 filtertype = 0; filtertype < ARRAY_LENGTH(FilterTypeStrings); filtertype++) {
 
 				bool selected = (f->type() == filtertype);
 
 				if (ImGui::Selectable(FilterTypeStrings[filtertype], selected)) {
-					// Replace filter with the new type
 					delete f;
 					f = Filter::getType(static_cast<FilterType>(filtertype));
+					tf->filters.at(id) = f;
 					selectedFilter = f;
 				}
 				if (selected) {
@@ -454,16 +458,17 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 		for (const auto& parameter : f->parameters)
 		{
-			if (ImGui::DragFloat(parameter.first, (float*)parameter.second, *parameter.second * dragspeed)) b_dirty = true;
+			if (DragDouble(parameter.name, parameter.valuePtr, *parameter.valuePtr * dragSpeed)) b_dirty = true;
 		}
-		
 
 		if (b_dirty) {
 			selectedFilter = f;
+			recalculateFilter(*f);
 			b_update |= b_auto_update;
 			b_dirty = false;
 		}
 
+		id++;
 		ImGui::PopID();
 	}
 
@@ -625,7 +630,6 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		drawPlot(copy.getArray(), plot->range, region, plotdata.color, glm::vec2{plotdata.thickness, plotdata.thickness});
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
 	}
-
 
 	//start drawing the text
 	RpGui::renderer2D.pushGraphicsPipeline(RpGui::context->fontpipeline2D, { &RpGui::context->font.cdata, 1 });

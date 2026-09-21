@@ -14,7 +14,6 @@ namespace PH::RpGui {
 		Engine::String currentcommand;
 		RpConnection connection;
 
-		//TODO: implement Engine::Vector<type> because Filter has a dynamic size
 		std::vector<Filter*> filters;
 		bool32 lowprecision = false;
 		uint32 decimation = 1;
@@ -198,6 +197,7 @@ namespace PH::RpGui {
 	}
 
 	inline void recalculateFilter(Filter& filter) {
+		filter.calculateCoefficients();
 		filter.getBiquadCoefficients();
 	}
 

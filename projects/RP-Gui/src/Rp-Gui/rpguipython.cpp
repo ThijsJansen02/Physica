@@ -25,7 +25,12 @@ using namespace PH;
 // actually usable functions in python!
 void setFilterParameter(int filternumber, const char* name, real64 value)
 {
-	*RpGui::context->activetransferfunctions[0].filters[filternumber]->parameters[name] = value;
+	Filter* f = RpGui::context->activetransferfunctions[0].filters[filternumber];
+	for (const auto& p : f->parameters) {
+		if (p.name == name) {
+			*p.valuePtr = value;
+		}
+	}
 
 	RpGui::context->activetransferfunctions[0].filters[filternumber]->calculateCoefficients();
 	sentFilterToRp(*RpGui::context->activetransferfunctions[0].filters[filternumber],

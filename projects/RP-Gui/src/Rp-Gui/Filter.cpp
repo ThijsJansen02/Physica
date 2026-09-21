@@ -47,7 +47,7 @@ void AllPassFilter::calculateCoefficients()
 	coeffs.b[2] = 1.0f;
 	coeffs.a[0] = 0.0f;
 	coeffs.a[1] = 0.0f;
-	coeffs.a[2] = 0.0f;
+	coeffs.a[2] = 1.0f;
 }
 
 void ResAntiResFilter::calculateCoefficients() {
@@ -77,6 +77,8 @@ Filter* Filter::getType(FilterType type)
 		return new LowPassFilter();
 	case FilterType::BANDPASS:
 		return new BandPassFilter();
+	case FilterType::BANDSTOP:
+		return new BandStopFilter();
 	case FilterType::HIGHPASS:
 		return new HighPassFilter();
 	case FilterType::ALLPASS:
@@ -96,8 +98,9 @@ Filter* Filter::deserialize(const YAML::Node& node)
 
 	for (const auto& parameter : filter->parameters)
 	{
-		*parameter.second = node[parameter.first].as<real64>();
+		*parameter.valuePtr = node[parameter.name].as<real64>();
 	}
+	filter->calculateCoefficients();
 	return filter;
 }
 
@@ -107,18 +110,18 @@ void Filter::serialize(YAML::Emitter& out) const
 
 	out << YAML::Key << "filter-type" << YAML::Value << static_cast<int>(type());
 
-	for (const auto& pair : parameters)
+	for (const auto& parameter : parameters)
 	{
-		out << YAML::Key << pair.first << YAML::Value << *pair.second;
+		out << YAML::Key << parameter.name << YAML::Value << *parameter.valuePtr;
 	}
 
-	out << YAML::Key << "b0" << YAML::Value << coeffs.b[0];
-	out << YAML::Key << "b1" << YAML::Value << coeffs.b[1];
-	out << YAML::Key << "b2" << YAML::Value << coeffs.b[2];
+	out << YAML::Key << "_b0" << YAML::Value << coeffs.b[0];
+	out << YAML::Key << "_b1" << YAML::Value << coeffs.b[1];
+	out << YAML::Key << "_b2" << YAML::Value << coeffs.b[2];
 
-	out << YAML::Key << "a0" << YAML::Value << coeffs.a[0];
-	out << YAML::Key << "a1" << YAML::Value << coeffs.a[1];
-	out << YAML::Key << "a2" << YAML::Value << coeffs.a[2];
+	out << YAML::Key << "_a0" << YAML::Value << coeffs.a[0];
+	out << YAML::Key << "_a1" << YAML::Value << coeffs.a[1];
+	out << YAML::Key << "_a2" << YAML::Value << coeffs.a[2];
 
 	out << YAML::EndMap;
 }
