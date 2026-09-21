@@ -1,7 +1,9 @@
 bin/
 **/imgui.ini
 
-**/__pycache__/**
+#python cached files
+__pycache__/
+*.pyc
 
 mydaqfeedback/
 
