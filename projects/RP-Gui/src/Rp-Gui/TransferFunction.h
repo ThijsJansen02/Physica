@@ -11,13 +11,13 @@ namespace PH::RpGui {
 	struct BiQuadCoefficients {
 		union {
 			struct {
-				real64 b0;
-				real64 b1;
-				real64 b2;
+				//real64 b0;
+				//real64 b1;
+				//real64 b2;
 
-				real64 a0;
-				real64 a1;
-				real64 a2;
+				//real64 a0;
+				//real64 a1;
+				//real64 a2;
 
 			};
 
@@ -111,7 +111,6 @@ namespace PH::RpGui {
 		dcoefs[3] = az0; dcoefs[4] = az1; dcoefs[5] = az2;
 	}
 
-
 	inline PH::int16 convertToFixedPoint(real64 in) {
 		uint64 mult = 1 << 14;
 		real64 result = in * mult;
@@ -125,46 +124,42 @@ namespace PH::RpGui {
 		return (PH::int32)(result > 0.0f ? result + 0.5 : result - 0.5);
 	}
 
-
 	inline Base::Complex<real64> applyFilter(Base::Complex<real64> s, const BiQuadCoefficients& coeffs) {
-		return (coeffs.b0 * s * s + coeffs.b1 * s + coeffs.b2) / (coeffs.a0 * s * s + coeffs.a1 * s + coeffs.a2);
+		return (coeffs.b[0] * s * s + coeffs.b[1] * s + coeffs.b[2]) / (coeffs.a[0] * s * s + coeffs.a[1] * s + coeffs.a[2]);
 	}
 
 	inline BiQuadCoefficients getResonanceAntiResonanceBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor, real64 anticutoff, real64 antiQfactor) {
-
-
 		BiQuadCoefficients result;
-		result.b0 = 1.0f;
-		result.b1 = cutoff / Qfactor;
-		result.b2 = cutoff * cutoff;
-		result.a0 = 1.0f;
-		result.a1 = anticutoff / antiQfactor;
-		result.a2 = anticutoff * anticutoff;
+		result.b[0] = 1.0f;
+		result.b[1] = cutoff / Qfactor;
+		result.b[2] = cutoff * cutoff;
+		result.a[0] = 1.0f;
+		result.a[1] = anticutoff / antiQfactor;
+		result.a[2] = anticutoff * anticutoff;
 		return result;
 	}
 
 	inline BiQuadCoefficients getlowPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
 		
 		BiQuadCoefficients result;
-		result.b0 = 0;
-		result.b1 = 0;
-		result.b2 = cutoff * cutoff;
-		result.a0 = 1;
-		result.a1 = cutoff / Qfactor;
-		result.a2 = cutoff * cutoff;
+		result.b[0] = 0;
+		result.b[1] = 0;
+		result.b[2] = cutoff * cutoff;
+		result.a[0] = 1;
+		result.a[1] = cutoff / Qfactor;
+		result.a[2] = cutoff * cutoff;
 		return result;
 	}
 
 	inline BiQuadCoefficients getBandPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
 		
 		BiQuadCoefficients result;
-		result.a0 = 1;
-		result.a1 = cutoff / Qfactor;
-		result.a2 = cutoff * cutoff;
-
-		result.b0 = 1;
-		result.b1 = cutoff;
-		result.b2 = cutoff * cutoff;
+		result.a[0] = 1;
+		result.a[1] = cutoff / Qfactor;
+		result.a[2] = cutoff * cutoff;
+		result.b[0] = 1;
+		result.b[1] = cutoff;
+		result.b[2] = cutoff * cutoff;
 
 		return result;
 	}
@@ -172,13 +167,12 @@ namespace PH::RpGui {
 	inline BiQuadCoefficients getBandStopBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
 
 		BiQuadCoefficients result;
-		result.b0 = 1;
-		result.b1 = cutoff / Qfactor;
-		result.b2 = cutoff * cutoff;
-
-		result.a0 = 1;
-		result.a1 = cutoff;
-		result.a2 = cutoff * cutoff;
+		result.b[0] = 1;
+		result.b[1] = cutoff / Qfactor;
+		result.b[2] = cutoff * cutoff;
+		result.a[0] = 1;
+		result.a[1] = cutoff;
+		result.a[2] = cutoff * cutoff;
 
 		return result;
 	}
@@ -186,25 +180,25 @@ namespace PH::RpGui {
 	inline BiQuadCoefficients getHighPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
 
 		BiQuadCoefficients result;
-		result.b0 = 1.0f;
-		result.b1 = 0.0f;
-		result.b2 = 0.0f;
+		result.b[0] = 1.0f;
+		result.b[1] = 0.0f;
+		result.b[2] = 0.0f;
 
-		result.a0 = 1;
-		result.a1 = cutoff / Qfactor;
-		result.a2 = cutoff * cutoff;
+		result.a[0] = 1.0f;
+		result.a[1] = cutoff / Qfactor;
+		result.a[2] = cutoff * cutoff;
 
 		return result;
 	}
 
 	inline BiQuadCoefficients getAllpassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
 		BiQuadCoefficients result;
-		result.b0 = 0.0f;
-		result.b1 = 0.0f;
-		result.b2 = 1.0f;
-		result.a0 = 0.0f;
-		result.a1 = 0.0f;
-		result.a2 = 1.0f;
+		result.b[0] = 0.0f;
+		result.b[1] = 0.0f;
+		result.b[2] = 1.0f;
+		result.a[0] = 0.0f;
+		result.a[1] = 0.0f;
+		result.a[2] = 1.0f;
 		return result;
 	}
 
@@ -279,12 +273,12 @@ namespace PH::RpGui {
 	inline Engine::String generateRpFilterString32(const BiQuadCoefficients& dcoeffs) {
 		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(100);
 
-		int32 a1 = convertToFixedPoint32(dcoeffs.a1);
-		int32 a2 = convertToFixedPoint32(dcoeffs.a2);
+		int32 a1 = convertToFixedPoint32(dcoeffs.a[1]);
+		int32 a2 = convertToFixedPoint32(dcoeffs.a[2]);
 
-		int32 b0 = convertToFixedPoint32(dcoeffs.b0);
-		int32 b1 = convertToFixedPoint32(dcoeffs.b1);
-		int32 b2 = convertToFixedPoint32(dcoeffs.b2);
+		int32 b0 = convertToFixedPoint32(dcoeffs.b[0]);
+		int32 b1 = convertToFixedPoint32(dcoeffs.b[1]);
+		int32 b2 = convertToFixedPoint32(dcoeffs.b[2]);
 
 		s << "export PATH=$PATH:/opt/redpitaya/bin;";
 
@@ -321,12 +315,12 @@ namespace PH::RpGui {
 		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(100);
 		
 
-		int16 a1 = convertToFixedPoint(dcoeffs.a1);
-		int16 a2 = convertToFixedPoint(dcoeffs.a2);
+		int16 a1 = convertToFixedPoint(dcoeffs.a[1]);
+		int16 a2 = convertToFixedPoint(dcoeffs.a[2]);
 
-		int16 b0 = convertToFixedPoint(dcoeffs.b0);
-		int16 b1 = convertToFixedPoint(dcoeffs.b1);
-		int16 b2 = convertToFixedPoint(dcoeffs.b2);
+		int16 b0 = convertToFixedPoint(dcoeffs.b[0]);
+		int16 b1 = convertToFixedPoint(dcoeffs.b[1]);
+		int16 b2 = convertToFixedPoint(dcoeffs.b[2]);
 
 		s << "export PATH=$PATH:/opt/redpitaya/bin;";
 
@@ -375,13 +369,13 @@ namespace PH::RpGui {
 		}
 		out << YAML::Key << "FilterType" << YAML::Value << (int)filter.type;
 
-		out << YAML::Key << "b0" << YAML::Value << filter.coeffs.b0;
-		out << YAML::Key << "b1" << YAML::Value << filter.coeffs.b1;
-		out << YAML::Key << "b2" << YAML::Value << filter.coeffs.b2;
+		out << YAML::Key << "b0" << YAML::Value << filter.coeffs.b[0];
+		out << YAML::Key << "b1" << YAML::Value << filter.coeffs.b[1];
+		out << YAML::Key << "b2" << YAML::Value << filter.coeffs.b[2];
 
-		out << YAML::Key << "a0" << YAML::Value << filter.coeffs.a0;
-		out << YAML::Key << "a1" << YAML::Value << filter.coeffs.a1;
-		out << YAML::Key << "a2" << YAML::Value << filter.coeffs.a2;
+		out << YAML::Key << "a0" << YAML::Value << filter.coeffs.a[0];
+		out << YAML::Key << "a1" << YAML::Value << filter.coeffs.a[1];
+		out << YAML::Key << "a2" << YAML::Value << filter.coeffs.a[2];
 
 		out << YAML::EndMap;
 	}
@@ -400,12 +394,12 @@ namespace PH::RpGui {
 		}
 
 		if (result.type == FilterType::COEFFICIENTS) {
-			result.coeffs.a0 = filter["a0"].as<real64>();
-			result.coeffs.a1 = filter["a1"].as<real64>();
-			result.coeffs.a2 = filter["a2"].as<real64>();
-			result.coeffs.b0 = filter["b0"].as<real64>();
-			result.coeffs.b1 = filter["b1"].as<real64>();
-			result.coeffs.b2 = filter["b2"].as<real64>();
+			result.coeffs.a[0] = filter["a0"].as<real64>();
+			result.coeffs.a[1] = filter["a1"].as<real64>();
+			result.coeffs.a[2] = filter["a2"].as<real64>();
+			result.coeffs.b[0] = filter["b0"].as<real64>();
+			result.coeffs.b[1] = filter["b1"].as<real64>();
+			result.coeffs.b[2] = filter["b2"].as<real64>();
 		}
 
 

@@ -460,14 +460,14 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 		}
 		else if (f.type == FilterType::COEFFICIENTS) {
 			// B coefficients
-			if (ImGui::InputDouble("b0", &f.coeffs.b0)) b_dirty = true;
-			if (ImGui::InputDouble("b1", &f.coeffs.b1)) b_dirty = true;
-			if (ImGui::InputDouble("b2", &f.coeffs.b2)) b_dirty = true;
+			if (ImGui::InputDouble("b0", &f.coeffs.b[0])) b_dirty = true;
+			if (ImGui::InputDouble("b1", &f.coeffs.b[1])) b_dirty = true;
+			if (ImGui::InputDouble("b2", &f.coeffs.b[2])) b_dirty = true;
 
 			// A coefficients
-			if (ImGui::InputDouble("a0", &f.coeffs.a0)) b_dirty = true;
-			if (ImGui::InputDouble("a1", &f.coeffs.a1)) b_dirty = true;
-			if (ImGui::InputDouble("a2", &f.coeffs.a2)) b_dirty = true;
+			if (ImGui::InputDouble("a0", &f.coeffs.a[0])) b_dirty = true;
+			if (ImGui::InputDouble("a1", &f.coeffs.a[1])) b_dirty = true;
+			if (ImGui::InputDouble("a2", &f.coeffs.a[2])) b_dirty = true;
 		}
 		else {
 			if (ImGui::DragFloat("Cutoff", &f.cutoff, f.cutoff * dragspeed)) b_dirty = true;

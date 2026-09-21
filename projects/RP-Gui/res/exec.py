@@ -16,10 +16,10 @@ sys.stderr = open('CONOUT$', 'w')
 
 def OpenCSVandWriteToGUI(path):
     print(path)
-    data_rp = np.loadtxt(path, delimiter=",", skiprows=20, unpack=True)
+    data_rp = np.loadtxt(path, delimiter=",", comments=["%", "#"], unpack=True)
 
     #rp.removePlot("measured frequency response")
-    rp.addPlot(np.log10(data_rp[0]), data_rp[1], np.deg2rad(data_rp[2]), Path(path).stem, rp.Vec4(1.0, 1.0, 0.0, 1.0))
-    rp.setTitle("CIC compiler compare test")
+    rp.addPlot(np.log10(data_rp[0]), data_rp[1], data_rp[2], Path(path).stem, rp.Vec4(1.0, 1.0, 0.0, 1.0))
+    rp.setTitle("Transfer Function Measurement")
 
 
