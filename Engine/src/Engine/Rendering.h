@@ -1,7 +1,5 @@
 #pragma once
 #include "Engine/Engine.h"
-#include "Engine/assets/Mesh.h"
-#include "Engine/assets/Material.h"
 #include "Engine/Display.h"
 
 namespace PH::Engine {
@@ -108,6 +106,7 @@ namespace PH::Engine {
 		Stats getStats(Context* context);
 	}
 
+	/*
 	namespace Renderer3D {
 
 		struct RenderStats {
@@ -203,4 +202,5 @@ namespace PH::Engine {
 
 		Context* createContext(const InitInfo& initinfo);
 	}
+	*/
 }

@@ -1,7 +1,6 @@
 
 #include "Rendering.h"
 #include "Platform/platformAPI.h"
-#include "assets/Mesh.h"
 
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_cross.hpp>
@@ -725,6 +724,7 @@ namespace PH::Engine {
 		}
 	}
 
+	/*
 	namespace Renderer3D {
 
 		Engine::Assets::Mesh cube;
@@ -1042,4 +1042,5 @@ namespace PH::Engine {
 		}
 
 	}
+	*/
 }

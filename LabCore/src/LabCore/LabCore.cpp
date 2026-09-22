@@ -1,12 +1,11 @@
 #include "LabCore.h"
+#include <Engine/YamlExtensions.h>
 #include <yaml-cpp/yaml.h>
+
+#include <Engine/coreassets/Font.h>
 
 
 namespace PH::LabCore {
-
-	void update() {
-		
-	}
 
 	void loadShaders();
 
@@ -21,7 +20,7 @@ namespace PH::LabCore {
 		appcontext->renderer2D = Engine::Renderer2D::Wrapper::create(rendererinit);
 
 		renderer2D = &appcontext->renderer2D;
-		
+
 		//create the list of views and viewinstances
 		appcontext->views = Engine::ArrayList<View>::create(1);
 		appcontext->viewinstances = Engine::ArrayList<ViewInstance>::create(1);
@@ -103,11 +102,14 @@ namespace PH::LabCore {
 		}
 	}
 
+	void update() {
+		updateViews(appcontext->viewinstances);
+	}
+
 	void draw() {
 		drawMenuBar();
 
 		drawViews(appcontext->viewinstances);
-		updateViews(appcontext->viewinstances);
 	}
 
 	void loadShaders() {
@@ -123,6 +125,18 @@ namespace PH::LabCore {
 
 		Engine::DynamicArray<uint8>::destroy(&defaultquadvert);
 		Engine::DynamicArray<uint8>::destroy(&defaultquadfrag);
+
+		auto defaultfontvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_fontshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
+		auto defaultfontfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_fontshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
+
+		appcontext->defaultfontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(appcontext->defaultrenderpassdescription,
+			defaultfontvert.getArray(),
+			defaultfontfrag.getArray(),
+			{ &Engine::Font::descriptorsetlayout, 1}
+		);
+
+		Engine::DynamicArray<uint8>::destroy(&defaultfontvert);
+		Engine::DynamicArray<uint8>::destroy(&defaultfontfrag);
 	}
 
 

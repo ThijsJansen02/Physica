@@ -8,6 +8,9 @@
 namespace PH::LabCore {
 	struct AppContext {
 		PH::Platform::GFX::GraphicsPipeline defaultgraphicspipeline2D;
+		PH::Platform::GFX::GraphicsPipeline defaultfontpipeline2D;
+
+
 		PH::Platform::GFX::RenderpassDescription defaultrenderpassdescription;
 
 		PH::Engine::Renderer2D::Wrapper renderer2D;

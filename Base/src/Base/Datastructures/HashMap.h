@@ -7,6 +7,17 @@
 
 namespace PH::Base {
 
+	inline uint64 stringHash(const char* str)
+	{
+		uint64 hash = 5381;
+		int c;
+
+		while (c = *str++)
+			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+
+		return hash;
+	}
+
 	inline uint64 uint32Hash(const uint32& v) {
 		return pcg_hash(v);
 	}
@@ -240,23 +251,29 @@ namespace PH::Base {
 		/// </summary>
 		/// <param name="key">the key that must map to the value</param>
 		/// <param name="value">the value that the key maps to</param>
-		inline void addDistinct(const KeyType& key, const ValueType& value) {
+		inline ValueType* addDistinct(const KeyType& key, const ValueType& value) {
+
+			if (contains_key(key)) {
+				return nullptr;
+			}
 
 			if (count >= (real32)table.getCapacity() * 0.75f) {
 				resize(count * 3);
 			}
 
 			uint64 hash_ = hash(key);
-			hash_ = hash_ % table.count;
+			hash_ = hash_ % table.getCapacity();
 
 			Chain* chain = &table[hash_];
 
-			KeyValuePair insert;
+			KeyValuePair insert{};
 			insert.key = key;
 			insert.value = value;
 
 			chain->pushFront(insert);
 			count++;
+
+			return &chain->firstnode->element.value;
 		}
 
 		Table table;

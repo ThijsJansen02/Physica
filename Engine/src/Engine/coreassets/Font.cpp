@@ -1,25 +1,14 @@
-#pragma once
+#define STB_TRUETYPE_IMPLEMENTATION
+//#include <stb/stb_truetype.h>
 
-#include <Engine//Rendering.h>
-#include <Engine/cppAPI/Rendering.hpp>
-#include <stb/stb_truetype.h>
+#include "Font.h"
+#include <Engine/Rendering.h>
 
-namespace PH::RpGui {
+namespace PH::Engine {
 
-	extern Engine::Renderer2D::Wrapper renderer2D;
-	//simple font struct, now only supports 96 characters, but it would be easy to expand this to support more characters by increasing the size of the bitmap and cdata arrays, and changing the parameters of the stbtt_BakeFontBitmap function call in the applicationInitialize function
-	struct Font {
-		Platform::GFX::Texture atlas;
-		stbtt_bakedchar cdata_cpu[96];
-		Platform::GFX::DescriptorSet cdata;
-		Platform::GFX::Buffer cdatabuffer;
+	Platform::GFX::DescriptorSetLayout Font::descriptorsetlayout = PH_GFX_NULL;
 
-
-		uint32 bitmapwidth;
-		real32 pixelheight;
-	};
-
-	inline Platform::GFX::DescriptorSetLayout createFontDescriptorSetLayout() {
+	Platform::GFX::DescriptorSetLayout createFontDescriptorSetLayout() {
 
 		Platform::GFX::DescriptorBinding binding;
 		binding.binding = 0;
@@ -33,21 +22,38 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	extern Platform::GFX::DescriptorSetLayout fontuserlayout;
+	AssetDescription createFontDescription() {
+		AssetDescription description;
+		description.deserialize_ = (deserializeAsset)deserializeFont;
+		description.serialize_ = (SerializeAsset)serializeFont;
+		description.localdatasize = sizeof(Font);
+		description.name = Engine::String::create("Font");
+		description.extension = Engine::String::create(getFontExtension());
+
+		return description;
+	}
+
+	void serializeFont(const char* filepath, Font* font) {
+
+	}
+
+	void deserializeFont(const char* filepath, Font* font) {
+
+	}
 
 	struct UVcoords {
 		glm::vec2 bottomleft;
 		glm::vec2 topright;
 	};
 
-	inline Font loadFont(const char* ttfpath, uint32 bitmapwidth, real32 pixelheight) {
+	Font createFont(const char* ttfpath, uint32 bitmapwidth, real32 pixelheight) {
 
 		Font result = {};
 
 		const uint32 charcount = 96;
 		PH::Platform::FileBuffer ttf_buffer;
-		
-		
+
+
 		if (!PH::Platform::loadFile(&ttf_buffer, ttfpath)) {
 			PH::Engine::WARN << "Failed to load font file at path " << ttfpath << "\n";
 			return result;
@@ -58,7 +64,6 @@ namespace PH::RpGui {
 		uint8* bitmap = (uint8*)Engine::Allocator::alloc(fontbitmapwidth * fontbitmapwidth);
 
 		stbtt_BakeFontBitmap((const unsigned char*)ttf_buffer.data, 0, pixelheight, (unsigned char*)bitmap, fontbitmapwidth, fontbitmapwidth, 32, charcount, result.cdata_cpu); // no guarantee this fits!
-
 
 		PH::Platform::unloadFile(&ttf_buffer);
 
@@ -74,10 +79,6 @@ namespace PH::RpGui {
 
 		PH::Platform::GFX::createTextures(&textureinfo, &result.atlas, 1);
 
-		if (fontuserlayout == PH_GFX_NULL) {
-			fontuserlayout = createFontDescriptorSetLayout();
-		}
-
 		Engine::ArrayList<UVcoords> evs = Engine::ArrayList<UVcoords>::create(charcount);
 
 		for (auto& c : result.cdata_cpu) {
@@ -90,7 +91,7 @@ namespace PH::RpGui {
 
 		PH::Platform::GFX::DescriptorSetCreateinfo descriptorcreate{};
 		descriptorcreate.dynamic = false;
-		descriptorcreate.layout = fontuserlayout;
+		descriptorcreate.layout = Font::descriptorsetlayout;
 
 		PH::Platform::GFX::createDescriptorSets(&descriptorcreate, &result.cdata, 1);
 
@@ -129,18 +130,21 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	inline void drawFromBottomLeft(glm::vec3 position, glm::vec2 size, glm::vec4 color, uint32 id) {
+	void drawFromBottomLeft(glm::vec3 position, glm::vec2 size, glm::vec4 color, uint32 id, Engine::Renderer2D::Context* context) {
+
 		glm::vec3 middle = glm::vec3(glm::vec2(position) + (size / 2.0f), position.z);
-		RpGui::renderer2D.drawQuadWithID(
+
+		Engine::Renderer2D::drawQuadWithID(
 			middle,
 			size,
 			color,
-			id
+			id,
+			context
 		);
 	}
 
 
-	inline void drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color = {1.0f, 1.0f, 1.0f, 1.0f}) {
+	void drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color, Engine::Renderer2D::Context* context) {
 
 		real32 x = 0.0f;
 		real32 y = 0.0f;
@@ -159,42 +163,9 @@ namespace PH::RpGui {
 					glm::vec3(bottomleft + glm::vec2(position.x, position.y), 0.0f),
 					size,
 					color,
-					*text - 32
+					*text - 32,
+					context
 				);
-			}
-			++text;
-		}
-	}
-
-	inline void drawText(Font* font, const char* text, glm::vec2 position, real32 rotation, real32 scale) {
-
-		real32 x = 0.0f;
-		real32 y = 0.0f;
-
-		glm::mat3 rot = glm::mat3(
-			0.0f, 1.0f, 0.0f,
-			-1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f
-		);
-
-		while (*text) {
-			if (*text >= 32 && *text < 128) {
-				stbtt_aligned_quad q;
-				stbtt_GetBakedQuad(font->cdata_cpu, font->bitmapwidth, font->bitmapwidth, *text - 32, &x, &y, &q, 1);//1=opengl & d3d10+,0=d3d9
-
-				glm::vec2 bottomleft = scale * glm::vec2{ q.x0, -q.y1 };
-				glm::vec2 topright = scale * glm::vec2{ q.x1, -q.y0 };
-
-				glm::vec2 size = topright - bottomleft;
-
-				glm::vec3 middle = glm::vec3(glm::vec2(bottomleft) + (size / 2.0f), 0.0f);
-
-				glm::mat4 transform = glm::mat4(glm::vec4{size.x, 0.0f, 0.0f, 0.0f}, glm::vec4{0.0f, size.y, 0.0f, 0.0f}, glm::vec4{0.0f, 0.0f, 1.0f, 0.0f}, glm::vec4{middle.x, middle.y, middle.z, 1.0f});
-
-				transform = glm::translate(glm::mat4(1.0f), {position.x, position.y, 0.0f}) * glm::rotate(glm::mat4(1.0f), rotation, {0.0f, 0.0f, 1.0f}) * transform;
-				
-				RpGui::renderer2D.drawQuadWithID(transform, glm::vec4(1.0), *text - 32);
-				
 			}
 			++text;
 		}

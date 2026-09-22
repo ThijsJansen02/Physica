@@ -16,6 +16,7 @@
 #include <Engine/Events.h>
 #include <Engine/imgui/DockSpace.h>
 #include <Engine/YamlExtensions.h>
+#include <Base/Datastructures/HashMap.h>
 
 #include <shobjidl.h>
 

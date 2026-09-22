@@ -1,6 +1,7 @@
 #pragma once
 #include "RpConnection.h"
 
+#include <yaml-cpp/yaml.h>
 #include "RpGui.h"
 #include <Engine/Engine.h>
 #include <Base/Math/Complex.h>

@@ -22,9 +22,6 @@ namespace PH::Engine {
 		static PH::Platform::GFX::RenderpassDescription defaultrenderpassdescription;
 	};
 
-	
-	
-
 	inline real32 getDisplayAspectRatio(const Display& display) {
 		return display.viewport.x / display.viewport.y;
 	}
@@ -32,7 +29,6 @@ namespace PH::Engine {
 	bool32 beginRenderPass(const Display& display);
 	bool32 endRenderPass(const Display& display);
 
-	//first inheritance in years haha/ still no virtual function tho :)
 	struct ImGuiDisplay : public Display {
 		ImTextureID imguitexture;
 	};
