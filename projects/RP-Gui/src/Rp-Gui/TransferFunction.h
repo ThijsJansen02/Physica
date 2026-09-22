@@ -223,6 +223,7 @@ namespace PH::RpGui {
 		result.currentcommand = Engine::String::create("");
 		result.name = t["name"].as<Engine::String>();
 		result.connection.remoteip = t["remote"].as<Engine::String>();
+		result.filters = Engine::ArrayList<Filter>::create(1);
 
 		if (t["lowprecision"]) {
 			result.lowprecision = t["lowprecision"].as<bool32>();

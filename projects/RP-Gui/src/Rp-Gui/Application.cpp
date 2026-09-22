@@ -68,7 +68,7 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	examplefunction.currentcommand = Engine::String::create("");
 	examplefunction.name = Engine::String::create("Example Function");
 	examplefunction.connection.remoteip = Engine::String::create("root@rp-f083c2.local");
-	examplefunction.filters = Engine::ArrayList<Filter>::create(1);
+	examplefunction.filters = Engine::ArrayList<Filter>::create(3);
 
 	Filter filter;
 	filter.type = LOWPASS;
@@ -151,6 +151,7 @@ void deserializeApplication() {
 }
 
 void deserializeProject(const char* projectdir) {
+	RpGui::context->activetransferfunctions = Engine::ArrayList<TransferFunction>::create(1);
 
 	const auto proj = Engine::FileIO::loadYamlfile(projectdir);
 	if (proj) {

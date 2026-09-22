@@ -98,6 +98,7 @@ const std::map<const char*, const real64*> Filter::getParameters() const
 Filter Filter::deserialize(const YAML::Node& node)
 {
 	Filter filter;
+	filter.type = static_cast<FilterType>(node["filter-type"].as<int>());
 	filter.cutoffFrequency = node["cutoff"].as<real64>();
 	filter.qFactor = node["qfactor"].as<real64>();
 	filter.antiCutoffFrequency = node["anticutoff"].as<real64>();
