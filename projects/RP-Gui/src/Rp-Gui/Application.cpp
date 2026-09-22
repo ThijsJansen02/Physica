@@ -68,18 +68,18 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	examplefunction.currentcommand = Engine::String::create("");
 	examplefunction.name = Engine::String::create("Example Function");
 	examplefunction.connection.remoteip = Engine::String::create("root@rp-f083c2.local");
+	examplefunction.filters = Engine::ArrayList<Filter>::create(1);
 
-	LowPassFilter* filter = new LowPassFilter();
-	filter->cutoff = 1000.0f;
-	filter->qfactor = 30.0f;
-	LowPassFilter* filter1 = new LowPassFilter(*filter);
-	LowPassFilter* filter2 = new LowPassFilter(*filter);
+	Filter filter;
+	filter.type = LOWPASS;
+	filter.cutoffFrequency = 1000.0f;
+	filter.qFactor = 30.0f;
 
-	examplefunction.filters.push_back(filter);
-	filter1->cutoff = 4000.0f;
-	examplefunction.filters.push_back(filter1);
-	filter->cutoff = 10000.0f;
-	examplefunction.filters.push_back(filter2);
+	examplefunction.filters.pushBack(filter);
+	filter.cutoffFrequency = 4000.0f;
+	examplefunction.filters.pushBack(filter);
+	filter.cutoffFrequency = 10000.0f;
+	examplefunction.filters.pushBack(filter);
 
 	return examplefunction;
 }
@@ -182,8 +182,8 @@ void deserializeProject(const char* projectdir) {
 			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
 			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 
-			for (const auto f : tf.filters) {
-				sentFilterToRp(*f, RP_FPGA_SAMPLERATE / tf.decimation, &tf.connection, tf.lowprecision);
+			for (const auto& f : tf.filters) {
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf.decimation, &tf.connection, tf.lowprecision);
 			}
 		}
 	}
@@ -371,9 +371,9 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; fpgautil -b sinewave_generator_wrapper.bit.bin") });
 
 			if (!tf->filters.empty()) {
-				auto f = tf->filters[0];
-				recalculateFilter(*f);
-				sentFilterToRp(*f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+				auto& f = tf->filters[0];
+				recalculateFilter(f);
+				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
 			}
 		}
 		else {
@@ -431,23 +431,21 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	const real64 dragSpeed = 0.02f;
 
 	id = 0;
-	for (Filter* f : tf->filters) {
+	for (Filter& f : tf->filters) {
 		ImGui::PushID(id);
 
 		static bool b_dirty = false;
 
 		ImGui::Text("Filter #%u", id);
-		if (ImGui::BeginCombo("Type", f->typeStr())) {
+		if (ImGui::BeginCombo("Type", f.typeStr())) {
 
 			for (uint32 filtertype = 0; filtertype < ARRAY_LENGTH(FilterTypeStrings); filtertype++) {
 
-				bool selected = (f->type() == filtertype);
+				bool selected = (f.type == filtertype);
 
 				if (ImGui::Selectable(FilterTypeStrings[filtertype], selected)) {
-					delete f;
-					f = Filter::getType(static_cast<FilterType>(filtertype));
-					tf->filters.at(id) = f;
-					selectedFilter = f;
+					selectedFilter = &f;
+					f.type = static_cast<FilterType>(filtertype);
 				}
 				if (selected) {
 					ImGui::SetItemDefaultFocus();
@@ -456,14 +454,14 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			ImGui::EndCombo();
 		}
 
-		for (const auto& parameter : f->parameters)
+		for (const auto& parameter : f.getParameters())
 		{
-			if (DragDouble(parameter.name, parameter.valuePtr, *parameter.valuePtr * dragSpeed)) b_dirty = true;
+			if (DragDouble(parameter.first, (double*)parameter.second, *parameter.second * dragSpeed)) b_dirty = true;
 		}
 
 		if (b_dirty) {
-			selectedFilter = f;
-			recalculateFilter(*f);
+			selectedFilter = &f;
+			recalculateFilter(f);
 			b_update |= b_auto_update;
 			b_dirty = false;
 		}
@@ -800,15 +798,6 @@ PH_DLL_EXPORT PH_APPLICATION_DESTROY(applicationDestroy) {
 		out << YAML::EndMap;
 
 		Engine::FileIO::writeYamlFile(out, RpGui::context->openproject.getC_Str());
-	}
-
-	for (auto& tf : RpGui::context->activetransferfunctions)
-	{
-		for (const auto& f : tf.filters)
-		{
-			delete f;
-		}
-		tf.filters.clear();
 	}
 	
 	//system("PAUSE");

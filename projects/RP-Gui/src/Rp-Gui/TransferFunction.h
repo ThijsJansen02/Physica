@@ -14,7 +14,7 @@ namespace PH::RpGui {
 		Engine::String currentcommand;
 		RpConnection connection;
 
-		std::vector<Filter*> filters;
+		Engine::ArrayList<Filter> filters;
 		bool32 lowprecision = false;
 		uint32 decimation = 1;
 	};
@@ -211,7 +211,7 @@ namespace PH::RpGui {
 		out << YAML::Key << "filters" << YAML::Value << YAML::BeginSeq;
 
 		for (const auto& filter : function.filters) {
-			filter->serialize(out);
+			filter.serialize(out);
 		}
 
 		out << YAML::EndSeq;
@@ -239,7 +239,7 @@ namespace PH::RpGui {
 		}
 
 		for (const auto& f : t["filters"]) {
-			result.filters.push_back(Filter::deserialize(f));
+			result.filters.pushBack(Filter::deserialize(f));
 		}
 
 		return result;

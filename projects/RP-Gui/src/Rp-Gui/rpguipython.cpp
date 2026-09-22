@@ -1,11 +1,11 @@
 #include "TransferFunction.h"
 
 #ifdef _DEBUG
-	#undef _DEBUG
-	#include <Python.h>
-	#define _DEBUG
-	#else
-	#include <Python.h>
+#undef _DEBUG
+#include <Python.h>
+#define _DEBUG
+#else
+#include <Python.h>
 #endif
 
 #include <pybind11/pybind11.h>
@@ -14,7 +14,6 @@
 
 #include "Context.h"
 #include <Engine/Engine.h>
-#include <Filter.h>
 
 
 namespace py = pybind11;
@@ -23,18 +22,21 @@ using namespace PH;
 //using namespace PH::RpGui;
 
 // actually usable functions in python!
-void setFilterParameter(int filternumber, const char* name, real64 value)
-{
-	Filter* f = RpGui::context->activetransferfunctions[0].filters[filternumber];
-	for (const auto& p : f->parameters) {
-		if (p.name == name) {
-			*p.valuePtr = value;
-		}
-	}
+void setFilterCutoff(int filternumber, float cutoff) {
+	Filter& f = RpGui::context->activetransferfunctions[0].filters[filternumber];
+	f.cutoffFrequency = cutoff;
 
-	RpGui::context->activetransferfunctions[0].filters[filternumber]->calculateCoefficients();
-	sentFilterToRp(*RpGui::context->activetransferfunctions[0].filters[filternumber],
-		RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection, RpGui::context->activetransferfunctions[0].lowprecision);
+	f.calculateCoefficients();
+	sentFilterToRp(f, RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection, RpGui::context->activetransferfunctions[0].lowprecision);
+}
+
+//actually usable functions in python!
+void setFilterQfactor(int filternumber, float qfactor) {
+	Filter& f = RpGui::context->activetransferfunctions[0].filters[filternumber];
+	f.qFactor = qfactor;
+
+	f.calculateCoefficients();
+	sentFilterToRp(f, RpGui::targetfs, &RpGui::context->activetransferfunctions[0].connection, RpGui::context->activetransferfunctions[0].lowprecision);
 }
 
 //actually usable functions in python!
@@ -103,18 +105,18 @@ void bind_array(py::module& m, const char* name) {
 
 		.def("__getitem__", [](Engine::ArrayList<T>& a, size_t i) -> T& {
 
-			if (i >= a.getCount()) {
-				throw py::index_error();
-			}
-			return a[i];
-		}, py::return_value_policy::reference_internal)
+		if (i >= a.getCount()) {
+			throw py::index_error();
+		}
+		return a[i];
+			}, py::return_value_policy::reference_internal)
 
 		.def("__setitem__", [](Engine::ArrayList<T>& a, size_t i, const T& v) {
-			if (i >= a.getCount()) {
-				throw py::index_error();
-			}
-			a[i] = v;
-		});
+		if (i >= a.getCount()) {
+			throw py::index_error();
+		}
+		a[i] = v;
+			});
 }
 
 // Bind it to a Python module
@@ -122,7 +124,7 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 
 	m.doc() = "C++ functions for my RpGui";
 
-	//bind_array<Filter>(m, "FilterList");
+	bind_array<Filter>(m, "FilterList");
 
 	py::class_<glm::vec4>(m, "Vec4")
 		.def(py::init<float, float, float, float>())
@@ -140,32 +142,23 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 		.value("RESONANCE_ANTI_RESONANCE", FilterType::RESONANCE_ANTI_RESONANCE)
 		.value("COEFFICIENTS", FilterType::COEFFICIENTS);
 
-	
-	//py::class_<Filter> filterClass = py::class_<Filter>(m, "Filter");
-	//TODO: fix this mess. this is the downside of OOP :(
-	//for (const auto& param : Filter::parameters)
-	//{
-	//	filterClass.def_readwrite(param.first);
-	//}
-	//filterClass.def_readwrite("type", &Filter::type)
-	//.def_readwrite("cutoff", &Filter::parameters)
-	//.def_readwrite("Qfactor", &Filter::Qfactor)
-	//.def_readwrite("antiQfactor", &Filter::antiQfactor)
-	//.def_readwrite("df", &Filter::df)
-	//.def("recalculate", [](Filter& f)
-	//	{
-	//		f.calculateCoefficients();
-	//	})
-	//.def("setParameter", [](Filter& self, const char* name, real64 value) {
-	//return py::dtype<double>(self.parameters["name"]);
-	//	})
-	//filterClass.def("getCoeffs", [](Filter& self) {
-	//return py::array_t<double>(
-	//	6,
-	//	(double*)&self.getBiquadCoefficients(),
-	//	py::cast(&self) // tie lifetime to object
-	//);
-	//	});
+	py::class_<Filter>(m, "Filter")
+		.def_readwrite("type", &Filter::type)
+		.def_readwrite("cutoff", &Filter::cutoffFrequency)
+		.def_readwrite("Qfactor", &Filter::qFactor)
+		.def_readwrite("antiQfactor", &Filter::antiQFactor)
+		.def_readwrite("anti-cutoff", &Filter::antiCutoffFrequency)
+		.def("recalculate", [](Filter& f) {
+		f.calculateCoefficients();
+			})
+
+		.def("getCoeffs", [](Filter& self) {
+		return py::array_t<double>(
+			6,
+			(double*)&self.coeffs,
+			py::cast(&self) // tie lifetime to object
+		);
+			});
 
 	m.def("getTransferFunction", [](const char* name) -> RpGui::TransferFunction& {
 		for (auto& tf : RpGui::context->activetransferfunctions) {
@@ -179,32 +172,33 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 		//if no transfer function with the given name exists, create a new one and return it
 		RpGui::TransferFunction newTf;
 		newTf.name = Engine::String::create(name);
+		newTf.filters = Engine::ArrayList<Filter>::create(0);
 		return RpGui::context->activetransferfunctions.pushBack(newTf);
 
 		}, py::return_value_policy::reference);
 
 	py::class_<RpGui::TransferFunction>(m, "TransferFunction")
 		.def("WriteToRp", [](RpGui::TransferFunction& tf, Filter& filter) {
-			sentFilterToRp(filter, RpGui::targetfs, &tf.connection, tf.lowprecision);
-		}, py::arg("Filter"))
+		sentFilterToRp(filter, RpGui::targetfs, &tf.connection, tf.lowprecision);
+			}, py::arg("Filter"))
 
 		.def_readwrite("filters", &RpGui::TransferFunction::filters)
 
 		.def("sentCommandToRp", [](RpGui::TransferFunction& tf, const char* command) {
-			if (tf.connection.open) {
-				tf.connection.commandqueue.push({ Engine::String::create(command) });
-				ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
-			}
-		}, py::arg("command"));
+		if (tf.connection.open) {
+			tf.connection.commandqueue.push({ Engine::String::create(command) });
+			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
+		}
+			}, py::arg("command"));
 
-		m.def("addPlot", &addPlot, "adds a plot to the GUI with the given frequency and magnitude data and name",
-			py::arg("freq"), py::arg("magnitude"), py::arg("phase"), py::arg("name"), py::arg("color"));
-		
+	m.def("addPlot", &addPlot, "adds a plot to the GUI with the given frequency and magnitude data and name",
+		py::arg("freq"), py::arg("magnitude"), py::arg("phase"), py::arg("name"), py::arg("color"));
 
-		m.def("removePlot", &removePlot, "removes a plot from the GUI with the given name",
-			py::arg("name"));
 
-		m.def("setTitle", [](const char* title) {
-			RpGui::context->plottitle.set(title);
-			}, py::arg("title"));
+	m.def("removePlot", &removePlot, "removes a plot from the GUI with the given name",
+		py::arg("name"));
+
+	m.def("setTitle", [](const char* title) {
+		RpGui::context->plottitle.set(title);
+		}, py::arg("title"));
 }

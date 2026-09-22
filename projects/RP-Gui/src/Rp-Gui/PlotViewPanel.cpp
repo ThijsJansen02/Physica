@@ -23,8 +23,8 @@ namespace PH::RpGui {
 
 			Base::Complex<real64> y = 1.0f;
 
-			for (const auto* filter : function->filters) {
-				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter->getBiquadCoefficients());
+			for (const auto& filter : function->filters) {
+				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.getBiquadCoefficients());
 			}
 
 			buffer->pushBack(glm::vec2{ x, 20.0f * log10f(y.modulus()) });
@@ -47,8 +47,8 @@ namespace PH::RpGui {
 
 			Base::Complex<real64> y = 1.0f;
 
-			for (const auto filter : function->filters) {
-				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter->getBiquadCoefficients());
+			for (const auto& filter : function->filters) {
+				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.getBiquadCoefficients());
 			}
 
 

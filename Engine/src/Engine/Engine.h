@@ -45,7 +45,31 @@ namespace PH::Engine {
 		static void init(void* mem, PH::sizeptr size) {
 
 		}
+
+		template<typename T>
+		static T* inst(const T& inst) {
+			T* result = (T*)malloc(sizeof(T));
+			*result = inst;
+			return result;
+		}
 #else
+		template<typename T>
+		static T* inst(const T& inst) {
+			
+			/*T* result = (T*)PH::Base::DynamicAllocateFirstFit(&memory, sizeof(T));
+			*result = inst;
+			return result;*/
+
+			return new T(inst);
+		}
+
+		template<typename T>
+		static void del(T* ptr) {
+
+			delete(ptr);
+		}
+
+
 		static void* alloc(PH::sizeptr size) {
 //			PH_DEBUG_ASSERT(size > 0, "memory of size 0 is pointless!")
 
