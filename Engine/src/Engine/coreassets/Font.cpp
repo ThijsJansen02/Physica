@@ -70,7 +70,7 @@ namespace PH::Engine {
 		//create the texture for the font atlas
 		PH::Platform::GFX::TextureCreateInfo textureinfo{};
 		textureinfo.data = bitmap;
-		textureinfo.format = PH::Platform::GFX::FORMAT_R8_SRGB;
+		textureinfo.format = PH::Platform::GFX::FORMAT_R8_UNORM;
 		textureinfo.usage = PH::Platform::GFX::IMAGE_USAGE_SAMPLED_BIT;
 		textureinfo.viewtype = PH::Platform::GFX::IMAGE_VIEW_TYPE_2D;
 		textureinfo.ArrayLayers = 1;

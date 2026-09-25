@@ -65,7 +65,6 @@ namespace PH::Engine {
 		return renderpass;
 	}
 
-	//might move to seperate dislpay translation unit
 	Display createDisplay(uint32 width, uint32 height) {
 
 		Display display;

@@ -122,6 +122,14 @@ PH::uint64 pack(PH::uint32 high, PH::uint32 low) {
 	return result;
 }
 
+struct win32PlatformState {
+	PH::bool32 running;
+	PH::uint32 windowwidth;
+	PH::uint32 windowheight;
+
+	win32Arraylist<PH::Platform::Event> eventlist;
+};
+
 /// <summary>
 /// KEY_DOWN: lparem(keycode)
 /// KEY_UP: lparam(keycode)
@@ -129,7 +137,7 @@ PH::uint64 pack(PH::uint32 high, PH::uint32 low) {
 /// </summary>
 /// <param name="message"></param>
 /// <returns></returns>
-PH::Platform::Event win32_translateMessage(MSG message) {
+PH::Platform::Event win32_translateMessage(MSG message, const win32PlatformState& state) {
 
 	PH::Platform::Event result{};
 	result.type = PH_EVENT_TYPE_NULL;
@@ -143,7 +151,7 @@ PH::Platform::Event win32_translateMessage(MSG message) {
 	case WM_MOUSEMOVE:
 		result.type = PH_EVENT_TYPE_MOUSE_MOVED;
 		result.lparam = LOWORD(message.lParam);
-		result.rparam = HIWORD(message.lParam);
+		result.rparam = state.windowheight - HIWORD(message.lParam);
 		break;
 	case WM_KEYDOWN:
 		result.type = PH_EVENT_TYPE_KEY_PRESSED;
@@ -390,14 +398,6 @@ PH_UNLOAD_FILE(win32_unloadFile) {
 	win32_freeFile(file);
 	return true;
 }
-
-struct win32PlatformState {
-	PH::bool32 running;
-	PH::uint32 windowwidth;
-	PH::uint32 windowheight;
-
-	win32Arraylist<PH::Platform::Event> eventlist;
-};
 
 static void vkImGuiCheckResult(VkResult err) {
 	if (err != VK_SUCCESS) {
@@ -708,7 +708,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		while (PeekMessageA(&msg, windowhandle, 0, 0, PM_REMOVE) > 0) {
 
 			TranslateMessage(&msg);
-			PH::Platform::Event e = win32_translateMessage(msg);
+			PH::Platform::Event e = win32_translateMessage(msg, state);
 			if (e.type == PH_EVENT_TYPE_NULL) {
 				DispatchMessage(&msg);
 			}

@@ -1,14 +1,15 @@
 
 #include "LabCore.h"
 #include "View.h"
+#include <Engine/Events.h>
 
 namespace PH::LabCore {
 
 
-	const ViewInstance* openview = nullptr;
+	ViewInstance* openview = nullptr;
 
 	//updates all views in the application, this is called by the application in the update loop
-	void updateViews(const Engine::ArrayList<ViewInstance>& views) {
+	void updateViews(Engine::ArrayList<ViewInstance>& views) {
 		for (auto& viewinstance : views) {
 
 			openview = &viewinstance;
@@ -21,16 +22,32 @@ namespace PH::LabCore {
 	}
 
 	//draws all views in the application, this is called by the application in the update loop
-	void drawViews(const Engine::ArrayList<ViewInstance>& views) {
+	void drawViews(Engine::ArrayList<ViewInstance>& views) {
 		for (auto& viewinstance : views) {
 
 			openview = &viewinstance;
 			if (openview->view->draw_) {
 
+				real32 framesize = ImGui::GetWindowSize().y;
+
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 				if (ImGui::Begin(openview->view->name.getC_Str())) {
+					
+					openview->isfocussed = ImGui::IsWindowFocused();
+
+					//determine the window region
 					ImVec2 windowpos = ImGui::GetWindowPos();
 					ImVec2 windowsize = ImGui::GetWindowSize();
+
+					windowpos.y = framesize - windowpos.y;
+
+					Engine::Box2D windowregion;
+					windowregion.bottomleft = { windowpos.x, windowpos.y - windowsize.y };
+					windowregion.topright = { windowpos.x + windowsize.x, windowpos.y };
+					
+					openview->region = windowregion;
+
+					glm::vec2 mousepos = Engine::Events::getMousePos();
 
 					openview->view->draw_(viewinstance.instancedata);
 
@@ -39,7 +56,6 @@ namespace PH::LabCore {
 				ImGui::PopStyleVar(1);
 			}
 		}
-
 		openview = nullptr;
 	}
 
@@ -56,6 +72,32 @@ namespace PH::LabCore {
 
 	ViewInstance createViewInstance(View* view) {
 		return createViewInstance(view, Engine::createRandomUUID());
+	}
+
+	//passes the event trough to the focussed view
+	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance>& views, const PH::Platform::Event& e) {
+		for (auto& viewinstance : views) {
+			glm::vec2 mousepos = Engine::Events::getMousePos();
+			if (Engine::isInBox2D(viewinstance.region, mousepos)) {
+
+				if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
+					viewinstance.isfocussed = true;
+					return viewinstance.view->onEvent_(viewinstance.instancedata, e);
+				}
+
+				if (e.type == PH_EVENT_TYPE_MOUSE_SCROLLED) {
+					return viewinstance.view->onEvent_(viewinstance.instancedata, e);
+				}
+
+				if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_RELEASED) {
+					return viewinstance.view->onEvent_(viewinstance.instancedata, e);
+				}
+			}
+
+			if (viewinstance.isfocussed) {
+				return viewinstance.view->onEvent_(viewinstance.instancedata, e);
+			}
+		}
 	}
 
 }

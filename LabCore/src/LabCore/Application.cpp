@@ -47,7 +47,11 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize)
 PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate)
 {
 	PH::Engine::beginNewFrame(&context);
-	PH::Engine::Events::startNewFrame();
+
+	for (auto e : context.events) {
+		PH::Engine::Events::onEvent(e);
+		PH::LabCore::interpretEventForViews(PH::LabCore::appcontext->viewinstances, e);
+	}
 	
 	auto parentdisplay = PH::Engine::getParentDisplay();
 	

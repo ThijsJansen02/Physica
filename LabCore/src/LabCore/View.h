@@ -38,19 +38,24 @@ namespace PH::LabCore {
 		View* view;
 		void* instancedata;
 		Engine::UUID instanceid;
+		
+		bool32 isfocussed;
 
 		Engine::Box2D region;
 	};
 
 	//the view that is currently being drawn or updated
-	extern const ViewInstance* openview;
+	extern ViewInstance* openview;
 
 	ViewInstance createViewInstance(View* view);
 	ViewInstance createViewInstance(View* view, Engine::UUID id);
 	
 	//updates all views in the application, this is called by the application in the update loop
-	void updateViews(const Engine::ArrayList<ViewInstance>& views);
+	void updateViews(Engine::ArrayList<ViewInstance>& views);
 
 	//draws all views in the application, this is called by the application in the update loop
-	void drawViews(const Engine::ArrayList<ViewInstance>& views);
+	void drawViews(Engine::ArrayList<ViewInstance>& views);
+
+	//passes the event trough to the focussed view
+	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance>& views, const PH::Platform::Event& e);
 }

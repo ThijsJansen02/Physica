@@ -19,6 +19,9 @@ namespace PH::LabCore {
 	bool32 pythonShellInstantiate(pythonShellInstance* shell) {
 		shell->display = Engine::createImGuiDisplay(1920, 1080);
 		shell->font = appcontext->assets.getAssetByReference<Engine::Font>("arial");
+
+
+
 		return true;
 	}
 
@@ -36,8 +39,8 @@ namespace PH::LabCore {
 
 		renderer2D->pushGraphicsPipeline(LabCore::appcontext->defaultfontpipeline2D, { &shell->font->cdata, 1 });
 		renderer2D->pushTexture(shell->font->atlas);
-
-		Engine::drawText(shell->font, "Python Shell", { 10.0f, 10.0f }, 1.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, renderer2D->getContext());
+		
+		Engine::drawText(shell->font, "Python Shell", { 0.0f, 0.0f }, 1.0f, { 1.0f, 1.0f, 1.0f, 1.0f }, renderer2D->getContext());
 
 		renderer2D->end();
 		renderer2D->flush({nullptr, 0});
@@ -46,12 +49,8 @@ namespace PH::LabCore {
 		
 		//imgui draw part
 		real32 titlebarheight = ImGui::GetFrameHeight();
-
-		//ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 0, 0 });
-
 		ImVec2 displaysize = ImGui::GetContentRegionAvail();
 		shell->display.viewport = { displaysize.x, displaysize.y };
-
 		ImGui::Image(
 			shell->display.imguitexture,
 			displaysize,
@@ -68,6 +67,11 @@ namespace PH::LabCore {
 	}
 
 	bool32 pythonShellOnEvent(void* instancedata, const PH::Platform::Event& event) {
+
+		if (event.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
+			Engine::INFO << "clicked in window!\n";
+		}
+
 		return true;
 	}
 
