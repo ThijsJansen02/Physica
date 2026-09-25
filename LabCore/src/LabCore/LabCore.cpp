@@ -1,6 +1,7 @@
 #include "LabCore.h"
 #include <Engine/YamlExtensions.h>
 #include <yaml-cpp/yaml.h>
+#include <LabCore/EmbeddedPython.h>
 
 #include <Engine/coreassets/Font.h>
 
@@ -24,6 +25,17 @@ namespace PH::LabCore {
 		//create the list of views and viewinstances
 		appcontext->views = Engine::ArrayList<View>::create(1);
 		appcontext->viewinstances = Engine::ArrayList<ViewInstance>::create(1);
+
+		appcontext->assets = Engine::AssetLibrary::createAssetLibrary();
+		appcontext->assets.addAssetDescription(Engine::createFontDescription());
+
+		//statically adding a font to the asset library. application should always have a font available to draw text with, this is going to be used for the python shell and for the view instances
+		Engine::Font* font = Engine::Allocator::instantiate(Engine::createFont("c:/windows/fonts/arial.ttf", 512, 32));
+		auto identifier = appcontext->assets.addAsset(font, 683249087875, Engine::getFontExtension());
+		appcontext->assets.addReferenceToAsset(identifier->assetid, "arial");
+
+		initPython("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
+
 	}
 
 	void destroy() {
@@ -117,7 +129,7 @@ namespace PH::LabCore {
 		auto defaultquadvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_quadshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
 		auto defaultquadfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_quadshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
 
-		appcontext->defaultgraphicspipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(appcontext->defaultrenderpassdescription,
+		appcontext->defaultgraphicspipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(Engine::Display::defaultrenderpassdescription,
 			defaultquadvert.getArray(),
 			defaultquadfrag.getArray(),
 			{ nullptr, 0 }
@@ -129,7 +141,7 @@ namespace PH::LabCore {
 		auto defaultfontvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_fontshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
 		auto defaultfontfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_fontshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
 
-		appcontext->defaultfontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(appcontext->defaultrenderpassdescription,
+		appcontext->defaultfontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(Engine::Display::defaultrenderpassdescription,
 			defaultfontvert.getArray(),
 			defaultfontfrag.getArray(),
 			{ &Engine::Font::descriptorsetlayout, 1}

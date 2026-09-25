@@ -25,7 +25,7 @@
 #include "Context.h"
 
 
-#define PY_SSIZE_T_CLEA
+#define PY_SSIZE_T_CLEAN
 
 
 #ifdef _DEBUG
@@ -45,7 +45,6 @@
 #include "Text.h"
 #include "Plot.h"
 
-#define STB_TRUETYPE_IMPLEMENTATION
 #include <stb/stb_truetype.h>
 
 using namespace PH;

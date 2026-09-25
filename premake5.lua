@@ -18,7 +18,6 @@ group "core"
     include "Platform"
     include "Sandbox"
     include "Engine"
-    include "Editor"
     include "LabCore"
 group ""
 

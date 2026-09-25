@@ -16,10 +16,13 @@
 namespace py = pybind11;
 
 
-
 PYBIND11_EMBEDDED_MODULE(hostimgui, m) {
 
 	m.doc() = "exposed imgui function for use in python";
+
+	py::function Begin = py::cpp_function([]() {
+		return ImGui::Begin("test");
+		}, py::return_value_policy::copy);
 
 	py::class_<ImVec2>(m, "Vec2")
 		.def(py::init<float, float>())

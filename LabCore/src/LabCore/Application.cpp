@@ -51,26 +51,14 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate)
 	
 	auto parentdisplay = PH::Engine::getParentDisplay();
 	
-	PH::Engine::beginRenderPass(*parentdisplay);
-	
-	/*
-	renderer2D->begin();
-
-	renderer2D->pushProjection(glm::mat4(1.0f));
-	renderer2D->pushView(glm::mat4(1.0f));
-
-	renderer2D->drawColoredQuad(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec2(1.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-
-	renderer2D->end();
-	renderer2D->flush({nullptr, 0});
-	*/
-
 	PH::Engine::BeginDockspace();
-
-	PH::LabCore::update();
 	PH::LabCore::draw();
-	
+	PH::LabCore::update();
 	PH::Engine::EndDockspace();
+
+	
+	//final renderpass, this is where the imgui draw data is rendered to the screen
+	PH::Engine::beginRenderPass(*parentdisplay);
 
 	//imgui render stuff
 	ImGui::Render();

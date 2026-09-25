@@ -3,6 +3,7 @@
 #include <Engine/Rendering.h>
 #include <Engine/cppAPI/Rendering.hpp>
 #include <Engine/Events.h>
+#include <Engine/AssetLibrary.h>
 #include "View.h"
 
 namespace PH::LabCore {
@@ -20,6 +21,8 @@ namespace PH::LabCore {
 
 		//the active instances of views in the application, these are created by the application and can be used to draw and update the views
 		PH::Engine::ArrayList<ViewInstance> viewinstances;
+
+		PH::Engine::AssetLibrary assets;
 	};
 
 	extern AppContext* appcontext;

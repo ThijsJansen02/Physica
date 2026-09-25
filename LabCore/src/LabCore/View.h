@@ -1,6 +1,7 @@
 #pragma once
 #include <Base/Base.h>
 #include <Engine/Events.h>
+#include <Engine/RenderPrimitives.h>
 
 namespace PH::LabCore {
 
@@ -13,6 +14,8 @@ namespace PH::LabCore {
 	typedef bool32 (*ViewOnUpdateFunction)(void* instancedata);
 	typedef bool32 (*ViewInstantiateFunction)(void* instancedata);
 
+
+	
 
 	struct View {
 
@@ -27,8 +30,7 @@ namespace PH::LabCore {
 		ViewInstantiateFunction instantiate_;
 
 		//name of the view, used for identification and display in the GUI
-		Engine::String name;
-
+		Engine::String name;		
 	};
 
 	//instance of a view, this is created by the application when a view is added to the application, and it is destroyed when the view is removed from the application
@@ -36,7 +38,12 @@ namespace PH::LabCore {
 		View* view;
 		void* instancedata;
 		Engine::UUID instanceid;
+
+		Engine::Box2D region;
 	};
+
+	//the view that is currently being drawn or updated
+	extern const ViewInstance* openview;
 
 	ViewInstance createViewInstance(View* view);
 	ViewInstance createViewInstance(View* view, Engine::UUID id);

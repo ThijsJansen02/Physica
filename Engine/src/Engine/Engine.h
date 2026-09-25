@@ -52,6 +52,20 @@ namespace PH::Engine {
 
 			return PH::Base::DynamicAllocateFirstFit(&memory, size);
 		}
+
+		template<typename T>
+		static T* alloc() {
+			return (T*)alloc(sizeof(T));
+		}
+
+		
+		template<typename T>
+		static T* instantiate(const T& t) {
+			T* inst = (T*)alloc(sizeof(T));
+			*inst = t;
+			return inst;
+		}
+
 		static PH::bool32 dealloc(void* mem) {
 //			PH_DEBUG_ASSERT(mem, "memory is nullptr")
 

@@ -18,25 +18,33 @@ namespace PH::Engine {
 		AssetStatus status;
 		AssetDescription* assetdescription;
 
+		Engine::ArrayList<Engine::String> references;
+
 		Engine::String filepath;
 		AssetBase* assetdata;
 	};
 
-	uint64 stringHash(const Base::SubString& string) {
+	inline uint64 stringHash(const Base::SubString& string) {
 		return Base::stringHash(string.getC_Str());
 	}
 
-	bool32 stringCompare(const Base::SubString& left, const Base::SubString& right) {
+	inline bool32 stringCompare(const Base::SubString& left, const Base::SubString& right) {
 		return Base::stringCompare(left.getC_Str(), right.getC_Str());
 	}
 
 	class AssetLibrary {
-
+	public:
 		Base::ChainedHashMap<UUID, AssetIdentifier, Base::uint64Hash, Base::uint64Compare, Engine::Allocator> assets;
+		Base::ChainedHashMap<Base::SubString, AssetIdentifier*, stringHash, stringCompare, Engine::Allocator> assetreferences;
+
 		Base::ChainedHashMap<Base::SubString, AssetDescription, stringHash, stringCompare, Engine::Allocator> assetdescriptions;
+
+		static AssetLibrary createAssetLibrary();
 
 		//adds an asset to the library with no disk requirement, extension is required to find the correct description
 		AssetIdentifier* addAsset(AssetBase* asset, UUID id, const char* extension);
+
+		bool32 addReferenceToAsset(UUID assetid, const char* reference);
 
 		//retrieves an asset 
 		AssetIdentifier* getAssetIdentifier(UUID id);
@@ -51,6 +59,24 @@ namespace PH::Engine {
 				Engine::WARN << "trying to retrieve an asset that is not loaded!";
 			}
 
+			return asset;
+		}
+		
+
+		//gets asset by reference, does not guarantee that the asset is of correct type, use with caution
+		template<typename T>
+		T* getAssetByReference(const char* reference) {
+			AssetIdentifier** identifier = assetreferences.get_last(Base::SubString(reference));
+			if (!identifier) {
+				Engine::WARN << "trying to retrieve an asset that is not loaded!";
+				return nullptr;
+			}
+
+			//should add a check to see if the asset is the correct type
+			T* asset = (T*)(*identifier)->assetdata;
+			if (!asset || (*identifier)->status == UNLOADED) {
+				Engine::WARN << "trying to retrieve an asset that is not loaded!";
+			}
 			return asset;
 		}
 

@@ -7,4 +7,8 @@ namespace PH::LabCore {
 	
 	PH_LABCORE_API void addView(const View& view);
 
+	//when called during any view method returns true if the view is currently focussed, false if it is not
+	PH_LABCORE_API bool32 isViewFocussed();
+
+
 }
