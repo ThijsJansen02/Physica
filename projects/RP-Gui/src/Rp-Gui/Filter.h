@@ -37,6 +37,7 @@ public:
 	// Calculate biquad coefficients from specific parametrization
 	void calculateCoefficients();
 	inline const BiQuadCoefficients& getBiquadCoefficients() const { return coeffs; };
+	inline const BiQuadCoefficients& getInvertedCoefficients() const { return { coeffs.a[0], coeffs.a[1], coeffs.a[2], coeffs.b[0], coeffs.b[1], coeffs.b[2] }; };
 
 	const std::map<const char*, const real64*> getParameters() const;
 

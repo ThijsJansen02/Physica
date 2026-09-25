@@ -183,8 +183,8 @@ void deserializeProject(const char* projectdir) {
 			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
 			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
 
-			for (const auto& f : tf.filters) {
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf.decimation, &tf.connection, tf.lowprecision);
+			for (auto& f : tf.filters) {
+				sentFilterToRp(f, tf.getFilterSampleRate(), &tf.connection, tf.lowprecision);
 			}
 		}
 	}
@@ -359,6 +359,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 		threadinfo.usegfx = false;
 		threadinfo.userdata = (void*)&tf->connection;
 		threadinfo.threadproc = rp_connection_thread;
+		threadinfo.threadproc = rp_connection_thread;
 
 		PH::Platform::createThread(threadinfo, &tf->connection.thread);
 
@@ -374,7 +375,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			if (!tf->filters.empty()) {
 				auto& f = tf->filters[0];
 				recalculateFilter(f);
-				sentFilterToRp(f, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+				sentFilterToRp(f, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
 			}
 		}
 		else {
@@ -424,12 +425,17 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	ImGui::SameLine();
 	ImGui::Checkbox("Low Precision", (bool*)&tf->lowprecision);
 
+	ImGui::SameLine();
+	ImGui::Checkbox("Invert", (bool*)&tf->b_invert);
+
 	ImGui::InputInt("Decimation", (int32*) & tf->decimation);
+	//if (tf->decimation < 0) tf->decimation = 0;
+	//if (tf->decimation > 6) tf->decimation = 6;
 
 	ImGui::PopID();
 
 	static Filter* selectedFilter = nullptr;
-	const real64 dragSpeed = 0.02f;
+	const real64 dragSpeed = 0.0005f;
 
 	id = 0;
 	for (Filter& f : tf->filters) {
@@ -473,7 +479,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	if (selectedFilter) {
 		recalculateFilter(*selectedFilter);
-		if (b_update) sentFilterToRp(*selectedFilter, RP_FPGA_SAMPLERATE / tf->decimation, &tf->connection, tf->lowprecision);
+		if (b_update) sentFilterToRp(*selectedFilter, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
 		b_update = false;
 	}
 
@@ -621,7 +627,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	//draw the plot with lines and the plot itself
 	drawPlotScaleLines(plot->range, region);
 	for (auto& transferfunction : RpGui::context->activetransferfunctions) {
-		drawTransferFunctionMagnitude(plot, &transferfunction, &RpGui::context->buffer);
+		drawTransferFunctionMagnitude(plot, &transferfunction, &RpGui::context->buffer, transferfunction.b_invert);
 	}
 
 	for (const auto& plotdata : RpGui::context->openedplots) {
@@ -672,7 +678,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	//draw the plot with lines and the plot itself
 	drawPlotScaleLines(plot->range, region);
 	for (auto& transferfunction : RpGui::context->activetransferfunctions) {
-		drawTransferFunctionPhase(plot, &transferfunction, &RpGui::context->buffer);
+		drawTransferFunctionPhase(plot, &transferfunction, &RpGui::context->buffer, transferfunction.b_invert);
 	}
 
 	

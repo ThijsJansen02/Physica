@@ -1,14 +1,14 @@
 TransferFunctions:
   - name: Example Function
     remote: root@rp-f083c2.local
-    decimation: 4
+    decimation: 32
     lowprecision: 0
     filters:
-      - filter-type: 1
-        cutoff: 745.129
-        qfactor: 8.46
-        anticutoff: 800
-        antiqfactor: 10
+      - filter-type: 5
+        cutoff: 5762.712
+        qfactor: 3.275
+        anticutoff: 8615.427
+        antiqfactor: 25.386
         b0: 1
         b1: 1
         b2: 1
@@ -16,11 +16,11 @@ TransferFunctions:
         a1: 1
         a2: 1
         _b0: 1
-        _b1: 745.129
-        _b2: 555217.226641
+        _b1: 1759.606717557252
+        _b2: 33208849.594944004
         _a0: 1
-        _a1: 88.07671394799054
-        _a2: 555217.226641
+        _a1: 339.3770976128575
+        _a2: 74225582.39232899
       - filter-type: 4
         cutoff: 4000
         qfactor: 30

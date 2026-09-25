@@ -17,14 +17,16 @@ namespace PH::RpGui {
 		Engine::ArrayList<Filter> filters;
 		bool32 lowprecision = false;
 		uint32 decimation = 1;
+		bool32 b_invert = false;
+
+		const real64 getFilterSampleRate() const { return (real64)RP_FPGA_SAMPLERATE / decimation; };
 	};
 
-	inline real64 prewarp(real64 w0, real64 fs) {
-		return 2 * fs * tan(w0 / (2 * fs));
+	inline real64 prewarp(real64 f_continuous, real64 f_sample) {
+		return 2 * f_sample * atan(f_continuous / (2 * f_sample));
 	}
 
-
-	inline void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 fs)
+	inline void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 f_sample)
 	{
 		double b0, b1, b2, a0, a1, a2;
 		double bz0, bz1, bz2, az0, az1, az2;
@@ -32,7 +34,7 @@ namespace PH::RpGui {
 		b0 = acoefs[0]; b1 = acoefs[1]; b2 = acoefs[2];
 		a0 = acoefs[3]; a1 = acoefs[4]; a2 = acoefs[5];
 
-		real64 T = 1 / fs;
+		real64 T = 1 / f_sample;
 		real64 K = 2 / T;
 		real64 Ks = K * K;
 
@@ -247,13 +249,18 @@ namespace PH::RpGui {
 	}
 
 
-	inline void sentFilterToRp(const Filter& f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision) {
+	inline void sentFilterToRp(Filter& f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision) {
 
-		//if the filter type is resonance anti resonance the cutoff is average between both resonances, so we need to calculate the cutoff differently
-		//f.antiQfactor = prewarp(2 * M_PI * f.antiQfactor, targetfs);
+		const real64 unwarpedCF = f.cutoffFrequency;
+		const real64 unwarpedACF = f.antiCutoffFrequency;
 
-		// TODO: Pre-warp?
-		BiQuadCoefficients dcoeffs = bilinearTransform(f.getBiquadCoefficients(), targetfs);
+		f.cutoffFrequency = prewarp(2 * M_PI * unwarpedCF, targetfs);
+		f.antiCutoffFrequency = prewarp(2 * M_PI * unwarpedACF, targetfs);
+
+		BiQuadCoefficients dcoeffs = bilinearTransform(f.getBiquadCoefficients(), targetfs / (2 * M_PI));
+
+		f.cutoffFrequency = unwarpedCF;
+		f.antiCutoffFrequency = unwarpedACF;
 
 		Engine::String rpcommand;
 

@@ -7,7 +7,7 @@
 
 namespace PH::RpGui {
 
-	void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer) {
+	void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer, bool invert) {
 
 		static int32 nsamples = 2000;
 
@@ -24,7 +24,8 @@ namespace PH::RpGui {
 			Base::Complex<real64> y = 1.0f;
 
 			for (const auto& filter : function->filters) {
-				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.getBiquadCoefficients());
+				const BiQuadCoefficients coeffs = (invert) ? filter.getInvertedCoefficients() : filter.getBiquadCoefficients();
+				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), coeffs);
 			}
 
 			buffer->pushBack(glm::vec2{ x, 20.0f * log10f(y.modulus()) });
@@ -33,7 +34,7 @@ namespace PH::RpGui {
 		drawPlot(buffer->getArray(), plot->range, plot->region);
 	}
 
-	void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer) {
+	void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer, bool invert) {
 
 		static int32 nsamples = 2000;
 
@@ -48,7 +49,8 @@ namespace PH::RpGui {
 			Base::Complex<real64> y = 1.0f;
 
 			for (const auto& filter : function->filters) {
-				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), filter.getBiquadCoefficients());
+				const BiQuadCoefficients coeffs = (invert) ? filter.getInvertedCoefficients() : filter.getBiquadCoefficients();
+				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), coeffs);
 			}
 
 
@@ -89,26 +91,21 @@ namespace PH::RpGui {
 
 			real32 zoom = 1.0f - (real32)delta * scrollspeed;
 
-			glm::vec2 mousepos = Engine::Events::getMousePos();
-			mousepos.y = Engine::getParentDisplay()->viewport.y - mousepos.y; //flip y coordinate because the window coordinate system has y going down and the plot coordinate system has y going up
+			real32 mouseX, mouseY;
+			getMousePos(mouseX, mouseY);
+			//Engine::INFO << "Freq.: " << pow(10.0f, mouseX) << " Hz, Mag.:" << mouseY << "dB \n";
 
-			mousepos.x -= panelregion.left; //subtract the left coordinate of the panel region from the x coordinate of the mouse position, because the panel region is not necessarily at the left edge of the window and we want to use the panel region for transforming mouse coordinates from window coordinates to plot coordinates
-			mousepos.y -= panelregion.bottom; //subtract the bottom coordinate of the panel region from the y coordinate of the mouse position, because the panel region is not necessarily at the bottom edge of the window and we want to use the panel region for transforming mouse coordinates from window coordinates to plot coordinates
-
-			//transform mousepos from window coordinates to plot coordinates
-			mousepos.x = range.left + (mousepos.x / (real32)region.right) * (range.right - range.left);
-			mousepos.y = range.bottom + (mousepos.y / (real32)region.top) * (range.top - range.bottom);
-			//Engine::INFO << "mouse pos: " << mousepos.x << ", " << mousepos.y << "\n";	
-
+			//char buffer[64];
+			//drawText(region, how do i get a font properly?, snprintf(buffer, 64, "Mag.:\t %.3e\n Freq.:\t %.2f", mouseY, pow(10.0f, mouseX)));
 
 			//update mouseevents
 			if (PH::Engine::Events::isKeyPressed(PH_CONTROL)) {
-				range.right = (range.right - mousepos.x) * zoom + mousepos.x;
-				range.left = (range.left - mousepos.x) * zoom + mousepos.x;
+				range.right = (range.right - mouseX) * zoom + mouseX;
+				range.left = (range.left - mouseX) * zoom + mouseX;
 			}
 			else {
-				range.top = (range.top - mousepos.y) * zoom + mousepos.y;
-				range.bottom = (range.bottom - mousepos.y) * zoom + mousepos.y;
+				range.top = (range.top - mouseY) * zoom + mouseY;
+				range.bottom = (range.bottom - mouseY) * zoom + mouseY;
 			}
 
 			if (xlock) {
@@ -221,6 +218,19 @@ namespace PH::RpGui {
 		range.right = range_[2].as<real32>();
 		range.top = range_[3].as<real32>();
 		
+	}
+
+	void PlotViewPanel::getMousePos(real32& mouseX, real32& mouseY)
+	{
+		glm::vec2 mousepos = Engine::Events::getMousePos();
+		mousepos.y = Engine::getParentDisplay()->viewport.y - mousepos.y; //flip y coordinate because the window coordinate system has y going down and the plot coordinate system has y going up
+
+		mousepos.x -= panelregion.left; //subtract the left coordinate of the panel region from the x coordinate of the mouse position, because the panel region is not necessarily at the left edge of the window and we want to use the panel region for transforming mouse coordinates from window coordinates to plot coordinates
+		mousepos.y -= panelregion.bottom; //subtract the bottom coordinate of the panel region from the y coordinate of the mouse position, because the panel region is not necessarily at the bottom edge of the window and we want to use the panel region for transforming mouse coordinates from window coordinates to plot coordinates
+
+		//transform mousepos from window coordinates to plot coordinates
+		mouseX = range.left + (mousepos.x / (real32)region.right) * (range.right - range.left);
+		mouseY = range.bottom + (mousepos.y / (real32)region.top) * (range.top - range.bottom);
 	}
 
 	void PlotViewPanel::draw() {
