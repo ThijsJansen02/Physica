@@ -2,6 +2,7 @@
 #include <Base/Base.h>
 #include <Engine/Events.h>
 #include <Engine/RenderPrimitives.h>
+#include <yaml-cpp/yaml.h>
 
 namespace PH::LabCore {
 
@@ -13,6 +14,9 @@ namespace PH::LabCore {
 	typedef bool32 (*ViewOnEventFunction)(void* instancedata, const PH::Platform::Event& event);
 	typedef bool32 (*ViewOnUpdateFunction)(void* instancedata);
 	typedef bool32 (*ViewInstantiateFunction)(void* instancedata);
+
+	typedef bool32 (*ViewSerializeFunction)(void* instancedata, YAML::Emitter& out);
+	typedef bool32(*ViewDeserializeFunction)(void* instancedata, YAML::Node node);
 
 
 	
@@ -28,6 +32,9 @@ namespace PH::LabCore {
 		ViewOnEventFunction onEvent_;
 		ViewOnUpdateFunction onUpdate_;
 		ViewInstantiateFunction instantiate_;
+
+		ViewSerializeFunction serialize_;
+		ViewDeserializeFunction deserialize_;
 
 		//name of the view, used for identification and display in the GUI
 		Engine::String name;		

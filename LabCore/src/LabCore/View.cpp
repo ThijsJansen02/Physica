@@ -31,7 +31,7 @@ namespace PH::LabCore {
 				real32 framesize = ImGui::GetWindowSize().y;
 
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-				if (ImGui::Begin(openview->view->name.getC_Str())) {
+				if (ImGui::Begin(openview->view->name.getC_Str(), nullptr, ImGuiWindowFlags_MenuBar)) {
 					
 					openview->isfocussed = ImGui::IsWindowFocused();
 
@@ -73,25 +73,22 @@ namespace PH::LabCore {
 	ViewInstance createViewInstance(View* view) {
 		return createViewInstance(view, Engine::createRandomUUID());
 	}
+	
+	bool32 isCursorOnView(const ViewInstance& view) {
+		glm::vec2 mousepos = Engine::Events::getMousePos();
+		return Engine::isInBox2D(view.region, mousepos);
+	}
 
 	//passes the event trough to the focussed view
 	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance>& views, const PH::Platform::Event& e) {
 		for (auto& viewinstance : views) {
-			glm::vec2 mousepos = Engine::Events::getMousePos();
-			if (Engine::isInBox2D(viewinstance.region, mousepos)) {
 
-				if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
+			if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
+				if (isCursorOnView(viewinstance)) {
 					viewinstance.isfocussed = true;
 					return viewinstance.view->onEvent_(viewinstance.instancedata, e);
 				}
-
-				if (e.type == PH_EVENT_TYPE_MOUSE_SCROLLED) {
-					return viewinstance.view->onEvent_(viewinstance.instancedata, e);
-				}
-
-				if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_RELEASED) {
-					return viewinstance.view->onEvent_(viewinstance.instancedata, e);
-				}
+				viewinstance.isfocussed = false;
 			}
 
 			if (viewinstance.isfocussed) {

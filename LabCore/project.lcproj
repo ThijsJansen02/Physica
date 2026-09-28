@@ -1,3 +1,6 @@
 openviews:
   - viewname: Python Shell
     instanceid: 306520670
+    viewdata:
+      messages:
+        {}

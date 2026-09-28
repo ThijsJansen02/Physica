@@ -40,7 +40,7 @@ namespace PH::Base {
 		}
 
 		ArrayIterator<type> operator-(sizeptr subtraction) const {
-			return create(ptr + subtraction);
+			return create(ptr - subtraction);
 		}
 
 		sizeptr operator-(ArrayIterator<type> other) const {

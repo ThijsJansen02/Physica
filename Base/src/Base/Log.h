@@ -38,6 +38,14 @@ namespace PH::Base {
 			return *this;
 		}
 
+		LogStream& operator<<(char character) {
+			char buffer[2];
+			buffer[0] = character;
+			buffer[1] = '\0';
+			log(buffer);
+			return *this;
+		}
+
 		LogStream& operator<<(uint32 integer) {
 			char buffer[16];
 			sprintf_s<16>(buffer, "%u", integer);

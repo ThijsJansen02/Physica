@@ -5,6 +5,10 @@
 
 #include <Engine/coreassets/Font.h>
 
+#include <pybind11/pybind11.h>
+#include <pybind11/embed.h>
+
+namespace py = pybind11;
 
 namespace PH::LabCore {
 
@@ -30,11 +34,22 @@ namespace PH::LabCore {
 		appcontext->assets.addAssetDescription(Engine::createFontDescription());
 
 		//statically adding a font to the asset library. application should always have a font available to draw text with, this is going to be used for the python shell and for the view instances
-		Engine::Font* font = Engine::Allocator::instantiate(Engine::createFont("c:/windows/fonts/arial.ttf", 512, 32));
+		Engine::Font* font = Engine::Allocator::instantiate(Engine::createFont("c:/windows/fonts/Arial.ttf", 512, 16));
 		auto identifier = appcontext->assets.addAsset(font, 683249087875, Engine::getFontExtension());
-		appcontext->assets.addReferenceToAsset(identifier->assetid, "arial");
+		appcontext->assets.addReferenceToAsset(identifier->assetid, "defaultfont");
 
 		initPython("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
+
+		PH::Platform::FileBuffer file;
+		if (PH::Platform::loadFile(&file, "res/labcoreinit.py")) {
+
+			try {
+				py::exec((char*)file.data);
+			}
+			catch (py::error_already_set& e) {
+				Engine::INFO << e.what();
+			}
+		}
 
 	}
 
@@ -58,6 +73,10 @@ namespace PH::LabCore {
 			out << YAML::Value << YAML::BeginMap;
 			out << YAML::Key << "viewname" << YAML::Value << viewinstance.view->name.getC_Str();
 			out << YAML::Key << "instanceid" << YAML::Value << viewinstance.instanceid;
+			out << YAML::Key << "viewdata" << YAML::Value;
+			if (viewinstance.view->serialize_) {
+				viewinstance.view->serialize_(viewinstance.instancedata, out);
+			}
 			out << YAML::EndMap;
 		}
 
@@ -90,8 +109,13 @@ namespace PH::LabCore {
 			for (View& viewdescription : appcontext->views) {
 				if (viewdescription.name.compare(viewname.getC_Str())) {
 
+					
 					ViewInstance instance = createViewInstance(&viewdescription, instanceid);
-					appcontext->viewinstances.pushBack(instance);
+					if (view["viewdata"] && instance.view->deserialize_) {
+						instance.view->deserialize_(instance.instancedata, view["viewdata"]);
+					}
+					auto& inst = appcontext->viewinstances.pushBack(instance);
+
 				}
 			}
 		}

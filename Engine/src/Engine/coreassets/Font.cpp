@@ -143,13 +143,58 @@ namespace PH::Engine {
 		);
 	}
 
+	real32 tabsize = 15.0f;
 
-	void drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color, Engine::Renderer2D::Context* context) {
+	real32 getTextLength(Font* font, Base::SubString textstring, real32 scale) {
+		real32 x = 0.0f;
+		real32 y = 0.0f;
+
+		real32 length = 0.0f;
+		const char* text = textstring.getC_Str();
+
+		while (*text && text != textstring.getEndPtr()) {
+			if (*text >= 32 && *text < 128) {
+				if (*text == '\n') {
+					y += font->pixelheight;
+					x = 0.0f;
+				}
+
+				if (*text == '\t') {
+					x += tabsize;
+				}
+
+				stbtt_aligned_quad q;
+				stbtt_GetBakedQuad(font->cdata_cpu, font->bitmapwidth, font->bitmapwidth, *text - 32, &x, &y, &q, 1);//1=opengl & d3d10+,0=d3d9
+
+				glm::vec2 bottomleft = scale * glm::vec2{ q.x0, -q.y1 };
+				glm::vec2 topright = scale * glm::vec2{ q.x1, -q.y0 };
+
+				glm::vec2 size = topright - bottomleft;
+
+				length = topright.x;
+			}
+			++text;
+		}
+		return length;
+	}
+
+	glm::vec2 drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color, Engine::Renderer2D::Context* context) {
 
 		real32 x = 0.0f;
 		real32 y = 0.0f;
 
+		real32 length = 0.0f;
+
 		while (*text) {
+			if (*text == '\n') {
+				y += font->pixelheight;
+				x = 0.0f;
+			}
+
+			if (*text == '\t') {
+				x += tabsize;
+			}
+
 			if (*text >= 32 && *text < 128) {
 				stbtt_aligned_quad q;
 				stbtt_GetBakedQuad(font->cdata_cpu, font->bitmapwidth, font->bitmapwidth, *text - 32, &x, &y, &q, 1);//1=opengl & d3d10+,0=d3d9
@@ -166,8 +211,48 @@ namespace PH::Engine {
 					*text - 32,
 					context
 				);
+
+				if (topright.x > length) {
+					length = topright.x;
+				}
 			}
 			++text;
 		}
+
+		return { position.x + length, position.y - y };
+	}
+
+	glm::vec2 getCharPosition(Font* font, Base::SubString textstring, real32 scale, uint32 position) {
+		real32 x = 0.0f;
+		real32 y = 0.0f;
+
+		real32 length = 0.0f;
+		const char* text = textstring.getC_Str();
+
+		while (*text && text != textstring.getEndPtr() && text != textstring.getC_Str() + position) {
+			if (*text == '\n') {
+				y += font->pixelheight;
+				x = 0.0f;
+			}
+
+			if (*text == '\t') {
+				x += tabsize;
+			}
+			if (*text >= 32 && *text < 128) {
+
+				stbtt_aligned_quad q;
+				stbtt_GetBakedQuad(font->cdata_cpu, font->bitmapwidth, font->bitmapwidth, *text - 32, &x, &y, &q, 1);//1=opengl & d3d10+,0=d3d9
+
+				glm::vec2 bottomleft = scale * glm::vec2{ q.x0, -q.y1 };
+				glm::vec2 topright = scale * glm::vec2{ q.x1, -q.y0 };
+
+				glm::vec2 size = topright - bottomleft;
+
+				length = topright.x;
+			}
+			++text;
+		}
+
+		return glm::vec2{ x, -y };
 	}
 }

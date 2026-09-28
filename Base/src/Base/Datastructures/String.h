@@ -163,6 +163,10 @@ namespace PH::Base {
 			return SubString::create(m_Str, lastfound - m_Str);
 		}
 
+		const char* getEndPtr() {
+			return m_Str + m_Length;
+		}
+
 
 		/// <summary>
 		/// returns the substring from the last found char c, if no such character is found the return is an empty substring
@@ -294,6 +298,25 @@ namespace PH::Base {
 			return SubString::create(m_Str, stringLength(m_Str));
 		}
 
+		char operator[](sizeptr index) {
+			return m_Str[index];
+		}
+
+		//removes character at index
+		void remove(sizeptr index) {
+			sizeptr newsize = m_Size  - 1;
+			char* newstring = (char*)allocator::alloc(newsize);
+
+			copyMemory(m_Str, newstring, index);
+
+			copyMemory(m_Str + index + 1, newstring + index, m_Size - index - 1);
+
+			allocator::dealloc(m_Str);
+			m_Str = newstring;
+			m_Size = newsize;
+		}
+
+		//replaces all characters that match the comperand with the exchange character
 		void replace(char comperand, char exchange) {
 
 			char* str = m_Str;
@@ -304,6 +327,22 @@ namespace PH::Base {
 				str++;
 			}
 
+		}
+
+		//inserts a character at the given position
+		void insert(char character, sizeptr position) {
+			sizeptr newsize = m_Size + 1;
+			char* newstring = (char*)allocator::alloc(newsize);
+
+			copyMemory(m_Str, newstring, position);
+
+			newstring[position] = character;
+
+			copyMemory(m_Str + position, newstring + position + 1, m_Size - position);
+
+			allocator::dealloc(m_Str);
+			m_Str = newstring;
+			m_Size = newsize;
 		}
 
 
@@ -385,7 +424,11 @@ namespace PH::Base {
 			return false;
 		}
 
+		//returns the size of the string in bytes including the null termination character
 		const sizeptr getSize() const { return m_Size; }
+
+		//returns the length of the string in amount of characters
+		const sizeptr getLength() const { return m_Size - 1; }
 		const char* getC_Str() const { return m_Str; }
 		char getChar(sizeptr index) const { return m_Str[index]; }
 

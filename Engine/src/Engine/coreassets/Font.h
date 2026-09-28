@@ -26,7 +26,11 @@ namespace PH::Engine {
 
 	AssetDescription createFontDescription();
 
-	void drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color, Engine::Renderer2D::Context* context);
+	glm::vec2 drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color, Engine::Renderer2D::Context* context);
+	
+	//returns the length in pixels of the given text;
+	real32 getTextLength(Font* font, Base::SubString textstring, real32 scale);
+	glm::vec2 getCharPosition(Font* font, Base::SubString textstring, real32 scale, uint32 position);
 
 	inline const char* getFontExtension() {
 		return ".lcfont";
