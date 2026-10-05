@@ -5,6 +5,8 @@ bin/
 __pycache__/
 *.pyc
 
+/dep/cpython/
+
 mydaqfeedback/
 
 .vs/
