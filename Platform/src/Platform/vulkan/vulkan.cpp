@@ -763,6 +763,7 @@ namespace PH::Vulkan {
 
 	//starts ends a single time usage commandbuffer.
 	void endSingleTimeCommands(VulkanAppContext* context, VkCommandBuffer commandBuffer) {
+		
 		vkEndCommandBuffer(commandBuffer);
 
 		VkFence fence;

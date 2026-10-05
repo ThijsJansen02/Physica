@@ -264,6 +264,8 @@ namespace PH::LabCore {
 		}
 
 		if (event.type == PH_EVENT_TYPE_KEY_PRESSED) {
+
+			//move cursor left
 			if (event.lparam == PH_LEFT) {
 				if (shell->cursorposition > 0) {
 					shell->cursorposition--;
@@ -271,6 +273,7 @@ namespace PH::LabCore {
 				return true;
 			}
 
+			//move cursor right
 			if (event.lparam == PH_RIGHT) {
 				if (shell->cursorposition < shell->current.message.getLength()) {
 					shell->cursorposition++;

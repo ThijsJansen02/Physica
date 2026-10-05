@@ -139,12 +139,12 @@ void deserializeApplication() {
 
 		auto pythonhome = ini["PythonHome"];
 		if (pythonhome) {
-			RpGui::context->pythonhome = pythonhome.as<Engine::String>();
+			RpGui::context->pythonhome.set(pythonhome.as<Engine::String>());
 		}
 		else {
 			char buffer[256];
 			GetCurrentDirectoryA(256, buffer);
-			RpGui::context->pythonhome = Engine::String::create(buffer);
+			RpGui::context->pythonhome.set(buffer);
 			RpGui::context->pythonhome.append("\\..\\..\\dep\\embeddedpython");
 		}
 	}
@@ -245,6 +245,9 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	RpGui::context->phaseplot.xlock = &RpGui::context->magnitudeplot;
 
 	RpGui::context->openproject = Engine::String::create("project1.rpproj");
+
+
+	RpGui::context->pythonhome = Engine::String::create("");
 
 	//buffer for drawing the plots
 	RpGui::context->buffer = Engine::ArrayList<glm::vec2>::create(10);

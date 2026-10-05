@@ -384,6 +384,26 @@ namespace PH::Platform::GFX {
 	} PipelineStageFlagBits;
 	typedef Flags PipelineStageFlags;
 
+#define GFX_ATTACHMENT_UNUSED              (~0U)
+#define GFX_FALSE                          0U
+#define GFX_LOD_CLAMP_NONE                 1000.0F
+#define GFX_QUEUE_FAMILY_IGNORED           (~0U)
+#define GFX_REMAINING_ARRAY_LAYERS         (~0U)
+#define GFX_REMAINING_MIP_LEVELS           (~0U)
+#define GFX_SUBPASS_EXTERNAL               (~0U)
+#define GFX_TRUE                           1U
+#define GFX_WHOLE_SIZE                     (~0ULL)
+#define GFX_MAX_MEMORY_TYPES               32U
+#define GFX_MAX_PHYSICAL_DEVICE_NAME_SIZE  256U
+#define GFX_UUID_SIZE                      16U
+#define GFX_MAX_EXTENSION_NAME_SIZE        256U
+#define GFX_MAX_DESCRIPTION_SIZE           256U
+#define GFX_MAX_MEMORY_HEAPS               16U
+
+	
+
+	//typedef enum 
+
 	typedef enum AccessFlagBits {
 		ACCESS_INDIRECT_COMMAND_READ_BIT = 0x00000001,
 		ACCESS_INDEX_READ_BIT = 0x00000002,

@@ -3,6 +3,9 @@
 #include <Engine/AssetLibrary.h>
 #include <Base/Datastructures/String.h>
 
+#include <map>
+#include <yaml-cpp/yaml.h>
+
 using namespace PH;
 
 struct BiQuadCoefficients {
