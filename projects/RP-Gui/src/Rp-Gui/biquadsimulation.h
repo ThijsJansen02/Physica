@@ -39,11 +39,11 @@ namespace PH::RpGui {
 	BiquadRealCoefs createBiquadRealCoefs(BiQuadCoefficients coeffs) {
 
 		BiquadRealCoefs bq;
-		bq.b0 = (real32)coeffs.b0;
-		bq.b1 = (real32)coeffs.b1;
-		bq.b2 = (real32)coeffs.b2;
-		bq.a1 = (real32)coeffs.a1;
-		bq.a2 = (real32)coeffs.a2;
+		bq.b0 = (real32)coeffs.b[0];
+		bq.b1 = (real32)coeffs.b[1];
+		bq.b2 = (real32)coeffs.b[2];
+		bq.a1 = (real32)coeffs.a[1];
+		bq.a2 = (real32)coeffs.a[2];
 
 		bq.zx0 = 0.0f;
 		bq.zx1 = 0.0f;
@@ -57,12 +57,12 @@ namespace PH::RpGui {
 
 		Biquad bq;
 
-		bq.b0 = RpGui::convertToFixedPoint32(coeffs.b0);
-		bq.b1 = RpGui::convertToFixedPoint32(coeffs.b1);
-		bq.b2 = RpGui::convertToFixedPoint32(coeffs.b2);
+		bq.b0 = RpGui::convertToFixedPoint32(coeffs.b[0]);
+		bq.b1 = RpGui::convertToFixedPoint32(coeffs.b[1]);
+		bq.b2 = RpGui::convertToFixedPoint32(coeffs.b[2]);
 
-		bq.a1 = RpGui::convertToFixedPoint32(coeffs.a1);
-		bq.a2 = RpGui::convertToFixedPoint32(coeffs.a2);
+		bq.a1 = RpGui::convertToFixedPoint32(coeffs.a[1]);
+		bq.a2 = RpGui::convertToFixedPoint32(coeffs.a[2]);
 
 		bq.zx0 = 0;
 		bq.zx1 = 0;
@@ -82,11 +82,11 @@ namespace PH::RpGui {
 		real64 acc = (real64)bq.b0 * input + (real64)bq.b1 * bq.zx1 + (real64)bq.b2 * bq.zx2 - (real64)bq.a1 * bq.zy1 - (real64)bq.a2 * bq.zy2;
 		acc = acc;
 		//clipping
-		if (acc > 32767) {
-			acc = 32767;
+		if (acc > 0x8000 - 1) {
+			acc = 0x8000 - 1;
 		}
-		else if (acc < -32768) {
-			acc = -32768;
+		else if (acc < -(0x8000 - 1)) {
+			acc = -(0x8000 - 1);
 		}
 		//update the state
 		bq.zx2 = bq.zx1;
@@ -137,27 +137,30 @@ namespace PH::RpGui {
 			testdata[i] = 0;
 		}
 
-		testdata[0] = 32767;
+		testdata[0] = 0x8000 - 1;
 
-		RpGui::Filter examplefilter{};
-		examplefilter.type = FilterType::BANDSTOP;
-		examplefilter.cutoff = 5000.0f;
-		examplefilter.Qfactor = 3.6f;
-		examplefilter.gain = 1.0f;
+		Filter examplefilter{};
+		examplefilter.type = FilterType::RESONANCE_ANTI_RESONANCE;
+		examplefilter.cutoffFrequency = 4950.0f;
+		examplefilter.qFactor = 3.6f;
+		examplefilter.antiCutoffFrequency = 5000.0f;
+		examplefilter.antiQFactor = 3.6f;
 
-		examplefilter.cutoff = prewarp(2 * M_PI * examplefilter.cutoff, RP_FPGA_SAMPLERATE);
+		examplefilter.cutoffFrequency = prewarp(2 * M_PI * examplefilter.cutoffFrequency, RP_FPGA_SAMPLERATE);
+		examplefilter.antiCutoffFrequency = prewarp(2 * M_PI * examplefilter.antiCutoffFrequency, RP_FPGA_SAMPLERATE);
 
-		BiQuadCoefficients coeffs = RpGui::bilinearTransform(RpGui::calculateCoefficients(examplefilter), RP_FPGA_SAMPLERATE);
+		examplefilter.calculateCoefficients();
+		BiQuadCoefficients coeffs = RpGui::bilinearTransform(examplefilter.getBiquadCoefficients(), RP_FPGA_SAMPLERATE);
 
 		Biquad bq = createBiquad(coeffs);
 
-		INFO << "b0: " << coeffs.b0 << ", " << bq.b0 << "\n";
-		INFO << "b1: " << coeffs.b1 << ", " << bq.b1 << "\n";
-		INFO << "b2: " << coeffs.b2 << ", " << bq.b2 << "\n";
+		INFO << "b0: " << coeffs.b[0] << ", " << bq.b0 << "\n";
+		INFO << "b1: " << coeffs.b[1] << ", " << bq.b1 << "\n";
+		INFO << "b2: " << coeffs.b[2] << ", " << bq.b2 << "\n";
 
-		INFO << "a0: " << coeffs.a0 << ", " << "" << "\n";
-		INFO << "a1: " << coeffs.a1 << ", " << bq.a1 << "\n";
-		INFO << "a2: " << coeffs.a2 << ", " << bq.a2 << "\n";
+		INFO << "a0: " << coeffs.a[0] << ", " << "" << "\n";
+		INFO << "a1: " << coeffs.a[1] << ", " << bq.a1 << "\n";
+		INFO << "a2: " << coeffs.a[2] << ", " << bq.a2 << "\n";
 
 
 		BiquadRealCoefs b = createBiquadRealCoefs(coeffs);

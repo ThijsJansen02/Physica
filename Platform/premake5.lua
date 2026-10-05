@@ -38,7 +38,6 @@ project "Platform"
 		'RP-GUI',
 		'LabCore'
 	}
-
 	defines 
 	{
 		"PH_STATIC_BUILD"
