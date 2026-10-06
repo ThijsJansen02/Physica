@@ -11,7 +11,7 @@ namespace PH::Engine {
 
 		PH::Platform::GFX::Framebuffer fb;
 		PH::Platform::GFX::Texture colorattachment;
-		PH::Platform::GFX::Texture depthattachment;
+		PH::Platform::GFX::Texture depthattachment;	
 
 		PH::Platform::GFX::RenderpassDescription renderpass;
 

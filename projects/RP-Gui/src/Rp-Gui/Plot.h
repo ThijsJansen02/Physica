@@ -49,38 +49,10 @@ namespace PH::RpGui {
 		return RpGui::renderer2D.drawLine(v1t, v2t, color, thickness);
 	}
 
-	//VERY IMPORTANT: modifies the points array!!! draws a linestrip transformed from the corresponding range to the region on the display as given by the parameters
-	inline bool32 drawPlot(PH::Base::Array<glm::vec2> points, Box2D range, Box2D region, glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f }, glm::vec2 thickness = { 1.0f, 1.0f }) {
-
+	inline const glm::mat4 remapRange(const Box2D& range, const Box2D& region) {
 		//transform from range to -1.0f, 1.0f
-		real32 width = region.right - region.left;
-		real32 heigth = region.top - region.bottom;
-
-		glm::mat4 rangeToStdDev = glm::ortho(range.left, range.right, range.bottom, range.top);
-		glm::mat4 rangeToStd = glm::scale(glm::mat4(1.0f), glm::vec3{ 0.5f, 0.5f, 1.0f }) * glm::translate(glm::mat4(1.0f), glm::vec3{ 1.0f, 1.0f, 0.0f }) * rangeToStdDev;
-		//glm::mat4 rangeToStd = glm::ortho()
-
-		glm::vec4 vx = { width, 0.0f, 0.0f, 0.0f };
-		glm::vec4 vy = { 0.0f, heigth, 0.0f, 0.0f };
-		glm::vec4 vz = { 0.0f, 0.0f, 1.0f, 0.0f };
-		glm::vec4 translate = { region.left, region.bottom, 0.0f, 1.0f };
-
-		glm::mat4 stdToRegion = glm::mat4(vx, vy, vz, translate);
-		glm::mat4 rangeToRegion = stdToRegion * rangeToStd;
-
-		return drawLineStrip(points, thickness, color, rangeToRegion);
-	}
-
-	inline bool32 contains(glm::vec2 point, Box2D box) {
-		return point.x >= box.left && point.x <= box.right && point.y >= box.bottom && point.y <= box.top;
-	}
-
-	//real32 rangemult = 2.5f;
-
-	inline bool32 drawPlotScaleLines(Box2D range, Box2D region) {
-		//transform from range to -1.0f, 1.0f
-		real32 width = region.right - region.left;
-		real32 height = region.top - region.bottom;
+		const real32 width = region.right - region.left;
+		const real32 height = region.top - region.bottom;
 
 		glm::mat4 rangeToStdDev = glm::ortho(range.left, range.right, range.bottom, range.top);
 		glm::mat4 rangeToStd = glm::scale(glm::mat4(1.0f), glm::vec3{ 0.5f, 0.5f, 1.0f }) * glm::translate(glm::mat4(1.0f), glm::vec3{ 1.0f, 1.0f, 0.0f }) * rangeToStdDev;
@@ -91,58 +63,120 @@ namespace PH::RpGui {
 		glm::vec4 translate = { region.left, region.bottom, 0.0f, 1.0f };
 
 		glm::mat4 stdToRegion = glm::mat4(vx, vy, vz, translate);
-		glm::mat4 rangeToRegion = stdToRegion * rangeToStd;
 
-		real32 rangemultx = 5000.0f / width;
-		real32 rangemulty = 5000.0f / height;
+		return stdToRegion * rangeToStd;
+	}
+
+	//VERY IMPORTANT: modifies the points array!!! draws a linestrip transformed from the corresponding range to the region on the display as given by the parameters
+	inline bool32 drawPlot(PH::Base::Array<glm::vec2> points, Box2D range, Box2D region, glm::vec4 color = { 1.0f, 1.0f, 1.0f, 1.0f }, glm::vec2 thickness = { 1.0f, 1.0f }) {
+		return drawLineStrip(points, thickness, color, remapRange(range, region));
+	}
+
+	inline bool32 contains(glm::vec2 point, Box2D box) {
+		return point.x >= box.left && point.x <= box.right && point.y >= box.bottom && point.y <= box.top;
+	}
+
+	//real32 rangemult = 2.5f;
+
+	// TODO: Figure out how to get better major lines when zooming (eg. going from [100, 1000] to [100, 200, 300, ..., 900, 1000])
+	inline void calculateTickSpacing(const Box2D& range, const Box2D& region, real32& xstart, real32& xstep, real32& ystart, real32& ystep) {
+		// What is the 5000.0f constant?
+		real32 rangemultx = 5000.0f / (region.right - region.left);
+		real32 rangemulty = 5000.0f / (region.top - region.bottom);
 
 		int32 xorder = floor(log10((range.right - range.left) * rangemultx)) - 1;
 		int32 yorder = floor(log10((range.top - range.bottom) * rangemulty)) - 1;
 
-		real32 xstep = pow(10.0f, xorder);
-		real32 ystep = pow(10.0f, yorder);
+		xstep = pow(10.0f, xorder);
+		ystep = pow(10.0f, yorder);
 
-		real32 xstart = floor((range.left / xstep)) * xstep;
-		real32 ystart = floor((range.bottom / ystep)) * ystep;
+		xstart = floor((range.left / xstep)) * xstep;
+		ystart = floor((range.bottom / ystep)) * ystep;
+	}
 
-		real32 slinebrightness = 0.04f;
-		real32 linebrightness = 0.2f;
+	inline bool32 drawPlotScaleLines(Box2D range, Box2D region) {
+		const glm::mat4 rangeToRegion = remapRange(range, region);
 
-		real32 sxstep = xstep * 0.2f;
-		real32 systep = ystep * 0.2f;
+		real32 xstart, xstep, ystart, ystep;
+		calculateTickSpacing(range, region, xstart, xstep, ystart, ystep);
 
-		//draw lines in x direction
-		for (real32 x = xstart; x <= range.right; x += sxstep) {
-			drawLine({ x, range.bottom }, { x, range.top }, { glm::vec3(slinebrightness), 1.0f}, {1.0f, 1.0f}, rangeToRegion);
-		}
+		const real32 minorOpacity = 0.10f;
+		const real32 majorOpacity = 0.25f;
+		const int32 horizontalLinesPerDecade = 5;
+		const int32 verticalLinesPerDecade = 10;
 
-		//draw lines in y direction
-		for (real32 y = ystart; y <= range.top; y += systep) {
-			drawLine({ range.left, y }, { range.right, y }, { glm::vec3(slinebrightness), 1.0f}, {1.0f, 1.0f}, rangeToRegion);
-		}
-
-		//draw large lines in x direction
-		//draw lines in x direction
+		// Draw vertical lines in log scale
 		for (real32 x = xstart; x <= range.right; x += xstep) {
-			drawLine({ x, range.bottom }, { x, range.top }, { glm::vec3(linebrightness), 1.0f}, {1.0f, 1.0f}, rangeToRegion);
+			drawLine({ x, range.bottom }, { x, range.top }, { glm::vec3(1.0f), majorOpacity }, {1.0f, 1.0f}, rangeToRegion);
+
+			// Draw minor lines
+			for (int32 i = 1 + 1; i <= verticalLinesPerDecade - 1; i++) {
+				real32 xPos = x + log10(static_cast<real32>(i)) * xstep;
+				drawLine({ xPos, range.bottom }, { xPos, range.top }, { glm::vec3(1.0f), minorOpacity }, { 1.0f, 1.0f }, rangeToRegion);
+			}
 		}
 
-		//draw large lines in y direction
-		//draw lines in y direction
+		// Draw horizontal lines in linear scale
 		for (real32 y = ystart; y <= range.top; y += ystep) {
-			drawLine({ range.left, y }, { range.right, y }, { glm::vec3(linebrightness), 1.0f}, {1.0f, 1.0f}, rangeToRegion);
+			drawLine({ range.left, y }, { range.right, y }, { glm::vec3(1.0f), majorOpacity }, {1.0f, 1.0f}, rangeToRegion);
+
+			// Draw minor lines
+			for (int32 i = 1; i <= horizontalLinesPerDecade - 1; i++) {
+				real32 yPos = y + static_cast<real32>(i) * ystep / static_cast<real32>(horizontalLinesPerDecade);
+				drawLine({ range.left, yPos }, { range.right, yPos }, { glm::vec3(1.0f), minorOpacity }, { 1.0f, 1.0f }, rangeToRegion);
+			}
 		}
 
 
-
+		// Draw axes
 		if (range.top > 0.0f && range.bottom < 0.0f) {
 			drawLine({ range.left, 0.0f }, { range.right, 0.0f }, { 0.8f, 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f }, rangeToRegion);
 		}
-
 		if (range.left < 0.0f && range.right > 0.0f) {
 			drawLine({ 0.0f, range.bottom }, { 0.0f, range.top }, { 0.8f, 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f }, rangeToRegion);
 		}
 
+
+		return true;
+	}
+
+	// TODO: Figure out how to increase decimal precision when zooming (large zooms dont have enough precision to differentiate neighbouring values)
+	inline bool32 drawPlotScaleValues(Box2D range, Box2D region, Font* font, real32 scale = 1.0f, bool32 xlog = true, bool32 ylog = true) {
+		const glm::mat4 rangeToRegion = remapRange(range, region);
+
+		real32 xstart, xstep, ystart, ystep;
+		calculateTickSpacing(range, region, xstart, xstep, ystart, ystep);
+
+		const glm::vec2 padding = { 5.0f, 5.0f };
+
+		// Draw horizontal labels
+		for (real64 x = xstart; x <= range.right; x += xstep) {
+
+			constexpr int32 minExponent = -3; // Eg. mHz corresponds to 10^(-3)
+			const char* units[] = {"mHz", "Hz", "kHz", "MHz", "GHz", "THz", "PHz"};
+			char buffer[64];
+
+			if (x < minExponent || x >= 3 * ARRAY_LENGTH(units) + minExponent) snprintf(buffer, 64, "%.2eHz", powf(10.0f, x));
+			else
+			{
+				uint32 index = floor(x / 3.0f) - minExponent / 3.0f;
+				real64 value = pow(10.0, x - (3 * index + minExponent));
+				snprintf(buffer, 64, "%4.2f%s", value, units[index]);
+			}
+
+			glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
+			drawText(font, buffer, glm::vec2(position) + padding, scale);
+		}
+
+		// Draw vertical labels
+		for (real32 y = ystart; y <= range.top; y += ystep) {
+
+			char buffer[64];
+			snprintf(buffer, 64, "%4.2f", y);
+
+			glm::vec4 position = rangeToRegion * glm::vec4{ range.left, y, 0.0f, 1.0f };
+			drawText(font, buffer, glm::vec2(position) + padding, scale);
+		}
 
 		return true;
 	}
@@ -165,104 +199,7 @@ namespace PH::RpGui {
 		return true;
 	}
 
-	inline bool32 drawPlotScaleValues(Box2D range, Box2D region, Font* font, real32 scale = 1.0f, bool32 xlog = true, bool32 ylog = true) {
-		//transform from range to -1.0f, 1.0f
-		real32 width = region.right - region.left;
-		real32 height = region.top - region.bottom;
-
-		glm::mat4 rangeToStdDev = glm::ortho(range.left, range.right, range.bottom, range.top);
-		glm::mat4 rangeToStd = glm::scale(glm::mat4(1.0f), glm::vec3{ 0.5f, 0.5f, 1.0f }) * glm::translate(glm::mat4(1.0f), glm::vec3{ 1.0f, 1.0f, 0.0f }) * rangeToStdDev;
-
-		glm::vec4 vx = { width, 0.0f, 0.0f, 0.0f };
-		glm::vec4 vy = { 0.0f, height, 0.0f, 0.0f };
-		glm::vec4 vz = { 0.0f, 0.0f, 1.0f, 0.0f };
-		glm::vec4 translate = { region.left, region.bottom, 0.0f, 1.0f };
-
-		glm::mat4 stdToRegion = glm::mat4(vx, vy, vz, translate);
-		glm::mat4 rangeToRegion = stdToRegion * rangeToStd;
-
-		real32 rangemultx = 5000.0f / width;
-		real32 rangemulty = 5000.0f / height;
-
-		int32 xorder = floor(log10((range.right - range.left) * rangemultx)) - 1;
-		int32 yorder = floor(log10((range.top - range.bottom) * rangemulty)) - 1;
-
-		real32 xstep = pow(10.0f, xorder);
-		real32 ystep = pow(10.0f, yorder);
-
-		real32 xstart = floor((range.left / xstep)) * xstep;
-		real32 ystart = floor((range.bottom / ystep)) * ystep;
-
-		glm::vec2 padding = { 5.0f, 5.0f };
-
-		//draw lines in x direction
-		for (real64 x = xstart; x <= range.right; x += xstep) {
-
-			if (xlog) {
-
-				if (x < 3.0f) {
-
-					real64 value = pow(10.0, x);
-					char buffer[64];
-					snprintf(buffer, 64, "%4.2fhz", value);
-					glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
-					drawText(font, buffer, glm::vec2(position) + padding, scale);
-				}
-
-				if (x >= 3 && x < 6) {
-					real64 value = pow(10.0, x - 3.0f);
-
-					char buffer[64];
-					snprintf(buffer, 64, "%4.2fkHz", value);
-					glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
-					drawText(font, buffer, glm::vec2(position) + padding, scale);
-				}
-
-				if (x >= 6 && x < 9) {
-
-					real64 value = pow(10.0, x - 6.0f);
-
-					char buffer[64];
-					snprintf(buffer, 64, "%4.2fMHz", value);
-					glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
-					drawText(font, buffer, glm::vec2(position) + padding, scale);
-				}
-
-				if (x >= 9 && x < 12) {
-
-					real64 value = pow(10.0, x - 9.0f);
-
-					char buffer[64];
-					snprintf(buffer, 64, "%4.2fGHz", value);
-					glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
-					drawText(font, buffer, glm::vec2(position) + padding, scale);
-				}
-
-			}
-			else {
-				char buffer[64];
-				snprintf(buffer, 64, "%4.2fHz", powf(10.0f, x));
-
-				glm::vec4 position = rangeToRegion * glm::vec4{ x, range.bottom, 0.0f, 1.0f };
-				drawText(font, buffer, glm::vec2(position) + padding, scale);
-			}
-		}
-
-		//draw lines in y direction
-		for (real32 y = ystart; y <= range.top; y += ystep) {
-
-			char buffer[64];
-			snprintf(buffer, 64, "%4.2f", y);
-
-			glm::vec4 position = rangeToRegion * glm::vec4{ range.left, y, 0.0f, 1.0f };
-			drawText(font, buffer, glm::vec2(position) + padding, scale);
-		}
-
-		return true;
-	}
-
 	inline void drawTextureQuadBottomLeft(glm::vec3 bottomleft, glm::vec2 scale, PH::Platform::GFX::Texture texture) {
 		RpGui::renderer2D.drawTexturedQuad({ bottomleft.x + scale.x, bottomleft.y + scale.y, bottomleft.z }, { scale.x, scale.y }, texture);
 	}
-
 }

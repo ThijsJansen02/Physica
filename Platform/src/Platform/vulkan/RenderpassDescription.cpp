@@ -1,5 +1,7 @@
 #include "Platform/vulkan/vulkanAPI.h"
 
+
+
 namespace PH::Vulkan {
 
 	bool32 createRenderpassDescription(
@@ -15,6 +17,7 @@ namespace PH::Vulkan {
 		for (uint32 i = 0; i < count; i++) {
 			PH::Platform::GFX::RenderpassDescriptionCreateinfo& createinfo = createinfos[i];
 
+			//create the attachments
 			auto attachments = Base::ArrayList<VkAttachmentDescription, ArenaAllocator>::create(createinfo.attachments.count);
 			for (const Platform::GFX::AttachmentDescription& des : createinfo.attachments) {
 
@@ -35,6 +38,7 @@ namespace PH::Vulkan {
 				attachments.pushBack(attachment);
 			}
 
+			//create the subpasses
 			auto subpasses = Base::ArrayList<VkSubpassDescription, ArenaAllocator>::create(createinfo.subpasses.count);
 			for (const Platform::GFX::SubPass& subpass : createinfo.subpasses) {
 				

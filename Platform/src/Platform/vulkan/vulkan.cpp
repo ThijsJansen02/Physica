@@ -110,7 +110,10 @@ namespace PH::Vulkan {
 
 	VkSurfaceFormatKHR chooseSurfaceFormat(Array<VkSurfaceFormatKHR> availableformats) {
 		for (const auto& format : availableformats) {
-			if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR) {
+			if (format.format == VK_FORMAT_B8G8R8A8_UNORM) {
+				return format;
+			}
+			else if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR) {
 				return format;
 			}
 		}
@@ -760,6 +763,7 @@ namespace PH::Vulkan {
 
 	//starts ends a single time usage commandbuffer.
 	void endSingleTimeCommands(VulkanAppContext* context, VkCommandBuffer commandBuffer) {
+		
 		vkEndCommandBuffer(commandBuffer);
 
 		VkFence fence;

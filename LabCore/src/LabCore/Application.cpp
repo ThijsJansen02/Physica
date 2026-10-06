@@ -3,6 +3,8 @@
 #include <Engine/imgui/DockSpace.h>
 #include <Platform/platformAPI.h>
 
+#include <LabCore/ImGuiStyle.h>
+
 #include "coreplugins/initcoreplugins.h"
 
 namespace PH::LabCore {
@@ -38,6 +40,8 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize)
 	PH::LabCore::appcontext = (AppContext*)PH::Engine::Allocator::alloc(sizeof(AppContext));
 	PH::LabCore::init();
 	PH::LabCore::initCorePlugins();
+
+	SetupImGuiStyle();
 
 	deserializeProject("project.lcproj");
 

@@ -62,12 +62,12 @@ namespace PH::RpGui {
 
 		void serialize(YAML::Emitter& emmiter);
 		void deserialize(const YAML::Node& root);
-
-
+	private:
+		void getMousePos(real32& mouseX, real32& mouseY);
 	};
 
-	void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer);
-	void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer);
+	void drawTransferFunctionMagnitude(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer, bool invert = false);
+	void drawTransferFunctionPhase(PlotViewPanel* plot, TransferFunction* function, Engine::ArrayList<glm::vec2>* buffer, bool invert = false);
 
 
 }

@@ -3,4 +3,7 @@ openviews:
     instanceid: 306520670
     viewdata:
       messages:
-        {}
+        - message: lc.print("Hello world")
+          source: 0
+        - message: Hello world
+          source: 1

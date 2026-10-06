@@ -53,9 +53,8 @@ namespace PH::LabCore {
 		Engine::String libpath = Engine::String::create(pythonhome).append("\\Lib");
 		const wchar_t* pylibpath = charToWChar(libpath.getC_Str());
 		PyWideStringList_Append(&config.module_search_paths, pylibpath);
-
 		PyWideStringList_Append(&config.module_search_paths, pyhome);
-
+		
 		Engine::String buildpath = Engine::String::create(pythonhome).append("\\python313.zip");
 		const wchar_t* pybuildpath = charToWChar(buildpath.getC_Str());
 		PyWideStringList_Append(&config.module_search_paths, pybuildpath);

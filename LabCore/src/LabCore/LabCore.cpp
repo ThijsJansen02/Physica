@@ -37,12 +37,12 @@ namespace PH::LabCore {
 		Engine::Font* font = Engine::Allocator::instantiate(Engine::createFont("c:/windows/fonts/Arial.ttf", 512, 16));
 		auto identifier = appcontext->assets.addAsset(font, 683249087875, Engine::getFontExtension());
 		appcontext->assets.addReferenceToAsset(identifier->assetid, "defaultfont");
-
-		initPython("C:\\Users\\Tjansen\\RpFilterStudio\\Physica\\dep\\embeddedpython");
+		
+		//should definitly be a relative path
+		initPython("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
 
 		PH::Platform::FileBuffer file;
 		if (PH::Platform::loadFile(&file, "res/labcoreinit.py")) {
-
 			try {
 				py::exec((char*)file.data);
 			}

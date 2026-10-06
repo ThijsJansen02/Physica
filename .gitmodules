@@ -23,7 +23,3 @@
 [submodule "dep/pybind11"]
 	path = dep/pybind11
 	url = https://github.com/pybind/pybind11.git
-[submodule "dep/cpython"]
-	path = dep/cpython
-	url = https://github.com/python/cpython.git
-	branch = 3.13

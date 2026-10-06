@@ -191,12 +191,15 @@ namespace PH::Platform {
 			ImageLayout layout;
 		};
 
+		//renderpasses can have multiple subpasses, a subpass is a single pass that is performed on the attachments. a subpass can have multiple color attachments and a depth attachment. a subpass can also have input attachments, which are attachments that are read from but not written to.
 		struct SubPass {
 			Base::Array<AttachmentReference> colorattachments;
 			AttachmentReference* depthstencilattachment;
 			PipelineBindPoint bindpoint;
 		};
 
+		//a subpass dependency describes the dependency between two subpasses. it describes the source and destination subpass, as well as the stage and access masks for both subpasses.
+		//the source subpass is the subpass that is executed before the destination subpass. the destination subpass is the subpass that is executed after the source subpass.
 		struct SubpassDependency {
 			uint32 srcsubpass;
 			uint32 dstsubpass;

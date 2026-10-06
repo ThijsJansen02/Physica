@@ -6,6 +6,7 @@ namespace PH::Vulkan {
 	uint32 findMemoryType(VkPhysicalDevice physicaldevice, uint32 typefilter, VkMemoryPropertyFlags properties);
 
 	void transitionImageLayout(VulkanAppContext* context, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32 layercount) {
+		
 		VkCommandBuffer commandBuffer = beginSingleTimeCommands(context);
 
 		VkImageMemoryBarrier barrier{};
