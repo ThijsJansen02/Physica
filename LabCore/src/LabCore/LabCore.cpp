@@ -38,7 +38,7 @@ namespace PH::LabCore {
 		auto identifier = appcontext->assets.addAsset(font, 683249087875, Engine::getFontExtension());
 		appcontext->assets.addReferenceToAsset(identifier->assetid, "defaultfont");
 
-		initPython("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
+		initPython("C:\\Users\\Tjansen\\RpFilterStudio\\Physica\\dep\\embeddedpython");
 
 		PH::Platform::FileBuffer file;
 		if (PH::Platform::loadFile(&file, "res/labcoreinit.py")) {
