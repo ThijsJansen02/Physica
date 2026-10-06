@@ -3,7 +3,7 @@ project "Platform"
 	language "C++"
 	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/int")
-	debugdir "%{wks.location}/LabCore"
+	debugdir "%{wks.location}/projects/RP-Gui/"
 
 	files
 	{

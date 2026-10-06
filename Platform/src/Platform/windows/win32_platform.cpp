@@ -573,8 +573,8 @@ PH_OPEN_FILE_DIALOG(win32_openFileDialog) {
 	ofn.hwndOwner = platformcontext.windowhandle;
 	ofn.lpstrFile = szFile;
 	ofn.nMaxFile = sizeof(szFile);
-	if (GetCurrentDirectoryA(256, currentDir))
-		ofn.lpstrInitialDir = currentDir;
+	/*if (GetCurrentDirectoryA(256, currentDir))
+		ofn.lpstrInitialDir = currentDir;*/
 	ofn.lpstrFilter = info.filter;
 	ofn.nFilterIndex = 1;
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
@@ -655,7 +655,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	//loading the application;
 	Application app;
-	if (!win32_loadApplication(windowhandle, "LabCore.dll", &app)) {
+	if (!win32_loadApplication(windowhandle, "RP-GUI.dll", &app)) {
 		PH_DEBUG_BREAK();
 	}
 

@@ -390,6 +390,11 @@ namespace PH::Base {
 			return *this;
 		}
 
+		String& append(String a) {
+			append(a.getSubString());
+			return *this;
+		}
+
 		String& appendFront(const char* string) {
 
 			sizeptr al = stringLength(string);
@@ -449,6 +454,16 @@ namespace PH::Base {
 		void set(String other) {
 			allocator::dealloc((void*)m_Str);
 			*this = other;
+		}
+
+		void set(SubString other) {
+			allocator::dealloc(m_Str);
+
+			m_Size = other.getLength() + 1;
+			m_Str = (char*)allocator::alloc(m_Size);
+
+			copyMemory((void*)other.getC_Str(), m_Str, other.getLength());
+			m_Str[m_Size - 1] = '\0';
 		}
 
 		char* m_Str;

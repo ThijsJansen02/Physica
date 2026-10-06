@@ -1,11 +1,12 @@
 TransferFunctions:
   - name: Example Function
-    remote: root@rp-f083c2.local
+    remote: root@rp-f06d2e.local
     decimation: 32
     lowprecision: 0
+    remotebitfilepath: project1.rpproj
     filters:
       - filter-type: 5
-        cutoff: 5762.712
+        cutoff: 5776.73
         qfactor: 3.275
         anticutoff: 8615.427
         antiqfactor: 25.386
@@ -16,8 +17,8 @@ TransferFunctions:
         a1: 1
         a2: 1
         _b0: 1
-        _b1: 1759.606717557252
-        _b2: 33208849.594944004
+        _b1: 1763.8870229007632
+        _b2: 33370609.492899995
         _a0: 1
         _a1: 339.3770976128575
         _a2: 74225582.39232899

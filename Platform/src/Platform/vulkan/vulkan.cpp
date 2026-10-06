@@ -401,8 +401,13 @@ namespace PH::Vulkan {
 		VkExtent2D swapchainextend = chooseSwapChainExtend(swapchainsupport.capabilities, context->windowwidth, context->windowheight);
 
 		uint32 imagecount = swapchainsupport.capabilities.minImageCount + 1;
-		if (swapchainsupport.capabilities.maxImageCount > 0) {
+
+		if (swapchainsupport.capabilities.maxImageCount > 0 && imagecount > swapchainsupport.capabilities.maxImageCount) {
 			imagecount = Base::minVal(imagecount, swapchainsupport.capabilities.maxImageCount);
+		}
+
+		if (imagecount > MAX_FRAMES_IN_FLIGHT) {
+			imagecount = MAX_FRAMES_IN_FLIGHT;
 		}
 
 		VkSwapchainCreateInfoKHR createinfo{};
@@ -804,6 +809,8 @@ namespace PH::Vulkan {
 		HINSTANCE instance
 	) {
 
+		*context = {};
+
 		Allocator::init(init.memory, init.memorysize);
 		ArenaAllocator::init(Allocator::alloc(ARENA_SIZE), ARENA_SIZE);
 		
@@ -879,18 +886,17 @@ namespace PH::Vulkan {
 
 		//the current frameindex, is not the same as the image index as it is possible to have more images in the swapchain than frames being worked on
 		uint32 frameindex = context->frameindex;
-
-		//this is the index of the image in the swapchain that we are currently going to render to. it is aquired with vkAcquireNextImageKHR
-		uint32_t imageindex;
-		vkAcquireNextImageKHR(context->device, context->swapchain, UINT64_MAX, context->imageAvailableSemaphores[frameindex], VK_NULL_HANDLE, &imageindex);
-
-		context->imageindex = imageindex;
-
 		//we have to wait if the rendering on this frame from the last time we submitted rendercommands to this frame is not yet done. 
 		//after the wait is done we have to manually reset the fence
 		vkWaitForFences(context->device, 1, &context->inFlightFences[frameindex], VK_TRUE, UINT64_MAX);
 		vkResetFences(context->device, 1, &context->inFlightFences[frameindex]);
-		
+
+
+		//this is the index of the image in the swapchain that we are currently going to render to. it is aquired with vkAcquireNextImageKHR
+		uint32_t imageindex;
+		vkAcquireNextImageKHR(context->device, context->swapchain, UINT64_MAX, context->imageAvailableSemaphores[frameindex], VK_NULL_HANDLE, &imageindex);
+		context->imageindex = imageindex;
+
 		//resetting and recording the rendercommands again to the commandbuffer
 		vkResetCommandBuffer(context->commandbuffers[frameindex], 0);	
 
@@ -917,7 +923,7 @@ namespace PH::Vulkan {
 		VkSubmitInfo submitinfo{};
 		submitinfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		//the color attachmentoutput rendering commands that are submitted in this commandbuffer should only start when the image is available
+		//the graphics command buffer has to wait on the image available semaphore that is signaled when vkAcquireNextImageKHR has finished acquiring its next image
 		VkSemaphore waitsemaphores[] = { context->imageAvailableSemaphores[frameindex] };
 		VkPipelineStageFlags waitstages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitinfo.waitSemaphoreCount = ARRAY_LENGTH(waitsemaphores);
@@ -927,6 +933,8 @@ namespace PH::Vulkan {
 		submitinfo.commandBufferCount = 1;
 		submitinfo.pCommandBuffers = &context->commandbuffers[frameindex];
 
+		//the renderqueue submit singnals the image available semaphore for the frame when it is done rendering
+		//the presentqueue waits on this semaphore before it presents the image
 		//signal the renderfinished semaphore once the commandbuffer is finished executing
 		VkSemaphore signalsemaphores[] = { context->renderFinishedSemaphores[frameindex] };
 		submitinfo.signalSemaphoreCount = ARRAY_LENGTH(signalsemaphores);
@@ -940,7 +948,9 @@ namespace PH::Vulkan {
 		VkPresentInfoKHR presentinfo{};
 		presentinfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-		//the frame can only be presented when the render finished semaphore is signaled.
+		
+		//the frame can only be presented when the render finished semaphore is signaled. 
+		//ask the swapchain to wait on the renderfinished semaphore before presenting it to the screen
 		presentinfo.waitSemaphoreCount = ARRAY_LENGTH(signalsemaphores);
 		presentinfo.pWaitSemaphores = signalsemaphores;
 

@@ -7,3 +7,7 @@ openviews:
           source: 0
         - message: Hello world
           source: 1
+        - message: lc.print("hello world")
+          source: 0
+        - message: "ModuleNotFoundError: No module named '__main__'"
+          source: 1

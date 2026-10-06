@@ -3,6 +3,7 @@ TransferFunctions:
     remote: root@rp-f083c2.local
     decimation: 1
     lowprecision: 0
+    remotebitfilepath: sinewave_generator_wrapper.bit.bin
     filters:
       - filter-type: 0
         cutoff: 1000

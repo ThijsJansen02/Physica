@@ -181,7 +181,7 @@ void deserializeProject(const char* projectdir) {
 			PH::Platform::createThread(threadinfo, &tf.connection.thread);
 
 			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
-			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
+			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b ").append(tf.remotebitfile)});
 
 			for (auto& f : tf.filters) {
 				sentFilterToRp(f, tf.getFilterSampleRate(), &tf.connection, tf.lowprecision);
@@ -332,6 +332,16 @@ inline void drawComponent(const Engine::String& name, PH::RpGui::Context* contex
 	ImGui::PopID();
 }
 
+//sends a command to the RP to reload a bitfile into the fpga
+void sendResetbitfileCommand(const char* remotepath, RpGui::RpConnection* connection) {
+	auto command = Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; fpgautil -b ");
+	command.append(remotepath);
+
+	sendRPcommand(command.getC_Str(), connection);
+
+	Engine::String::destroy(&command);
+}
+
 void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	RpGui::TransferFunction* tf = (RpGui::TransferFunction*)function;
@@ -365,35 +375,73 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 		PH::Platform::createThread(threadinfo, &tf->connection.thread);
 
+		//sends
 		ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
-		tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b sinewave_generator_wrapper.bit.bin") });
+		tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b ").append(tf->remotebitfile.getC_Str())});
 	}
 
 	if (ImGui::Button("Reload Bitfile")) {
-		if(tf->connection.connected) {
-			ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
-			tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; fpgautil -b sinewave_generator_wrapper.bit.bin") });
+		sendResetbitfileCommand(tf->remotebitfile.getC_Str(), &tf->connection);
+	}
 
-			if (!tf->filters.empty()) {
-				auto& f = tf->filters[0];
-				recalculateFilter(f);
-				sentFilterToRp(f, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
+	//button for uploading a new bitfile
+	ImGui::SameLine();
+	if(ImGui::Button("Upload bitfile")) {
+
+		PH::Platform::OpenFileDialogInfo info{};
+		info.filter = "*.bin";
+		info.read = true;
+
+		char buffer[1024];
+
+		info.resultbuffer = buffer;
+		info.resultbuffersize = 1024;
+
+			
+		//if the filedialog managed to open a file:
+		if (PH::Platform::openFileDialog(info)) {
+
+			auto filedir = Engine::String::create(buffer);
+			auto filename = filedir.getSubString().getFromLast('/');
+			filename = filename.moveHead(1);
+			
+
+			Engine::INFO << filedir.getC_Str() << "\n";
+			Engine::INFO << filename << "\n";
+
+
+			PH::Platform::FileBuffer file;
+			if (PH::Platform::loadFile(&file, filedir.getC_Str())) {
+				
+				RpGui::RpCommand c;
+
+				c.data = Engine::Allocator::alloc(file.size);
+				c.datasize = file.size;
+
+				PH::Base::copyMemory(file.data, c.data, file.size);
+
+				c.type = SFTP;
+				c.command = Engine::String::create(filename);
+
+
+				ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+				tf->connection.commandqueue.push(c);
+
+				tf->remotebitfile.set(filename);
+
+				PH::Platform::unloadFile(&file);
 			}
-		}
-		else {
-			INFO << "Red Pitaya with address " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
+			else {
+				Engine::WARN << "Failed to open file: " << filedir.getC_Str() << "\n";
+			}
+
 		}
 	}
 
 	ImGui::SameLine();
 	if (ImGui::Button("Reset")) {
-		if (tf->connection.connected) {
-			ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
-			tf->connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; monitor 0x41230000 1; sleep 0.001; monitor 0x41230000 0") });
-		}
-		else {
-			INFO << "Red Pitaya with address " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
-		}
+
+		sendRPcommand("monitor 0x41230000 1; monitor 0x41230000 0", &tf->connection);
 	}
 
 	ImGui::Text("SSH Command");
@@ -405,16 +453,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 	ImGui::SameLine();
 	if (ImGui::Button("Send")) {
-		if (tf->connection.connected) {
-
-			PH::RpGui::RpCommand c{};
-			tf->connection.commandqueue.push({ Engine::String::create(tf->currentcommand.getC_Str()) });
-			ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
-			tf->currentcommand.set("");
-		}
-		else {
-			INFO << "Red Pitaya with address " << tf->connection.remoteip.getC_Str() << "is not yet connected!\n";
-		}
+		sendRPcommand(tf->currentcommand.getC_Str(), &tf->connection);
 	}
 
 	ImGui::SeparatorText("Filter Settings");

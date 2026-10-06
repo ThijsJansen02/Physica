@@ -3,6 +3,9 @@
 //libssh should be included as the first header to avoid any issues with the windows.h header that is included by the platform layer, because windows.h defines some macros that can cause issues with the libssh headers if they are included after windows.h
 #define LIBSSH_STATIC 1
 #include <libssh/libssh.h>
+#include <libssh/sftp.h>
+#include <fcntl.h>
+
 
 #include "RpGui.h"
 
@@ -14,6 +17,7 @@
 #include <Engine/Engine.h>
 
 #include <Base/Log.h>
+
 
 #include <Base/Datastructures/String.h>
 #include <Base/Datastructures/circularworkqueue.h>
@@ -110,9 +114,17 @@ namespace PH::RpGui {
 		return 0;
 	}
 
+	enum CommandType {
+		SSH_SHELL,
+		SFTP
+	};
 
 	struct RpCommand {
 		Engine::String command;
+		CommandType type;
+
+		void* data;
+		sizeptr datasize;
 	};
 
 	struct RpConnection {
@@ -193,59 +205,110 @@ namespace PH::RpGui {
 			if (workptr != nullptr) {
 
 				RpCommand work = *workptr;
-				INFO <<  "RP> " << work.command.getC_Str() << "\n";
 
-				ssh_channel channel = NULL;
-				int rc;
-				char buffer[256];
-				int nbytes;
+				//if the command type is shell, upload shell command
+				if (work.type == SSH_SHELL) {
 
-				channel = ssh_channel_new(my_ssh_session);
-				if (channel == NULL) {
-					WARN << "RP failed to create channel!\n";
-					continue;
-				}
+					INFO <<  "RP> " << work.command.getC_Str() << "\n";
 
-				rc = ssh_channel_open_session(channel);
-				if (rc != SSH_OK)
-				{
-					WARN << "Failed to open session on channel\n";
-					ssh_channel_free(channel);
-					continue;
-				}
+					ssh_channel channel = NULL;
+					int rc;
+					char buffer[256];
+					int nbytes;
 
-				rc = ssh_channel_request_exec(channel, work.command.getC_Str());
-				if (rc != SSH_OK)
-				{
-					ssh_channel_close(channel);
-					ssh_channel_free(channel);
+					channel = ssh_channel_new(my_ssh_session);
+					if (channel == NULL) {
+						WARN << "RP failed to create channel!\n";
+						continue;
+					}
 
-					WARN << "Failed to execute reguest\n";
-					continue;
-				}
+					rc = ssh_channel_open_session(channel);
+					if (rc != SSH_OK)
+					{
+						WARN << "Failed to open session on channel\n";
+						ssh_channel_free(channel);
+						continue;
+					}
 
-				nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+					rc = ssh_channel_request_exec(channel, work.command.getC_Str());
+					if (rc != SSH_OK)
+					{
+						ssh_channel_close(channel);
+						ssh_channel_free(channel);
 
-				while (nbytes > 0) {
-					buffer[nbytes -1] = 0;
-;					INFO << buffer << "\n";
+						WARN << "Failed to execute reguest\n";
+						continue;
+					}
+
 					nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
-				}
+
+					while (nbytes > 0) {
+						buffer[nbytes -1] = 0;
+	;					INFO << buffer << "\n";
+						nbytes = ssh_channel_read(channel, buffer, sizeof(buffer), 0);
+					}
 
 
-				if (nbytes < 0)
-				{
-					INFO << "nbytes: " << nbytes << "\n";
+					if (nbytes < 0)
+					{
+						INFO << "nbytes: " << nbytes << "\n";
+						ssh_channel_close(channel);
+						ssh_channel_free(channel);
+						continue;
+					}
+
+					ssh_channel_send_eof(channel);
 					ssh_channel_close(channel);
 					ssh_channel_free(channel);
-					continue;
+
+					Engine::String::destroy(&work.command);
 				}
 
-				ssh_channel_send_eof(channel);
-				ssh_channel_close(channel);
-				ssh_channel_free(channel);
+				if (work.type == SFTP) {
+					// Create SFTP session
+					sftp_session sftp = sftp_new(my_ssh_session);
+					if (!sftp) {
+						sftp_free(sftp);
+						Engine::ERR << "Could not create SFTP session\n";
+						continue;
+					}
 
-				Engine::String::destroy(&work.command);
+					if (sftp_init(sftp) != SSH_OK) {
+						Engine::ERR << "SFTP initialization failed: " << ssh_get_error(my_ssh_session) << '\n';
+						sftp_free(sftp);
+						continue;
+					}
+					constexpr int remotefilepermissions = 0644;
+					sftp_file remotefile = sftp_open(sftp, work.command.getC_Str(), O_WRONLY | O_CREAT, 0644);
+
+					if (!remotefile) {
+						Engine::ERR << "Could not open remote file: "
+							<< ssh_get_error(my_ssh_session) << '\n';
+						sftp_free(sftp);
+						continue;
+					}
+
+					sftp_limits_t limits = sftp_limits(sftp);
+
+					sizeptr writesize = limits->max_write_length;
+					sizeptr offset = 0;
+
+					while (offset < work.datasize) {
+						sizeptr nbytesleft = work.datasize - offset;
+
+						ssize_t written = sftp_write(remotefile, (uint8*)work.data + offset, Base::minSizeptr(nbytesleft, writesize));
+						offset += written;
+					}
+					
+					//clean up command
+					Engine::Allocator::dealloc(work.data);
+					Engine::String::destroy(&work.command);
+
+					sftp_close(remotefile);
+					sftp_free(sftp);
+
+				}
+
 
 			}
 			else {
@@ -259,5 +322,22 @@ namespace PH::RpGui {
 		ssh_free(my_ssh_session);
 		return 0;
 	}
+
+	//sends an ssh command to the rp connection
+	inline void sendRPcommand(const char* command, RpGui::RpConnection* connection) {
+		if (connection->connected) {
+
+			RpGui::RpCommand rpcommand;
+			rpcommand.type = SSH_SHELL;
+			rpcommand.command = Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; ").append(command);
+
+			connection->commandqueue.push(rpcommand);
+			ReleaseSemaphore(connection->semaphore, 1, nullptr);
+		}
+		else {
+			INFO << "Red Pitaya with address " << connection->remoteip.getC_Str() << "is not yet connected!\n";
+		}
+	}
+
 
 }

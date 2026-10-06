@@ -118,7 +118,7 @@ namespace PH::Platform {
 	struct OpenFileDialogInfo {
 		PH::sizeptr resultbuffersize;
 		char* resultbuffer;
-		char* filter;
+		const char* filter;
 		PH::bool32 read;
 	};
 

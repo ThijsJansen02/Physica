@@ -13,6 +13,8 @@ namespace PH::RpGui {
 	struct TransferFunction {
 		Engine::String name;
 		Engine::String currentcommand;
+
+		Engine::String remotebitfile;
 		RpConnection connection;
 
 		Engine::ArrayList<Filter> filters;
@@ -127,8 +129,6 @@ namespace PH::RpGui {
 		int32 b1 = convertToFixedPoint32(dcoeffs.b[1]);
 		int32 b2 = convertToFixedPoint32(dcoeffs.b[2]);
 
-		s << "export PATH=$PATH:/opt/redpitaya/bin;";
-
 		//first coeff at 0x41200000
 		char buffer[9];
 		s << " monitor 0x41200000 0x";
@@ -168,8 +168,6 @@ namespace PH::RpGui {
 		int16 b0 = convertToFixedPoint(dcoeffs.b[0]);
 		int16 b1 = convertToFixedPoint(dcoeffs.b[1]);
 		int16 b2 = convertToFixedPoint(dcoeffs.b[2]);
-
-		s << "export PATH=$PATH:/opt/redpitaya/bin;";
 
 		//first 2 coeffs at 0x41200000
 		s << "monitor 0x41200000 0x";
@@ -211,6 +209,7 @@ namespace PH::RpGui {
 		out << YAML::Key << "remote" << YAML::Value << function.connection.remoteip.getC_Str();
 		out << YAML::Key << "decimation" << YAML::Value << function.decimation;
 		out << YAML::Key << "lowprecision" << YAML::Value << function.lowprecision;
+		out << YAML::Key << "remotebitfilepath" << YAML::Value << function.remotebitfile.getC_Str();
 		out << YAML::Key << "filters" << YAML::Value << YAML::BeginSeq;
 
 		for (const auto& filter : function.filters) {
@@ -227,6 +226,13 @@ namespace PH::RpGui {
 		result.name = t["name"].as<Engine::String>();
 		result.connection.remoteip = t["remote"].as<Engine::String>();
 		result.filters = Engine::ArrayList<Filter>::create(1);
+
+		if (t["remotebitfilepath"]) {
+			result.remotebitfile = t["remotebitfilepath"].as<Engine::String>();
+		}
+		else {
+			result.remotebitfile = Engine::String::create("sinewave_generator_wrapper.bit.bin");
+		}
 
 		if (t["lowprecision"]) {
 			result.lowprecision = t["lowprecision"].as<bool32>();
@@ -249,7 +255,6 @@ namespace PH::RpGui {
 		return result;
 	}
 
-
 	inline void sentFilterToRp(Filter& f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision) {
 
 		const real64 unwarpedCF = f.cutoffFrequency;
@@ -263,20 +268,22 @@ namespace PH::RpGui {
 		f.cutoffFrequency = unwarpedCF;
 		f.antiCutoffFrequency = unwarpedACF;
 
-		Engine::String rpcommand;
+		Engine::String filterstring;
 
 		if (lowprecision) {
-			rpcommand = generateRPfilterString(dcoeffs);
+			filterstring = generateRPfilterString(dcoeffs);
 		}
 		else {
-			rpcommand = generateRpFilterString32(dcoeffs);
+			filterstring = generateRpFilterString32(dcoeffs);
 		}
 
 		if (connection->open) {
-			connection->commandqueue.push({ rpcommand });
-			connection->commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; monitor 0x41230000 1; monitor 0x41230000 0") });
-			//connection->commandqueue.push({ Engine::String::create("monitor 0x41230000 0") });
-			ReleaseSemaphore(connection->semaphore, 1, nullptr);
+			filterstring.append("; monitor 0x41230000 1; monitor 0x41230000 0");
+
+			sendRPcommand(filterstring.getC_Str(), connection);
+
 		}
+
+		Engine::String::destroy(&filterstring);
 	}
 }

@@ -184,8 +184,8 @@ namespace PH::RpGui {
 
 					range.left -= mousefactor.x * deltam.x;
 					range.right -= mousefactor.x * deltam.x;
-					range.top += mousefactor.y * deltam.y;
-					range.bottom += mousefactor.y * deltam.y;
+					range.top -= mousefactor.y * deltam.y;
+					range.bottom -= mousefactor.y * deltam.y;
 
 					if (xlock) {
 						xlock->range.left = range.left;
@@ -223,7 +223,7 @@ namespace PH::RpGui {
 	void PlotViewPanel::getMousePos(real32& mouseX, real32& mouseY)
 	{
 		glm::vec2 mousepos = Engine::Events::getMousePos();
-		mousepos.y = Engine::getParentDisplay()->viewport.y - mousepos.y; //flip y coordinate because the window coordinate system has y going down and the plot coordinate system has y going up
+		//flip y coordinate because the window coordinate system has y going down and the plot coordinate system has y going up
 
 		mousepos.x -= panelregion.left; //subtract the left coordinate of the panel region from the x coordinate of the mouse position, because the panel region is not necessarily at the left edge of the window and we want to use the panel region for transforming mouse coordinates from window coordinates to plot coordinates
 		mousepos.y -= panelregion.bottom; //subtract the bottom coordinate of the panel region from the y coordinate of the mouse position, because the panel region is not necessarily at the bottom edge of the window and we want to use the panel region for transforming mouse coordinates from window coordinates to plot coordinates
