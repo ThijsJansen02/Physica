@@ -21,6 +21,10 @@ group "core"
     include "LabCore"
 group ""
 
+group "labcore-plugins"
+    include "LabCore/plugins/labcore-3d"
+group ""
+
 group "projects"
     include "projects/RP-Gui"
 group ""

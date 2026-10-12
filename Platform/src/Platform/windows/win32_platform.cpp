@@ -481,7 +481,7 @@ struct win32_ThreadInfo {
 	PH::Platform::ThreadCreateInfo info;
 };
 
-//weird implementation, why does it have to create a memory arena for the GFX layer?
+//weird implementation, why does it have to create a memory arena for the GFX layer? because an arena allocator is not thread safe
 DWORD WINAPI win32_ThreadProc(
 	_In_ LPVOID lpParameter
 ) {
@@ -655,7 +655,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	//loading the application;
 	Application app;
-	if (!win32_loadApplication(windowhandle, "RP-GUI.dll", &app)) {
+	if (!win32_loadApplication(windowhandle, "LabCore.dll", &app)) {
 		PH_DEBUG_BREAK();
 	}
 

@@ -6,10 +6,13 @@ namespace PH::Engine {
 
 	struct AssetIdentifier;
 
+	typedef UUID AssetID;
+	typedef UUID AssetDescriptionID;
+
 	//base class for any asset that is 
 	struct AssetBase {
 		//unique key
-		UUID assetid;
+		AssetID id;
 		AssetIdentifier* identifier;
 	};
 
@@ -20,16 +23,14 @@ namespace PH::Engine {
 	//holds the description for an asset 
 	struct AssetDescription {
 
-		//unique key
-		Engine::String extension;
-
+		//unique key for the asset description
+		AssetDescriptionID id;
+		const char* extension;
+		
 		SerializeAsset serialize_;
 		deserializeAsset deserialize_;
 
 		sizeptr localdatasize;
-
-		Engine::String name;
-
 	};
 
 }

@@ -14,7 +14,7 @@ namespace PH::Platform {
 
 	Intern::createThreadFN* createThread = nullptr;
 
-	Intern::getTimeMsFN* getTimeMs = nullptr;
+	PH_PLATFORM_API Intern::getTimeMsFN* getTimeMs = nullptr;
 
 	Intern::OpenFileDialogFN* openFileDialog = nullptr;
 	Intern::ListFilesFN* listFiles = nullptr;

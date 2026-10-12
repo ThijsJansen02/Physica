@@ -13,8 +13,8 @@ namespace PH::LabCore {
 		for (auto& viewinstance : views) {
 
 			openview = &viewinstance;
-			if (openview->view->onUpdate_) {
-				openview->view->onUpdate_(viewinstance.instancedata);
+			if (openview->viewdescription->onUpdate_) {
+				openview->viewdescription->onUpdate_(viewinstance.instancedata);
 			}
 		}
 		//reset the open view to nullptr
@@ -26,12 +26,12 @@ namespace PH::LabCore {
 		for (auto& viewinstance : views) {
 
 			openview = &viewinstance;
-			if (openview->view->draw_) {
+			if (openview->viewdescription->draw_) {
 
 				real32 framesize = ImGui::GetWindowSize().y;
 
-				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
-				if (ImGui::Begin(openview->view->name.getC_Str(), nullptr, ImGuiWindowFlags_MenuBar)) {
+				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, openview->viewdescription->windowpadding);
+				if (ImGui::Begin(openview->viewdescription->name.getC_Str(), nullptr, openview->viewdescription->windowflags)) {
 					
 					openview->isfocussed = ImGui::IsWindowFocused();
 
@@ -49,30 +49,31 @@ namespace PH::LabCore {
 
 					glm::vec2 mousepos = Engine::Events::getMousePos();
 
-					openview->view->draw_(viewinstance.instancedata);
+					openview->viewdescription->draw_(viewinstance.instancedata);
 
-					ImGui::End();
 				}
+				ImGui::End();
 				ImGui::PopStyleVar(1);
 			}
 		}
 		openview = nullptr;
 	}
 
-	ViewInstance createViewInstance(View* view, Engine::UUID id) {
+	ViewInstance createViewInstance(ViewDescription* view) {
+		return createViewInstance(view, Engine::createRandomUUID());
+	}
+
+	ViewInstance createViewInstance(ViewDescription* description, Engine::UUID id) {
 		ViewInstance instance{};
-		instance.view = view;
-		instance.instancedata = PH::Engine::Allocator::alloc(view->instancedatasize);
+		instance.viewdescription = description;
+		instance.instancedata = PH::Engine::Allocator::alloc(description->instancedatasize);
 
 		instance.instanceid = id;
 
-		view->instantiate_(instance.instancedata);
+		description->instantiate_(instance.instancedata);
 		return instance;
 	}
 
-	ViewInstance createViewInstance(View* view) {
-		return createViewInstance(view, Engine::createRandomUUID());
-	}
 	
 	bool32 isCursorOnView(const ViewInstance& view) {
 		glm::vec2 mousepos = Engine::Events::getMousePos();
@@ -86,13 +87,18 @@ namespace PH::LabCore {
 			if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
 				if (isCursorOnView(viewinstance)) {
 					viewinstance.isfocussed = true;
-					return viewinstance.view->onEvent_(viewinstance.instancedata, e);
+					if (viewinstance.viewdescription->onEvent_) {
+						return viewinstance.viewdescription->onEvent_(viewinstance.instancedata, e);
+					}
+
 				}
 				viewinstance.isfocussed = false;
 			}
 
 			if (viewinstance.isfocussed) {
-				return viewinstance.view->onEvent_(viewinstance.instancedata, e);
+				if (viewinstance.viewdescription->onEvent_) {
+					return viewinstance.viewdescription->onEvent_(viewinstance.instancedata, e);
+				}
 			}
 		}
 	}

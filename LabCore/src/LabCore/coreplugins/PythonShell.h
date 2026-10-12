@@ -11,5 +11,5 @@ namespace PH::LabCore {
 	bool32 pythonShellOnEvent(void* instancedata, const PH::Platform::Event& event);
 	*/
 
-	View getPythonShellView();
+	ViewDescription getPythonShellViewDescription();
 }

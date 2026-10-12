@@ -7,7 +7,16 @@
 
 namespace PH::Engine {
 
+//random hardcoded UUID for the font asset description
+#define PH_ASSET_FONT 8122762271555803
+
+
 	struct Font : public AssetBase {
+
+		//asset needs this to compile templated function getAsset
+		static AssetDescriptionID getAssetDescriptionID() {
+			return PH_ASSET_FONT;
+		}
 
 		Platform::GFX::Texture atlas;
 		stbtt_bakedchar cdata_cpu[96];

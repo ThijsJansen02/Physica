@@ -546,54 +546,64 @@ namespace PH::Platform {
 		};
 	}
 
+#ifdef PH_PLATFORM_EXPORT
+#define PH_PLATFORM_API __declspec(dllexport)
+#else 
+#ifdef PH_PLATFORM_IMPORT
+#define PH_PLATFORM_API __declspec(dllimport)
+#else
+#define PH_PLATFORM_API
+#endif
+#endif
+
 	namespace GFX {
-		extern Intern::gfx_DrawFN* draw;
-		extern Intern::gfx_DrawIndexedFN* drawIndexed;
-		extern Intern::gfx_SetViewportsFN* setViewports;
-		extern Intern::GFX_SetScissorsFN* setScissors;
-
-		extern Intern::gfx_CreateBuffersFN* createBuffers;
-		extern Intern::gfx_DestroyBuffersFN* destroyBuffers;
-		extern Intern::gfx_BindVertexBuffersFN* bindVertexBuffers;
-		extern Intern::gfx_BindIndexBufferFN* bindIndexBuffer;
-		extern Intern::gfx_CopyBufferFN* copyBuffer;	
-		extern Intern::gfx_MapBufferFN* mapBuffer;
-		extern Intern::gfx_UnmapBufferFN* unmapBuffer;
-
-		extern Intern::gfx_CreateRenderpassDescriptionFN* createRenderpassDescriptions;
-		extern Intern::gfx_CreateFramebuffersFN* createFramebuffers;
-
-		extern Intern::gfx_BeginRenderpassFN* beginRenderpass;
-		extern Intern::gfx_EndRenderpassFN* endRenderpass;
-
-		extern Intern::gfx_CreateDescriptorSetLayoutsFN* createDescriptorSetLayouts;
-		extern Intern::gfx_destroyDesctiptorSetLayoutsFN* destroyDescriptorSetLayouts;
-		extern Intern::gfx_createDescriptorSetsFN* createDescriptorSets;
-		extern Intern::gfx_DestroyDescriptorSetsFN* destroyDescriptorSets;
-		extern Intern::gfx_updateDescriptorSetsFN* updateDescriptorSets;
-		extern Intern::gfx_bindDescriptorSetsFN* bindDescriptorSets;
-
-		extern Intern::gfx_CreateShadersFN* createShaders;
-		extern Intern::gfx_DestroyShadersFN* destroyShaders;
-		extern Intern::gfx_BindGraphicsPipelineFN* bindGraphicsPipeline;
-		extern Intern::gfx_CreateGraphicsPipelinesFN* createGraphicsPipelines;
-
-		extern Intern::gfx_CreateTexturesFN* createTextures;
-		extern Intern::gfx_DestroyTexturesFN* destroyTextures;
-
-		extern Intern::gfx_DrawImguiWidgetsFN* drawImguiWidgets;
-		extern Intern::gfx_CreateImguiImageFN* createImGuiImage;
+		extern PH_PLATFORM_API Intern::gfx_DrawIndexedFN*	drawIndexed;
+		extern PH_PLATFORM_API Intern::gfx_SetViewportsFN*  setViewports;
+		extern PH_PLATFORM_API Intern::GFX_SetScissorsFN*   setScissors;
+		extern PH_PLATFORM_API Intern::gfx_DrawFN*			draw;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateBuffersFN* createBuffers;
+		extern PH_PLATFORM_API Intern::gfx_DestroyBuffersFN* destroyBuffers;
+		extern PH_PLATFORM_API Intern::gfx_BindVertexBuffersFN* bindVertexBuffers;
+		extern PH_PLATFORM_API Intern::gfx_BindIndexBufferFN* bindIndexBuffer;
+		extern PH_PLATFORM_API Intern::gfx_CopyBufferFN* copyBuffer;
+		extern PH_PLATFORM_API Intern::gfx_MapBufferFN* mapBuffer;
+		extern PH_PLATFORM_API Intern::gfx_UnmapBufferFN* unmapBuffer;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateRenderpassDescriptionFN* createRenderpassDescriptions;
+		extern PH_PLATFORM_API Intern::gfx_CreateFramebuffersFN* createFramebuffers;
+			   
+		extern PH_PLATFORM_API Intern::gfx_BeginRenderpassFN* beginRenderpass;
+		extern PH_PLATFORM_API Intern::gfx_EndRenderpassFN* endRenderpass;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateDescriptorSetLayoutsFN* createDescriptorSetLayouts;
+		extern PH_PLATFORM_API Intern::gfx_destroyDesctiptorSetLayoutsFN* destroyDescriptorSetLayouts;
+		extern PH_PLATFORM_API Intern::gfx_createDescriptorSetsFN* createDescriptorSets;
+		extern PH_PLATFORM_API Intern::gfx_DestroyDescriptorSetsFN* destroyDescriptorSets;
+		extern PH_PLATFORM_API Intern::gfx_updateDescriptorSetsFN* updateDescriptorSets;
+		extern PH_PLATFORM_API Intern::gfx_bindDescriptorSetsFN* bindDescriptorSets;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateShadersFN* createShaders;
+		extern PH_PLATFORM_API Intern::gfx_DestroyShadersFN* destroyShaders;
+		extern PH_PLATFORM_API Intern::gfx_BindGraphicsPipelineFN* bindGraphicsPipeline;
+		extern PH_PLATFORM_API Intern::gfx_CreateGraphicsPipelinesFN* createGraphicsPipelines;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateTexturesFN* createTextures;
+		extern PH_PLATFORM_API Intern::gfx_DestroyTexturesFN* destroyTextures;
+			   
+		extern PH_PLATFORM_API Intern::gfx_DrawImguiWidgetsFN* drawImguiWidgets;
+		extern PH_PLATFORM_API Intern::gfx_CreateImguiImageFN* createImGuiImage;
 	}
 
-	extern Intern::LoadFileFN* loadFile;
-	extern Intern::UnloadFileFN* unloadFile;
-	extern Intern::ConsoleWriteFN* consoleWrite;
-	extern Intern::WriteFileFN* writeFile;
+	extern PH_PLATFORM_API Intern::LoadFileFN* loadFile;
+	extern PH_PLATFORM_API Intern::UnloadFileFN* unloadFile;
+	extern PH_PLATFORM_API Intern::ConsoleWriteFN* consoleWrite;
+	extern PH_PLATFORM_API Intern::WriteFileFN* writeFile;
 
-	extern Intern::getTimeMsFN* getTimeMs;
+	extern PH_PLATFORM_API Intern::getTimeMsFN* getTimeMs;
 
-	extern Intern::createThreadFN* createThread;
-	extern Intern::ListFilesFN* listFiles;
+	extern PH_PLATFORM_API Intern::createThreadFN* createThread;
+	extern PH_PLATFORM_API Intern::ListFilesFN* listFiles;
 
-	extern Intern::OpenFileDialogFN* openFileDialog;
+	extern PH_PLATFORM_API Intern::OpenFileDialogFN*  openFileDialog;
 }

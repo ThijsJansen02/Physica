@@ -10,6 +10,8 @@
 
 namespace py = pybind11;
 
+typedef void(*plugininitfn)();
+
 namespace PH::LabCore {
 
 	void loadShaders();
@@ -27,16 +29,16 @@ namespace PH::LabCore {
 		renderer2D = &appcontext->renderer2D;
 
 		//create the list of views and viewinstances
-		appcontext->views = Engine::ArrayList<View>::create(1);
+		appcontext->views = Engine::ArrayList<ViewDescription>::create(1);
 		appcontext->viewinstances = Engine::ArrayList<ViewInstance>::create(1);
 
 		appcontext->assets = Engine::AssetLibrary::createAssetLibrary();
-		appcontext->assets.addAssetDescription(Engine::createFontDescription());
+		appcontext->assets.addAssetType(Engine::createFontDescription());
 
 		//statically adding a font to the asset library. application should always have a font available to draw text with, this is going to be used for the python shell and for the view instances
 		Engine::Font* font = Engine::Allocator::instantiate(Engine::createFont("c:/windows/fonts/Arial.ttf", 512, 16));
-		auto identifier = appcontext->assets.addAsset(font, 683249087875, Engine::getFontExtension());
-		appcontext->assets.addReferenceToAsset(identifier->assetid, "defaultfont");
+		auto identifier = appcontext->assets.addAsset<Engine::Font>(font, 683249087875, Engine::getFontExtension());
+		appcontext->assets.addReferenceToAsset<Engine::Font>(identifier->assetid, "defaultfont");
 		
 		//should definitly be a relative path
 		initPython("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
@@ -50,6 +52,18 @@ namespace PH::LabCore {
 				Engine::INFO << e.what();
 			}
 		}
+		
+		HMODULE applicationlib = LoadLibraryA("LabCore-3D.dll");
+		if (applicationlib == nullptr) {
+			Engine::ERR << "failed to load application\n";
+			PH_DEBUG_BREAK();
+		}
+
+		plugininitfn plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
+		if (!plugininit_) { Engine::ERR << "failed to load application update\n"; }
+
+		plugininit_();
+
 
 	}
 
@@ -67,19 +81,26 @@ namespace PH::LabCore {
 		YAML::Emitter out;
 
 		out << YAML::BeginMap;
+
+		//open views sequence
 		out << YAML::Key << "openviews" << YAML::Value << YAML::BeginSeq;
 
 		for (auto& viewinstance : appcontext->viewinstances) {
 			out << YAML::Value << YAML::BeginMap;
-			out << YAML::Key << "viewname" << YAML::Value << viewinstance.view->name.getC_Str();
+
+			out << YAML::Key << "viewname" << YAML::Value << viewinstance.viewdescription->name.getC_Str();
 			out << YAML::Key << "instanceid" << YAML::Value << viewinstance.instanceid;
 			out << YAML::Key << "viewdata" << YAML::Value;
-			if (viewinstance.view->serialize_) {
-				viewinstance.view->serialize_(viewinstance.instancedata, out);
+			if (viewinstance.viewdescription->serialize_) {
+				viewinstance.viewdescription->serialize_(viewinstance.instancedata, out);
+			}
+			else {
+				out << YAML::Null;
 			}
 			out << YAML::EndMap;
 		}
 
+		//end the open views sequence
 		out << YAML::EndSeq;
 		out << YAML::EndMap;
 
@@ -106,13 +127,13 @@ namespace PH::LabCore {
 			Engine::String viewname = view["viewname"].as<Engine::String>();
 			Engine::UUID instanceid = view["instanceid"].as<Engine::UUID>();
 
-			for (View& viewdescription : appcontext->views) {
+			for (ViewDescription& viewdescription : appcontext->views) {
 				if (viewdescription.name.compare(viewname.getC_Str())) {
 
 					
 					ViewInstance instance = createViewInstance(&viewdescription, instanceid);
-					if (view["viewdata"] && instance.view->deserialize_) {
-						instance.view->deserialize_(instance.instancedata, view["viewdata"]);
+					if (view["viewdata"] && instance.viewdescription->deserialize_) {
+						instance.viewdescription->deserialize_(instance.instancedata, view["viewdata"]);
 					}
 					auto& inst = appcontext->viewinstances.pushBack(instance);
 

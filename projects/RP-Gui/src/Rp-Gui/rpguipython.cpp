@@ -101,14 +101,19 @@ void removePlot(char* name) {
 template<typename T>
 void bind_array(py::module& m, const char* name) {
 	py::class_<Engine::ArrayList<T>>(m, name)
-		.def("__len__", &Engine::ArrayList<T>::getCount)
 
+		.def(py::init([]() {
+			// Custom initialization logic
+			return Engine::ArrayList<T>::create(1);
+		}))
+
+		.def("__len__", &Engine::ArrayList<T>::getCount)
 		.def("__getitem__", [](Engine::ArrayList<T>& a, size_t i) -> T& {
 
-		if (i >= a.getCount()) {
-			throw py::index_error();
-		}
-		return a[i];
+			if (i >= a.getCount()) {
+				throw py::index_error();
+			}
+			return a[i];
 			}, py::return_value_policy::reference_internal)
 
 		.def("__setitem__", [](Engine::ArrayList<T>& a, size_t i, const T& v) {
@@ -116,7 +121,7 @@ void bind_array(py::module& m, const char* name) {
 			throw py::index_error();
 		}
 		a[i] = v;
-			});
+	});
 }
 
 // Bind it to a Python module
@@ -150,7 +155,7 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 		.def_readwrite("anti-cutoff", &Filter::antiCutoffFrequency)
 		.def("recalculate", [](Filter& f) {
 		f.calculateCoefficients();
-			})
+	})
 
 		.def("getCoeffs", [](Filter& self) {
 		return py::array_t<double>(
