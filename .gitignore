@@ -12,6 +12,9 @@ mydaqfeedback/
 .vs/
 *.cap
 
+*ini
+*rpproj
+
 Editor/res/assets/
 *.vcxproj.user
 *.vcxproj.filters
