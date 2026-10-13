@@ -265,7 +265,7 @@ namespace PH::RpGui {
 				}
 
 				if (work.type == SFTP) {
-					// Create SFTP session
+					// Create SFTP sessio
 					sftp_session sftp = sftp_new(my_ssh_session);
 					if (!sftp) {
 						sftp_free(sftp);

@@ -255,7 +255,21 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	inline void sentFilterToRp(Filter& f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision) {
+	struct BiquadCoefficients_RPAPI {
+		int32_t b0;
+		int32_t b1;
+		int32_t b2;
+		int32_t a1;
+		int32_t a2;
+	};
+
+	struct FilterFileLayout_RPAPI {
+		BiquadCoefficients_RPAPI filters[2];
+	};
+
+#define RP_FILTER_API 2
+
+	inline void sentFilterToRp(Filter& f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision, uint32 filterindex = 0) {
 
 		const real64 unwarpedCF = f.cutoffFrequency;
 		const real64 unwarpedACF = f.antiCutoffFrequency;
@@ -268,6 +282,28 @@ namespace PH::RpGui {
 		f.cutoffFrequency = unwarpedCF;
 		f.antiCutoffFrequency = unwarpedACF;
 
+#if RP_FILTER_API == 2
+		
+		FilterFileLayout_RPAPI* filterfile = Engine::Allocator::alloc<FilterFileLayout_RPAPI>();
+
+		filterfile->filters[filterindex].b0 = convertToFixedPoint32(dcoeffs.b[0]);
+		filterfile->filters[filterindex].b1 = convertToFixedPoint32(dcoeffs.b[1]);
+		filterfile->filters[filterindex].b2 = convertToFixedPoint32(dcoeffs.b[2]);
+		filterfile->filters[filterindex].a1 = convertToFixedPoint32(dcoeffs.a[1]);
+		filterfile->filters[filterindex].a2 = convertToFixedPoint32(dcoeffs.a[2]);
+
+		RpCommand c;
+		c.command = Engine::String::create("loadedcoeffs.rpbin");
+		c.type = SFTP;
+		c.data = filterfile;
+		c.datasize = sizeof(FilterFileLayout_RPAPI);
+
+		ReleaseSemaphore(connection->semaphore, 1, nullptr);
+		connection->commandqueue.push(c);
+
+#endif
+
+#if RP_FILTER_API == 1
 		Engine::String filterstring;
 
 		if (lowprecision) {
@@ -285,5 +321,6 @@ namespace PH::RpGui {
 		}
 
 		Engine::String::destroy(&filterstring);
+#endif
 	}
 }
