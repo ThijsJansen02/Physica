@@ -53,6 +53,7 @@ namespace PH::LabCore {
 			}
 		}
 		
+		//load labcore-3D plugin
 		HMODULE applicationlib = LoadLibraryA("LabCore-3D.dll");
 		if (applicationlib == nullptr) {
 			Engine::ERR << "failed to load application\n";
