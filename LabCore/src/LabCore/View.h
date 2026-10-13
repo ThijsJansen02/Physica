@@ -21,7 +21,7 @@ namespace PH::LabCore {
 
 	
 
-	struct View {
+	struct ViewDescription {
 
 		//the size of the instance specific data that is allocated for each instance of the view
 		sizeptr instancedatasize;
@@ -36,13 +36,16 @@ namespace PH::LabCore {
 		ViewSerializeFunction serialize_;
 		ViewDeserializeFunction deserialize_;
 
+		ImGuiWindowFlags windowflags;
+		ImVec2 windowpadding;
+
 		//name of the view, used for identification and display in the GUI
 		Engine::String name;		
 	};
 
 	//instance of a view, this is created by the application when a view is added to the application, and it is destroyed when the view is removed from the application
 	struct ViewInstance {
-		View* view;
+		ViewDescription* viewdescription;
 		void* instancedata;
 		Engine::UUID instanceid;
 		
@@ -54,8 +57,8 @@ namespace PH::LabCore {
 	//the view that is currently being drawn or updated
 	extern ViewInstance* openview;
 
-	ViewInstance createViewInstance(View* view);
-	ViewInstance createViewInstance(View* view, Engine::UUID id);
+	ViewInstance createViewInstance(ViewDescription* description);
+	ViewInstance createViewInstance(ViewDescription* description, Engine::UUID id);
 	
 	//updates all views in the application, this is called by the application in the update loop
 	void updateViews(Engine::ArrayList<ViewInstance>& views);

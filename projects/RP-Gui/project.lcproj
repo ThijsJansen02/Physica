@@ -1,2 +1,18 @@
-views:
-  []
+openviews:
+  - viewname: Python Shell
+    instanceid: 2251022049
+    viewdata:
+      shellbgcolor: [0, 0, 0, 1]
+      messages:
+        - message: lc.println("this is text")
+          source: 0
+        - message: "NameError: name 'lc' is not defined\n\nAt:\n  <string>(2): <module>\n"
+          source: 1
+        - message: lc.print("hello world")
+          source: 0
+        - message: "NameError: name 'lc' is not defined\n\nAt:\n  <string>(2): <module>\n"
+          source: 1
+        - message: lc.print("hello world")
+          source: 0
+        - message: "NameError: name 'lc' is not defined\n\nAt:\n  <string>(2): <module>\n"
+          source: 1

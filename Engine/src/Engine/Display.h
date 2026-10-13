@@ -11,7 +11,9 @@ namespace PH::Engine {
 
 		PH::Platform::GFX::Framebuffer fb;
 		PH::Platform::GFX::Texture colorattachment;
-		PH::Platform::GFX::Texture depthattachment;	
+		PH::Platform::GFX::Texture depthattachment;
+
+		glm::vec4 clearcolor;
 
 		PH::Platform::GFX::RenderpassDescription renderpass;
 
@@ -26,15 +28,15 @@ namespace PH::Engine {
 		return display.viewport.x / display.viewport.y;
 	}
 
-	bool32 beginRenderPass(const Display& display);
-	bool32 endRenderPass(const Display& display);
+	bool32 PH_ENGINE_API beginRenderPass(const Display& display);
+	bool32 PH_ENGINE_API endRenderPass(const Display& display);
 
 	struct ImGuiDisplay : public Display {
 		ImTextureID imguitexture;
 	};
 
-	Display createDisplay(uint32 width, uint32 height);
-	ImGuiDisplay createImGuiDisplay(uint32 width, uint32 height);
+	Display PH_ENGINE_API createDisplay(uint32 width, uint32 height);
+	ImGuiDisplay PH_ENGINE_API createImGuiDisplay(uint32 width, uint32 height);
 
 
 

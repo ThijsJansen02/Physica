@@ -4,6 +4,6 @@
 
 namespace PH::LabCore {
 	void initCorePlugins() {	
-		addView(getPythonShellView());
+		addView(getPythonShellViewDescription());
 	}
 }

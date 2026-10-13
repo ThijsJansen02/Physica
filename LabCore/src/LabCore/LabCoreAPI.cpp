@@ -3,7 +3,7 @@
 
 namespace PH::LabCore {
 
-	PH_LABCORE_API void addView(const View& view) {
+	PH_LABCORE_API void addView(const ViewDescription& view) {
 		appcontext->views.pushBack(view);
 	}
 

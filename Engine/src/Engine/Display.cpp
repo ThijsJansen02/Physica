@@ -59,6 +59,7 @@ namespace PH::Engine {
 		Display display;
 		display.renderpass = Display::defaultrenderpassdescription;
 
+
 		Platform::GFX::TextureCreateInfo texturecreate{};
 		texturecreate.format = Platform::GFX::FORMAT_R8G8B8A8_SRGB;
 		texturecreate.width = width;
@@ -84,6 +85,8 @@ namespace PH::Engine {
 		display.framebuffersize = { width, height };
 		display.viewport = { width, height };
 
+		display.clearcolor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
 		return display;
 	}
 
@@ -95,8 +98,10 @@ namespace PH::Engine {
 		renderpassbegin.framebuffer = display.fb;
 		renderpassbegin.renderarea = { display.framebuffersize.x, display.framebuffersize.y };
 
+		glm::vec4 cc = display.clearcolor;
+
 		Platform::GFX::ClearValue clearvalues[2];
-		clearvalues[0] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		clearvalues[0] = {cc.r, cc.g, cc.b, cc.a};
 		clearvalues[1] = { 1.0f, 0 };
 
 		renderpassbegin.clearvalues = { clearvalues, ARRAY_LENGTH(clearvalues) };

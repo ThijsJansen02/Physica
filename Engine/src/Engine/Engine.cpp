@@ -1,6 +1,6 @@
 //include the platform api to have access to platfom functions
-#include <Platform/platformAPI.cpp>
 #include "Engine.h"
+#include <Platform/platformAPI.cpp>
 #include "Display.h"
 #include "Rendering.h"
 #include "Events.h"
@@ -11,6 +11,10 @@
 
 namespace PH::Engine {
 
+	//memory pools and arenas
+	PH::Base::DynamicMemoryBuffer Engine::Allocator::memory;
+	thread_local PH::Base::MemoryArena Engine::ArenaAllocator::arena;
+
 	//allocators usable for imgui
 	void* imguiAllocator(size_t sz, void* userdata) {
 		return PH::Engine::Allocator::alloc(sz);
@@ -18,6 +22,20 @@ namespace PH::Engine {
 
 	void imguiDeallocator(void* data, void* userdata) {
 		PH::Engine::Allocator::dealloc(data);
+	}
+
+	void* Allocator::alloc(PH::sizeptr size) {
+		//			PH_DEBUG_ASSERT(size > 0, "memory of size 0 is pointless!")
+
+		return PH::Base::DynamicAllocateFirstFit(&memory, size);
+	}
+
+	PH::bool32 Allocator::dealloc(void* mem) {
+		return PH::Base::DynamicDeallocate(&memory, mem);
+	}
+
+	void Allocator::init(void* mem, PH::sizeptr size) {
+		memory = PH::Base::createDynamicMemoryBuffer(mem, size);
 	}
 
 	
@@ -30,12 +48,6 @@ namespace PH::Engine {
 	PH::Base::LogStream<Intern::ConsoleWrite> INFO;
 	PH::Base::LogStream<Intern::ConsoleWrite> WARN;
 	PH::Base::LogStream<Intern::ConsoleWrite> ERR;
-
-
-	//memory pools and arenas
-	PH::Base::DynamicMemoryBuffer Engine::Allocator::memory;
-	thread_local PH::Base::MemoryArena Engine::ArenaAllocator::arena;
-
 
 
 	//global constructor functions declarations

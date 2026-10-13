@@ -27,8 +27,8 @@ namespace PH::Engine {
 		description.deserialize_ = (deserializeAsset)deserializeFont;
 		description.serialize_ = (SerializeAsset)serializeFont;
 		description.localdatasize = sizeof(Font);
-		description.name = Engine::String::create("Font");
-		description.extension = Engine::String::create(getFontExtension());
+		description.id = PH_ASSET_FONT;
+		description.extension = getFontExtension();
 
 		return description;
 	}
@@ -52,7 +52,6 @@ namespace PH::Engine {
 
 		const uint32 charcount = 96;
 		PH::Platform::FileBuffer ttf_buffer;
-
 
 		if (!PH::Platform::loadFile(&ttf_buffer, ttfpath)) {
 			PH::Engine::WARN << "Failed to load font file at path " << ttfpath << "\n";

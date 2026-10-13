@@ -30,7 +30,7 @@ namespace PH::Engine {
 
 	struct Display;
 
-	class Allocator {
+	class PH_ENGINE_API Allocator {
 	public:
 
 #if ENGINE_USE_MALLOC
@@ -71,12 +71,6 @@ namespace PH::Engine {
 		}
 
 
-		static void* alloc(PH::sizeptr size) {
-//			PH_DEBUG_ASSERT(size > 0, "memory of size 0 is pointless!")
-
-			return PH::Base::DynamicAllocateFirstFit(&memory, size);
-		}
-
 		template<typename T>
 		static T* alloc() {
 			return (T*)alloc(sizeof(T));
@@ -90,18 +84,13 @@ namespace PH::Engine {
 			return inst;
 		}
 
-		static PH::bool32 dealloc(void* mem) {
-//			PH_DEBUG_ASSERT(mem, "memory is nullptr")
 
-			return PH::Base::DynamicDeallocate(&memory, mem);
-		}
+		static void* alloc(PH::sizeptr size);
+		static PH::bool32 dealloc(void* mem);
+		static void init(void* mem, PH::sizeptr size);
 
-		static void init(void* mem, PH::sizeptr size) {
-			memory = PH::Base::createDynamicMemoryBuffer(mem, size);
-		}
-
-#endif
 		static PH::Base::DynamicMemoryBuffer memory;
+#endif
 	};
 
 	class ArenaAllocator {

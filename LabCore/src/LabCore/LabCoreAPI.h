@@ -1,11 +1,19 @@
 #pragma once
 #include "View.h"
 
-#define PH_LABCORE_API __declspec(dllexport)
+#ifdef PH_LABCORE_EXPORT
+	#define PH_LABCORE_API __declspec(dllexport)
+#else
+#ifdef PH_LABCORE_IMPORT
+	#define PH_LABCORE_API __declspec(dllimport)
+#else
+	#define PH_LABCORE_API
+#endif
+#endif
 
 namespace PH::LabCore {
 	
-	PH_LABCORE_API void addView(const View& view);
+	PH_LABCORE_API void addView(const ViewDescription& view);
 
 	//when called during any view method returns true if the view is currently focussed, false if it is not
 	PH_LABCORE_API bool32 isViewFocussed();

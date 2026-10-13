@@ -17,7 +17,7 @@ namespace PH::LabCore {
 		PH::Engine::Renderer2D::Wrapper renderer2D;
 
 		//the available views in the application, these are registered by the application and can be used to create view instances
-		PH::Engine::ArrayList<View> views;
+		PH::Engine::ArrayList<ViewDescription> views;
 
 		//the active instances of views in the application, these are created by the application and can be used to draw and update the views
 		PH::Engine::ArrayList<ViewInstance> viewinstances;

@@ -51,17 +51,22 @@ namespace PH::LabCore {
 
 	void pythonShellSerialize(pythonShellInstance* shell, YAML::Emitter& out) {
 		out << YAML::BeginMap;
+		out << YAML::Key << "shellbgcolor" << YAML::Value << shell->display.clearcolor;
 		out << YAML::Key << "messages" << YAML::Value << YAML::BeginSeq;
 
 		for (auto& msg : shell->textlines) {
 			out << YAML::Value;
 			serializeShellMessage(msg, out);
 		}
-		YAML::EndSeq;
+		out << YAML::EndSeq;
 		out << YAML::EndMap;
 	}
 
 	void pythonShellDeserialize(pythonShellInstance* shell, YAML::Node in) {
+		if (in["shellbgcolor"]) {
+			auto color = in["shellbgcolor"].as<glm::vec4>();
+			shell->display.clearcolor = color;
+		}
 
 		if (in["messages"]) {
 			auto msgs = in["messages"];
@@ -370,15 +375,56 @@ namespace PH::LabCore {
 		return true;
 	}
 
-	
+	//binds an array to a engine array
+	template<typename T>
+	void bind_array(py::module& m, const char* name) {
+		py::class_<Engine::ArrayList<T>>(m, name)
 
-	PYBIND11_EMBEDDED_MODULE(labcore, m) {
-		m.def("print", printToConsole, py::arg("str"));
+			.def(py::init([]() {
+			// Custom initialization logic
+			return Engine::ArrayList<T>::create(1);
+				}))
+
+			.def("__len__", &Engine::ArrayList<T>::getCount)
+			.def("__getitem__", [](Engine::ArrayList<T>& a, size_t i) -> T& {
+
+			if (i >= a.getCount()) {
+				throw py::index_error();
+			}
+			return a[i];
+				}, py::return_value_policy::reference_internal)
+
+			.def("__setitem__", [](Engine::ArrayList<T>& a, size_t i, const T& v) {
+			if (i >= a.getCount()) {
+				throw py::index_error();
+			}
+			a[i] = v;
+		});
 	}
 
-	View getPythonShellView() {
+	PYBIND11_EMBEDDED_MODULE(labcore, m) {
 
-		View v{};
+		py::class_<glm::vec4>(m, "Vec4")
+			.def(py::init<float, float, float, float>())
+			.def_readwrite("x", &glm::vec4::x)
+			.def_readwrite("y", &glm::vec4::y)
+			.def_readwrite("z", &glm::vec4::z)
+			.def_readwrite("w", &glm::vec4::w);
+
+		m.def("setShellClearColor", [](const glm::vec4& color) {
+			if (focussedshell) {
+				focussedshell->display.clearcolor = color;
+			}
+		});
+
+		m.def("print", printToConsole, py::arg("str"));
+
+
+	}
+
+	ViewDescription getPythonShellViewDescription() {
+
+		ViewDescription v{};
 		v.instancedatasize = sizeof(pythonShellInstance);
 		v.destroy_ = pythonShellDestroy;
 		v.draw_ = (ViewDrawFunction)pythonShellDraw;
@@ -387,6 +433,8 @@ namespace PH::LabCore {
 		v.instantiate_ = (ViewInstantiateFunction)pythonShellInstantiate;
 		v.serialize_ = (ViewSerializeFunction)pythonShellSerialize;
 		v.deserialize_ = (ViewDeserializeFunction)pythonShellDeserialize;
+		v.windowflags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar;
+		v.windowpadding = { 0.0f, 0.0f };
 		v.name = Engine::String::create("Python Shell");
 
 		return v;
