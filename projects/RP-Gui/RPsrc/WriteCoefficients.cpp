@@ -88,9 +88,9 @@ void writeCoefficient(volatile uint32_t* gpio, uint32_t value, uint32_t adress, 
     
 #ifdef DEBUG_BUILD
     printf("data: ");
-    print_binary(gpio[GPIO_DATA2 / 4]);
+    printf("%u", gpio[GPIO_DATA2 / 4]);
     printf("write address: ");
-    print_binary(gpio[GPIO_DATA1 / 4]);
+    printf("%u", gpio[GPIO_DATA1 / 4]);
 #endif
 
     //create timing struct
@@ -165,7 +165,7 @@ int main (int argc, char **argv) {
     }
 
 #ifdef DEBUG_BUILD
-    printf("coeffs: %u, %u, %u, %u, %u", filters.filters[0].b0, filters.filters[1].b1, filters.filters[2].b2, filters.filters[3].a1, filters.filters[4].a2);
+    printf("coeffs: %u, %u, %u, %u, %u", filters.filters[0].b0, filters.filters[0].b1, filters.filters[0].b2, filters.filters[0].a1, filters.filters[0].a2);
 #endif
 
     unsigned int filter = 0;

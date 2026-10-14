@@ -67,13 +67,18 @@ RpGui::TransferFunction createExampleTransferFunction() {
 
 	examplefunction.currentcommand = Engine::String::create("");
 	examplefunction.name = Engine::String::create("Example Function");
+
+	//set remote IP
 	examplefunction.connection.remoteip = Engine::String::create("root@rp-f083c2.local");
 	examplefunction.filters = Engine::ArrayList<Filter>::create(3);
+	examplefunction.remotebitfile = Engine::String::create("");
 
 	Filter filter;
 	filter.type = LOWPASS;
 	filter.cutoffFrequency = 1000.0f;
 	filter.qFactor = 30.0f;
+
+
 
 	examplefunction.filters.pushBack(filter);
 	filter.cutoffFrequency = 4000.0f;
@@ -155,12 +160,14 @@ void deserializeProject(const char* projectdir) {
 
 	const auto proj = Engine::FileIO::loadYamlfile(projectdir);
 	if (proj) {
+
 		const auto transferfunctions = proj["TransferFunctions"];
 		for (const auto& tf : transferfunctions) {
 			RpGui::context->activetransferfunctions.pushBack(deserializeTransferFunction(tf));
 		}
 	}
 	else {
+		Engine::WARN << "couldnt load project file, creating a new project instead!";
 		RpGui::context->activetransferfunctions.pushBack(createExampleTransferFunction());
 	}
 
@@ -182,10 +189,6 @@ void deserializeProject(const char* projectdir) {
 
 			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
 			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b ").append(tf.remotebitfile)});
-
-			for (auto& f : tf.filters) {
-				sentFilterToRp(f, tf.getFilterSampleRate(), &tf.connection, tf.lowprecision);
-			}
 		}
 	}
 }
@@ -279,14 +282,6 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	RpGui::renderer2D = Engine::Renderer2D::Wrapper::create(init);
 	return true;
 }
-/*
-	This is going to be the function that draws the plot, it takes in the vertices of the plot, the range of the plot and the region of the plot,
-	and it draws the plot using the renderer2D wrapper, this is going to be called from the drawTransferFunctionMagnitude and drawTransferFunctionPhase functions,
-	which are going to generate the vertices for the plot based on the transfer function and then call this function to draw the plot,
-	this is going to allow us to separate the logic of generating the vertices for the plot from the logic of drawing the plot,
-	which is going to make it easier to maintain and extend in the future, for example if we want to add support for different types of plots or different types of data sources for the plots,
-	we can just generate different vertices for those plots and then call this function to draw them without having to duplicate any code.
-*/
 
 
 typedef void (*UIfunc) (void*, RpGui::Context*, int32&);
@@ -441,7 +436,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	ImGui::SameLine();
 	if (ImGui::Button("Reset")) {
 
-		sendRPcommand("monitor 0x41230000 1; monitor 0x41230000 0", &tf->connection);
+		sendRPcommand("monitor 0x41200000 1; monitor 0x41200000 0", &tf->connection);
 	}
 
 	ImGui::Text("SSH Command");
@@ -519,8 +514,13 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	}
 
 	if (selectedFilter) {
-		recalculateFilter(*selectedFilter);
-		if (b_update) sentFilterToRp(*selectedFilter, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
+		recalculateFilter(*selectedFilter);	
+
+		if (b_update) {
+			sendTFToRP_API_V2(tf, tf->getFilterSampleRate());
+
+			//sentFilterToRp(*selectedFilter, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
+		}
 		b_update = false;
 	}
 

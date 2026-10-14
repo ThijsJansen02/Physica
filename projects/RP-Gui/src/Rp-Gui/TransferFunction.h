@@ -245,7 +245,7 @@ namespace PH::RpGui {
 			result.decimation = (real64)t["decimation"].as<uint32>();
 		}
 		else {
-			result.decimation = RpGui::standard_decimation;
+			result.decimation = 4;
 		}
 
 		for (const auto& f : t["filters"]) {
@@ -266,6 +266,50 @@ namespace PH::RpGui {
 	struct FilterFileLayout_RPAPI {
 		BiquadCoefficients_RPAPI filters[2];
 	};
+
+	inline void sendTFToRP_API_V2(TransferFunction* tf, real64 targetFS) {
+
+		uint32 index = 0;
+
+		auto* filterfile = Engine::Allocator::alloc<FilterFileLayout_RPAPI>();
+
+		Engine::INFO << "Sending Filter with samplerate: " << targetFS << "\n";
+
+		for (Filter& f : tf->filters) {
+
+			const real64 unwarpedCF = f.cutoffFrequency;
+			const real64 unwarpedACF = f.antiCutoffFrequency;
+
+			f.cutoffFrequency = prewarp(2 * M_PI * unwarpedCF, targetFS);
+			f.antiCutoffFrequency = prewarp(2 * M_PI * unwarpedACF, targetFS);
+
+			BiQuadCoefficients dcoeffs = bilinearTransform(f.getBiquadCoefficients(), targetFS / (2 * M_PI));
+
+			f.cutoffFrequency = unwarpedCF;
+			f.antiCutoffFrequency = unwarpedACF;
+
+			if (index < 2) {
+				filterfile->filters[index].b0 = convertToFixedPoint32(dcoeffs.b[0]);
+				filterfile->filters[index].b1 = convertToFixedPoint32(dcoeffs.b[1]);
+				filterfile->filters[index].b2 = convertToFixedPoint32(dcoeffs.b[2]);
+				filterfile->filters[index].a1 = convertToFixedPoint32(dcoeffs.a[1]);
+				filterfile->filters[index].a2 = convertToFixedPoint32(dcoeffs.a[2]);
+			}
+			index++;
+		}
+
+		RpCommand c;
+		c.command = Engine::String::create("loadedcoeffs.rpbin");
+		c.type = SFTP;
+		c.data = filterfile;
+		c.datasize = sizeof(FilterFileLayout_RPAPI);
+
+		ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+		tf->connection.commandqueue.push(c);
+
+		
+		sendRPcommand("./WriteCoefficients", &tf->connection);
+	}
 
 #define RP_FILTER_API 2
 
