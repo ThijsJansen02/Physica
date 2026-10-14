@@ -78,8 +78,6 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	filter.cutoffFrequency = 1000.0f;
 	filter.qFactor = 30.0f;
 
-
-
 	examplefunction.filters.pushBack(filter);
 	filter.cutoffFrequency = 4000.0f;
 	examplefunction.filters.pushBack(filter);
@@ -89,8 +87,10 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	return examplefunction;
 }
 
-bool DragDouble(const char* label, double* v, float v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0)
+bool DragDouble(const char* label, real64* v, real64 v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0)
 {
+	//Engine::INFO << "SPEED: " << v_speed << "\n";
+
 	return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, format, flags);
 }
 
@@ -497,9 +497,14 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			ImGui::EndCombo();
 		}
 
-		for (const auto& parameter : f.getParameters())
-		{
-			if (DragDouble(parameter.first, (double*)parameter.second, *parameter.second * dragSpeed)) b_dirty = true;
+		Engine::INFO << ImGui::GetIO().DeltaTime << "\n";
+
+		if (DragDouble("cutoff frequency", &f.cutoffFrequency, 1.0f)) {
+			b_dirty = true;
+		}
+
+		if (DragDouble("Q factor", &f.qFactor, 1.0)) {
+			b_dirty = true;
 		}
 
 		if (b_dirty) {
@@ -518,9 +523,8 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 
 		if (b_update) {
 			sendTFToRP_API_V2(tf, tf->getFilterSampleRate());
-
-			//sentFilterToRp(*selectedFilter, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
 		}
+			//sentFilterToRp(*selectedFilter, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
 		b_update = false;
 	}
 

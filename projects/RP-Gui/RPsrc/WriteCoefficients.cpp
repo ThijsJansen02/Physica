@@ -115,6 +115,8 @@ void writeCoefficient(volatile uint32_t* gpio, uint32_t value, uint32_t adress, 
     //sleep inbetween writes
     nanosleep(&ts, &rem);
 
+    printf("hello world!");
+
     //reset the write pin
     writebit(WRITE_PIN_OFFSET, 0, &gpio[GPIO_DATA1 / 4]);
 

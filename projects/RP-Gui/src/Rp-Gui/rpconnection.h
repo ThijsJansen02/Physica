@@ -279,7 +279,7 @@ namespace PH::RpGui {
 						continue;
 					}
 					constexpr int remotefilepermissions = 0644;
-					sftp_file remotefile = sftp_open(sftp, work.command.getC_Str(), O_WRONLY | O_CREAT, 0644);
+					sftp_file remotefile = sftp_open(sftp, work.command.getC_Str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
 					if (!remotefile) {
 						Engine::ERR << "Could not open remote file: "
