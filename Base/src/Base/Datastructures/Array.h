@@ -384,6 +384,14 @@ namespace PH::Base {
 			return true;
 		}
 
+		bool32 remove(T* element) {
+			sizeptr index = element - begin().ptr;
+
+			PH_DEBUG_ASSERT(index >= 0)
+
+			return remove(index);
+		}
+
 		void release() {
 			m_Storage.release();
 		}

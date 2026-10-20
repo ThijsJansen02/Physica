@@ -824,7 +824,7 @@ namespace PH::Vulkan {
 		context->textureimages = FracturedArraylist<TextureImage>::create(1);
 		context->framebuffers = FracturedArraylist<Framebuffer>::create(1);
 
-		//TODO(Thijs): add default base types at index 0;
+		//TODO(Thijs): add default base types at index 0; GFX_NULL is 0 so this should revert to some base type
 		context->textureimages.add({});
 		context->graphicspipelines.add({});
 		context->buffers.add({});
@@ -861,6 +861,10 @@ namespace PH::Vulkan {
 		context->renderFinishedSemaphores = createSemaphores(context);
 
 		context->descriptorpool = createDescriptorPool(context);
+
+
+		//create the object delete queue
+		context->objectdeletequeue = ArrayList<ObjectDeletePost>::create(1);
 	}
 
 	void win32_resizeSwapchain(VulkanAppContext* context, uint32 width, uint32 height) {
@@ -882,7 +886,41 @@ namespace PH::Vulkan {
 		}
 	}
 
+	bool32 destroyFrameBuffer(VulkanAppContext* context, PH::Platform::GFX::Framebuffer framebuffer);
+	PH::bool32 destroyTexture(VulkanAppContext* context, PH::Platform::GFX::Texture texture);
+
+	void cleanupDeleteQueue(VulkanAppContext* context) {
+		uint32 pc = 0;
+		while (pc < context->objectdeletequeue.getCount()) {
+
+			ObjectDeletePost* p = &context->objectdeletequeue[pc];
+
+			if (p->framecounter <= 0) {
+				switch (p->objecttype) {
+				case VULKAN_FRAMEBUFFER: {
+					destroyFrameBuffer(context, p->object);
+					break;
+				}
+				case VULKAN_TEXTURE: {
+					destroyTexture(context, p->object);
+				}
+				}
+
+				context->objectdeletequeue.remove(pc);
+			}
+			else {
+				pc++;
+				p->framecounter--;
+			}
+
+		}
+	}
+
 	void startFrame(VulkanAppContext* context) {
+
+		//clean up all unused objects
+		cleanupDeleteQueue(context);
+
 
 		//the current frameindex, is not the same as the image index as it is possible to have more images in the swapchain than frames being worked on
 		uint32 frameindex = context->frameindex;

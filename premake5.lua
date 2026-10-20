@@ -1,3 +1,5 @@
+outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+
 include "Dependencies.lua"
 
 workspace "ProjectPhysica"
@@ -10,7 +12,6 @@ workspace "ProjectPhysica"
     }
     startproject "Platform"
 
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 
 group "core"

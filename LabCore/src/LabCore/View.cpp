@@ -23,6 +23,8 @@ namespace PH::LabCore {
 
 	//draws all views in the application, this is called by the application in the update loop
 	void drawViews(Engine::ArrayList<ViewInstance>& views) {
+
+		ViewInstance* tobedeleted = nullptr;
 		for (auto& viewinstance : views) {
 
 			openview = &viewinstance;
@@ -31,7 +33,12 @@ namespace PH::LabCore {
 				real32 framesize = ImGui::GetWindowSize().y;
 
 				ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, openview->viewdescription->windowpadding);
-				if (ImGui::Begin(openview->viewdescription->name.getC_Str(), nullptr, openview->viewdescription->windowflags)) {
+
+				char windownamebuffer[256];
+				sprintf_s(windownamebuffer, 256, "%s###%llu", openview->name.getC_Str(), openview->instanceid);
+
+				bool isopen = true;
+				if (ImGui::Begin(windownamebuffer, &isopen, openview->viewdescription->windowflags)) {
 					
 					openview->isfocussed = ImGui::IsWindowFocused();
 
@@ -52,8 +59,18 @@ namespace PH::LabCore {
 					openview->viewdescription->draw_(viewinstance.instancedata);
 
 				}
+
+				if (isopen == false) {
+					tobedeleted = &viewinstance;
+				}
+
 				ImGui::End();
 				ImGui::PopStyleVar(1);
+			}
+
+			if (tobedeleted) {
+				destroyViewInstance(tobedeleted);
+				views.remove(tobedeleted);
 			}
 		}
 		openview = nullptr;
@@ -67,11 +84,17 @@ namespace PH::LabCore {
 		ViewInstance instance{};
 		instance.viewdescription = description;
 		instance.instancedata = PH::Engine::Allocator::alloc(description->instancedatasize);
-
+		instance.name = Engine::String::create(description->name.getC_Str());
 		instance.instanceid = id;
 
 		description->instantiate_(instance.instancedata);
 		return instance;
+	}
+
+	void destroyViewInstance(ViewInstance* view) {
+		Engine::String::destroy(&view->name);
+		view->viewdescription->destroy_(view->instancedata);
+		PH::Engine::Allocator::dealloc(view->instancedata);
 	}
 
 	
@@ -86,7 +109,7 @@ namespace PH::LabCore {
 
 			if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
 				if (isCursorOnView(viewinstance)) {
-					viewinstance.isfocussed = true;
+					//viewinstance.isfocussed = true;
 					if (viewinstance.viewdescription->onEvent_) {
 						return viewinstance.viewdescription->onEvent_(viewinstance.instancedata, e);
 					}

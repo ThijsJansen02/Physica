@@ -1,6 +1,7 @@
 #pragma once
 #include <Engine/Engine.h>
-
+#include <yaml-cpp/yaml.h>
+#include <Engine/YamlExtensions.h>
 
 namespace PH::Engine {
 
@@ -16,8 +17,8 @@ namespace PH::Engine {
 		AssetIdentifier* identifier;
 	};
 
-	typedef void (*SerializeAsset)(const char* filepath, AssetBase* asset);
-	typedef void (*deserializeAsset)(const char* filepath, AssetBase* asset);
+	typedef void (*SerializeAsset)(YAML::Emitter& out, AssetBase* asset);
+	typedef void (*deserializeAsset)(YAML::Node node, AssetBase* asset);
 	//typedef void (*createAsset)(void* assetinitinfo);
 
 	//holds the description for an asset 

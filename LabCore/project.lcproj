@@ -1,0 +1,7 @@
+openviews:
+  - viewname: Scene View
+    instanceid: 3190987699
+    viewdata:
+      Camera:
+        direction: [0.6764364, 0.52249676, 0.51904887]
+        position: [-1.747652, -1.1297697, -0.8838801]

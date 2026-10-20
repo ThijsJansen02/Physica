@@ -35,7 +35,6 @@ project "Engine"
 	
 	libdirs
 	{
-		--"%{wks.location}/dep/bin/win32-release/assimp",
 		"%{LibraryDir.vulkanSDK}",
 		"%{LibraryDir.openssl}",
 		"%{LibraryDir.libssh}"
@@ -47,10 +46,10 @@ project "Engine"
 		"Base",
 		"Imgui",
 		"yaml-cpp",
-		"assimp",
 		"Ws2_32.lib",
 		"Iphlpapi.lib",
-		"Crypt32.lib"
+		"Crypt32.lib",
+		"%{Library.platform}"
 	}
 
 
@@ -58,10 +57,10 @@ project "Engine"
 	{
 		"PH_SCENE_IMPLEMENT",
 		"IMGUI_API=__declspec(dllexport)",
-		"PH_PLATFORM_EXPORT",
+		"PH_PLATFORM_IMPORT",
 		"PH_ENGINE_EXPORT",
 		"PH_STATIC_BUILD",
-		"YAML_CPP_STATIC_DEFINE"	
+		"YAML_CPP_STATIC_DEFINE"
 	}
 
 	filter "system:windows"

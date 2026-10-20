@@ -1,0 +1,62 @@
+
+
+>>>VERTEX_SHADER
+
+#version 450
+
+//vertexbuffer attributes
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+layout(location = 2) in vec3 inNormal;
+
+//location 3 is preserved for future additions
+
+//instancebuffer attributes
+layout(location = 4) in uint inMatindex;
+layout(location = 5) in vec4 inTransformr0;
+layout(location = 6) in vec4 inTransformr1;
+layout(location = 7) in vec4 inTransformr2;
+
+
+//consumes 5, 6, 7, 8 because layout location can only hold up to 4x 32bit floats
+
+//outgoing attributes
+layout(location = 0) out uint Matindex;
+layout(location = 1) out vec2 TexCoord;
+layout(location = 2) out vec3 Position;
+layout(location = 3) out vec3 Normal;
+
+layout(set = 0, binding = 0) uniform Scene {
+	mat4 projection;
+	mat4 view;
+} scene;	
+
+void main() {
+    mat4 transform = transpose(mat4(inTransformr0, inTransformr1, inTransformr2, vec4(0.0, 0.0, 0.0, 1.0)));
+    vec4 positionv = scene.projection * scene.view * transform * vec4(inPosition, 1.0f);
+
+    gl_Position = positionv;
+
+    Position = vec3(positionv);
+    Matindex = inMatindex;
+	TexCoord = inTexCoord;
+    Normal = inNormal;
+}
+
+>>>FRAGMENT_SHADER
+
+#version 450
+
+layout(location = 0) flat in uint Matindex;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 2) in vec3 Position;
+layout(location = 3) in vec3 Normal;
+
+//output to color buffer
+layout(location = 0) out vec4 outAlbedo;
+
+void main() {	
+    outAlbedo = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+>>>END_OF_FILE

@@ -5,11 +5,11 @@
 namespace PH::Vulkan {
 
 	bool32 createRenderpassDescription(
-		VulkanAppContext* context, 
-		PH::Platform::GFX::RenderpassDescriptionCreateinfo* createinfos, 
-		PH::Platform::GFX::RenderpassDescription* descriptions, 
+		VulkanAppContext* context,
+		PH::Platform::GFX::RenderpassDescriptionCreateinfo* createinfos,
+		PH::Platform::GFX::RenderpassDescription* descriptions,
 		PH::uint32 count
-	)  {
+	) {
 
 		//get arena resetpoint
 		PH::Base::MemoryArenaReset resetpoint = ArenaAllocator::getResetPoint();
@@ -41,7 +41,7 @@ namespace PH::Vulkan {
 			//create the subpasses
 			auto subpasses = Base::ArrayList<VkSubpassDescription, ArenaAllocator>::create(createinfo.subpasses.count);
 			for (const Platform::GFX::SubPass& subpass : createinfo.subpasses) {
-				
+
 				auto colorattachmentreferences = Base::ArrayList<VkAttachmentReference, ArenaAllocator>::create(subpass.colorattachments.count);
 				for (const Platform::GFX::AttachmentReference& ref : subpass.colorattachments) {
 
@@ -61,14 +61,14 @@ namespace PH::Vulkan {
 					depthstencil.layout = convertImageLayout(subpass.depthstencilattachment->layout);
 					description.pDepthStencilAttachment = &depthstencil;
 				}
-				
+
 				description.pipelineBindPoint = convertPipelineBindPoint(subpass.bindpoint);
 				subpasses.pushBack(description);
 			}
 
 			auto dependencies = Base::ArrayList<VkSubpassDependency, ArenaAllocator>::create(createinfo.dependencies.count);
 			for (const Platform::GFX::SubpassDependency& dep : createinfo.dependencies) {
-					
+
 				VkSubpassDependency vkdep{};
 				vkdep.srcSubpass = dep.srcsubpass;
 				vkdep.dstSubpass = dep.dstsubpass;
@@ -111,6 +111,17 @@ namespace PH::Vulkan {
 
 	PH_GFX_CREATE_RENDERPASS_DESCRIPTIONS(createRenderpassDescription) {
 		return createRenderpassDescription(context_s, createinfos, descriptions, count);
+	}
+
+	bool32 destroyRenderpassDescriptions(VulkanAppContext* context, PH::Platform::GFX::RenderpassDescription* descriptions, uint32 count) {
+
+		for (uint32 i = 0; i < count; i++) {
+
+			Vulkan::Renderpass* rp = &context->renderpasses[descriptions[i]];
+			vkDestroyRenderPass(context->device, rp->renderpass, nullptr);
+		}
+
+		return true;
 	}
 
 	bool32 beginRenderpass(VulkanAppContext* context, PH::Platform::GFX::RenderpassbeginInfo* begininfo) {
@@ -167,13 +178,13 @@ namespace PH::Vulkan {
 
 
 		PH::Base::MemoryArenaReset resetpoint = ArenaAllocator::getResetPoint();
-		
+
 		for (uint32 i = 0; i < count; i++) {
 
 			const auto& createinfo = createinfos[i];
 
 			auto attachments = PH::Base::ArrayList<VkImageView, ArenaAllocator>::create(createinfo.attachments.count);
-			
+
 			for (auto texture : createinfo.attachments) {
 				auto textureview = context->textureimages[texture].view;
 				attachments.pushBack(textureview);
@@ -207,5 +218,27 @@ namespace PH::Vulkan {
 		return createFramebuffers(context_s, createinfos, framebuffers, count);
 	}
 
-}
+	bool32 postDestroyFrameBuffers(VulkanAppContext* context, PH::Platform::GFX::Framebuffer* framebuffers, uint32 count) {
 
+		for (uint32 i = 0; i < count; i++) {
+
+			//post a delete message
+			ObjectDeletePost p;
+			p.framecounter = MAX_FRAMES_IN_FLIGHT;
+			p.object = framebuffers[i];
+			p.objecttype = VULKAN_FRAMEBUFFER;
+			context->objectdeletequeue.pushBack(p);
+		}
+		return true;
+	}
+
+
+	bool32 destroyFrameBuffer(VulkanAppContext* context, PH::Platform::GFX::Framebuffer framebuffer) {
+
+		Framebuffer fb = context->framebuffers[framebuffer];
+		vkDestroyFramebuffer(context->device, fb.buffer, nullptr); 
+		context->framebuffers.remove(framebuffer);
+		return true;
+	}
+
+}

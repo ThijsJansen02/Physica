@@ -43,6 +43,7 @@ project "RP-GUI"
 		"IMGUI_API=__declspec(dllexport)",
 		"PH_SHARED_BUILD",
 		"PH_ENGINE_EXPORT",
+		"PH_PLATFORM_IMPORT",
 		"YAML_CPP_STATIC_DEFINE"
 	}
 

@@ -41,6 +41,7 @@ project "Platform"
 	}
 	defines 
 	{
+		"PH_PLATFORM_EXPORT",
 		"PH_STATIC_BUILD"
 	}
 

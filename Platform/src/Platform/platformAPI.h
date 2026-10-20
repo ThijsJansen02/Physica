@@ -514,7 +514,7 @@ namespace PH::Platform {
 
 			PH::Platform::Intern::gfx_CreateBuffersFN* gfxcreatebuffers;
 			PH::Platform::Intern::gfx_DestroyBuffersFN* gfxdestroybuffers;
-			PH::Platform::Intern::gfx_BindVertexBuffersFN* gfxbindvertexbuffers;
+			PH::Platform::Intern::gfx_BindVertexBuffersFN* gfxbindvertexbuffers;			
 			PH::Platform::Intern::gfx_BindIndexBufferFN* gfxbindindexbuffer;
 			PH::Platform::Intern::gfx_CopyBufferFN* gfxcopybuffers;
 			PH::Platform::Intern::gfx_MapBufferFN* gfxmapbuffer;
@@ -571,6 +571,9 @@ namespace PH::Platform {
 		extern PH_PLATFORM_API Intern::gfx_UnmapBufferFN* unmapBuffer;
 			   
 		extern PH_PLATFORM_API Intern::gfx_CreateRenderpassDescriptionFN* createRenderpassDescriptions;
+		PH_PLATFORM_API bool32 destroyRenderpassDescriptions(GFX::RenderpassDescription* descriptions, uint32 count);
+		PH_PLATFORM_API bool32 destroyFrameBuffers(GFX::Framebuffer* framebuffers, uint32 count);
+		
 		extern PH_PLATFORM_API Intern::gfx_CreateFramebuffersFN* createFramebuffers;
 			   
 		extern PH_PLATFORM_API Intern::gfx_BeginRenderpassFN* beginRenderpass;
@@ -587,12 +590,15 @@ namespace PH::Platform {
 		extern PH_PLATFORM_API Intern::gfx_DestroyShadersFN* destroyShaders;
 		extern PH_PLATFORM_API Intern::gfx_BindGraphicsPipelineFN* bindGraphicsPipeline;
 		extern PH_PLATFORM_API Intern::gfx_CreateGraphicsPipelinesFN* createGraphicsPipelines;
-			   
+				
+
+
 		extern PH_PLATFORM_API Intern::gfx_CreateTexturesFN* createTextures;
 		extern PH_PLATFORM_API Intern::gfx_DestroyTexturesFN* destroyTextures;
 			   
 		extern PH_PLATFORM_API Intern::gfx_DrawImguiWidgetsFN* drawImguiWidgets;
 		extern PH_PLATFORM_API Intern::gfx_CreateImguiImageFN* createImGuiImage;
+
 	}
 
 	extern PH_PLATFORM_API Intern::LoadFileFN* loadFile;

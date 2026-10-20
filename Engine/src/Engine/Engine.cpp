@@ -1,6 +1,8 @@
 //include the platform api to have access to platfom functions
 #include "Engine.h"
-#include <Platform/platformAPI.cpp>
+
+//this was for the old API
+//#include <Platform/platformAPI.cpp>
 #include "Display.h"
 #include "Rendering.h"
 #include "Events.h"

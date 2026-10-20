@@ -1,5 +1,6 @@
 #pragma once
 #include "Platform/platformAPI.h"
+#include <Platform/vulkan/vulkanAPI.h>
 
 namespace PH::Platform {
 
@@ -7,59 +8,69 @@ namespace PH::Platform {
 	/// <summary>
 	/// all the platform functions are defined here as opposed to platformapi where they are declared.
 	/// </summary>
-	Intern::ConsoleWriteFN* consoleWrite = nullptr;
-	Intern::LoadFileFN* loadFile = nullptr;
-	Intern::UnloadFileFN* unloadFile = nullptr;
-	Intern::WriteFileFN* writeFile = nullptr;
+	PH_PLATFORM_API Intern::ConsoleWriteFN* consoleWrite = nullptr;
+	PH_PLATFORM_API Intern::LoadFileFN* loadFile = nullptr;
+	PH_PLATFORM_API Intern::UnloadFileFN* unloadFile = nullptr;
+	PH_PLATFORM_API Intern::WriteFileFN* writeFile = nullptr;
 
-	Intern::createThreadFN* createThread = nullptr;
+	PH_PLATFORM_API Intern::createThreadFN* createThread = nullptr;
 
 	PH_PLATFORM_API Intern::getTimeMsFN* getTimeMs = nullptr;
 
-	Intern::OpenFileDialogFN* openFileDialog = nullptr;
-	Intern::ListFilesFN* listFiles = nullptr;
+	PH_PLATFORM_API Intern::OpenFileDialogFN* openFileDialog = nullptr;
+	PH_PLATFORM_API Intern::ListFilesFN* listFiles = nullptr;
 
-	Intern::gfx_CreateBuffersFN* GFX::createBuffers = nullptr;
-	Intern::gfx_DestroyBuffersFN* GFX::destroyBuffers = nullptr;
-	Intern::gfx_BindVertexBuffersFN* GFX::bindVertexBuffers = nullptr;
-	Intern::gfx_BindIndexBufferFN* GFX::bindIndexBuffer = nullptr;
-	Intern::gfx_CopyBufferFN* GFX::copyBuffer = nullptr;
-	Intern::gfx_UnmapBufferFN* GFX::unmapBuffer = nullptr;
-	Intern::gfx_MapBufferFN* GFX::mapBuffer = nullptr;
+	PH_PLATFORM_API Intern::gfx_CreateBuffersFN* GFX::createBuffers = nullptr;
+	PH_PLATFORM_API Intern::gfx_DestroyBuffersFN* GFX::destroyBuffers = nullptr;
+	PH_PLATFORM_API Intern::gfx_BindVertexBuffersFN* GFX::bindVertexBuffers = nullptr;
+	PH_PLATFORM_API Intern::gfx_BindIndexBufferFN* GFX::bindIndexBuffer = nullptr;
+	PH_PLATFORM_API Intern::gfx_CopyBufferFN* GFX::copyBuffer = nullptr;
+	PH_PLATFORM_API Intern::gfx_UnmapBufferFN* GFX::unmapBuffer = nullptr;
+	PH_PLATFORM_API Intern::gfx_MapBufferFN* GFX::mapBuffer = nullptr;
 
-	Intern::gfx_CreateDescriptorSetLayoutsFN* GFX::createDescriptorSetLayouts = nullptr;
-	Intern::gfx_createDescriptorSetsFN* GFX::createDescriptorSets = nullptr;
-	Intern::gfx_DestroyDescriptorSetsFN* GFX::destroyDescriptorSets = nullptr;
-	Intern::gfx_destroyDesctiptorSetLayoutsFN* GFX::destroyDescriptorSetLayouts = nullptr;
-	Intern::gfx_bindDescriptorSetsFN* GFX::bindDescriptorSets = nullptr;
-	Intern::gfx_updateDescriptorSetsFN* GFX::updateDescriptorSets = nullptr;
+	PH_PLATFORM_API Intern::gfx_CreateDescriptorSetLayoutsFN* GFX::createDescriptorSetLayouts = nullptr;
+	PH_PLATFORM_API Intern::gfx_createDescriptorSetsFN* GFX::createDescriptorSets = nullptr;
+	PH_PLATFORM_API Intern::gfx_DestroyDescriptorSetsFN* GFX::destroyDescriptorSets = nullptr;
+	PH_PLATFORM_API Intern::gfx_destroyDesctiptorSetLayoutsFN* GFX::destroyDescriptorSetLayouts = nullptr;
+	PH_PLATFORM_API Intern::gfx_bindDescriptorSetsFN* GFX::bindDescriptorSets = nullptr;
+	PH_PLATFORM_API Intern::gfx_updateDescriptorSetsFN* GFX::updateDescriptorSets = nullptr;
 
-	Intern::gfx_DrawFN* GFX::draw = nullptr;
-	Intern::gfx_DrawIndexedFN* GFX::drawIndexed = nullptr;
+	PH_PLATFORM_API Intern::gfx_DrawFN* GFX::draw = nullptr;
+	PH_PLATFORM_API Intern::gfx_DrawIndexedFN* GFX::drawIndexed = nullptr;
 
-	Intern::gfx_CreateRenderpassDescriptionFN* GFX::createRenderpassDescriptions = nullptr;
-	Intern::gfx_CreateFramebuffersFN* GFX::createFramebuffers = nullptr;
+	PH_PLATFORM_API Intern::gfx_CreateRenderpassDescriptionFN* GFX::createRenderpassDescriptions = nullptr;
+	PH_PLATFORM_API Intern::gfx_CreateFramebuffersFN* GFX::createFramebuffers = nullptr;
 
-	Intern::gfx_BeginRenderpassFN* GFX::beginRenderpass = nullptr;
-	Intern::gfx_EndRenderpassFN* GFX::endRenderpass = nullptr;
+	PH_PLATFORM_API Intern::gfx_BeginRenderpassFN* GFX::beginRenderpass = nullptr;
+	PH_PLATFORM_API Intern::gfx_EndRenderpassFN* GFX::endRenderpass = nullptr;
 
-	Intern::gfx_CreateShadersFN* GFX::createShaders = nullptr;
-	Intern::gfx_DestroyShadersFN* GFX::destroyShaders = nullptr;
-	Intern::gfx_CreateGraphicsPipelinesFN* GFX::createGraphicsPipelines = nullptr;
-	Intern::gfx_BindGraphicsPipelineFN* GFX::bindGraphicsPipeline = nullptr;
+	PH_PLATFORM_API Intern::gfx_CreateShadersFN* GFX::createShaders = nullptr;
+	PH_PLATFORM_API Intern::gfx_DestroyShadersFN* GFX::destroyShaders = nullptr;
+	PH_PLATFORM_API Intern::gfx_CreateGraphicsPipelinesFN* GFX::createGraphicsPipelines = nullptr;
+	PH_PLATFORM_API Intern::gfx_BindGraphicsPipelineFN* GFX::bindGraphicsPipeline = nullptr;
 
-	Intern::gfx_CreateTexturesFN* GFX::createTextures = nullptr;
-	Intern::gfx_DestroyTexturesFN* GFX::destroyTextures = nullptr;
+	PH_PLATFORM_API Intern::gfx_CreateTexturesFN* GFX::createTextures = nullptr;
+	PH_PLATFORM_API Intern::gfx_DestroyTexturesFN* GFX::destroyTextures = nullptr;
 
-	Intern::GFX_SetScissorsFN* GFX::setScissors = nullptr;
-	Intern::gfx_SetViewportsFN* GFX::setViewports = nullptr;
+	PH_PLATFORM_API Intern::GFX_SetScissorsFN* GFX::setScissors = nullptr;
+	PH_PLATFORM_API Intern::gfx_SetViewportsFN* GFX::setViewports = nullptr;
 
-	Intern::gfx_DrawImguiWidgetsFN* GFX::drawImguiWidgets = nullptr;
-	Intern::gfx_CreateImguiImageFN* GFX::createImGuiImage = nullptr;
+	PH_PLATFORM_API Intern::gfx_DrawImguiWidgetsFN* GFX::drawImguiWidgets = nullptr;
+	PH_PLATFORM_API Intern::gfx_CreateImguiImageFN* GFX::createImGuiImage = nullptr;
+	
+	namespace GFX {
 
+		PH_PLATFORM_API bool32 destroyRenderpassDescriptions(GFX::RenderpassDescription* descriptions, uint32 count) {
+			return Vulkan::destroyRenderpassDescriptions(Vulkan::context_s, descriptions, count);
+		}
+
+		PH_PLATFORM_API bool32 destroyFrameBuffers(GFX::Framebuffer* framebuffers, uint32 count) {
+			return Vulkan::postDestroyFrameBuffers(Vulkan::context_s, framebuffers, count);
+		}
+	}
 }
 
-PH_DLL_EXPORT bool applicationReload(PH::Platform::Intern::PlatformAPI* platform) {
+bool loadPlatformAPI(PH::Platform::Intern::PlatformAPI* platform) {
 	
 	PH::Platform::writeFile = platform->writefile;
 	PH::Platform::consoleWrite = platform->consolewrite;
