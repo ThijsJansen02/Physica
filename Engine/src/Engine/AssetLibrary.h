@@ -35,7 +35,7 @@ namespace PH::Engine {
 	};
 
 	//creates an asset identifier for the given asset
-	AssetIdentifier createAssetIdentifier(AssetBase* asset, AssetID id, AssetDescription* description);
+	PH_ENGINE_API AssetIdentifier createAssetIdentifier(AssetBase* asset, AssetID id, AssetDescription* description);
 
 	//container with all assets of a given type
 	struct AssetPool {
@@ -45,7 +45,7 @@ namespace PH::Engine {
 		Base::ChainedHashMap<Base::SubString, AssetIdentifier*, stringHash, stringCompare, Engine::Allocator> assetreferences;
 	};
 
-	class AssetLibrary {
+	class PH_ENGINE_API AssetLibrary {
 	public:
 
 		static AssetLibrary createAssetLibrary();

@@ -36,9 +36,8 @@ namespace PH::LabCore {
 		appcontext->assets.addAssetType(Engine::createFontDescription());
 
 		//statically adding a font to the asset library. application should always have a font available to draw text with, this is going to be used for the python shell and for the view instances
-		Engine::Font* font = Engine::Allocator::instantiate(Engine::createFont("c:/windows/fonts/Arial.ttf", 512, 16));
-		auto identifier = appcontext->assets.addAsset<Engine::Font>(font, 683249087875, Engine::getFontExtension());
-		appcontext->assets.addReferenceToAsset<Engine::Font>(identifier->assetid, "defaultfont");
+		Engine::Font* font = Engine::Allocator::push(Engine::createFont("c:/windows/fonts/Arial.ttf", 512, 16));
+		auto identifier = appcontext->assets.addAsset<Engine::Font>(font, 683249087875, "defaultfont");
 		
 		//should definitly be a relative path
 		initPython("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
@@ -164,9 +163,16 @@ namespace PH::LabCore {
 	}
 
 	void draw() {
+
+		//rendering should be done within begin and end frame with this renderer
+		Engine::Renderer2D::startFrame(appcontext->renderer2D.getContext());
+
 		drawMenuBar();
 
 		drawViews(appcontext->viewinstances);
+
+		//end the frame
+		Engine::Renderer2D::endFrame(appcontext->renderer2D.getContext());
 	}
 
 	void loadShaders() {

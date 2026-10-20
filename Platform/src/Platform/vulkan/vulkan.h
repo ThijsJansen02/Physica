@@ -155,6 +155,17 @@ namespace PH::Vulkan {
 		VkDeviceMemory imagememory;
 	};
 
+	enum VulkanObjectType {
+		VULKAN_FRAMEBUFFER,
+		VULKAN_TEXTURE
+	};
+
+	struct ObjectDeletePost {
+		VulkanObjectType objecttype;
+		Platform::GFX::id object;
+		uint32 framecounter;
+	};
+
 	struct VulkanAppContext {
 
 		VkInstance instance;
@@ -214,7 +225,18 @@ namespace PH::Vulkan {
 		//for descriptor set allocation synchronization
 		Base::mutex_lock descriptorpoollock;
 		Base::mutex_lock commandpoollock;
+
+		ArrayList<ObjectDeletePost> objectdeletequeue;
 	};
+
+	inline void postObjectDeleteMessage(VulkanAppContext* context, Platform::GFX::id obj, VulkanObjectType type) {
+		ObjectDeletePost p;
+		p.framecounter = MAX_FRAMES_IN_FLIGHT;
+		p.object = obj;
+		p.objecttype = type;
+
+		context->objectdeletequeue.pushBack(p);
+	}
 
 	VkCommandBuffer beginSingleTimeCommands(VulkanAppContext* context);
 	void endSingleTimeCommands(VulkanAppContext* context, VkCommandBuffer commandBuffer);

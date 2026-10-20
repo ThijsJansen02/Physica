@@ -21,12 +21,12 @@ namespace PH::Engine {
 
 
 	namespace Intern {
-		CONSOLE_WRITE(ConsoleWrite);
+		PH_ENGINE_API CONSOLE_WRITE(ConsoleWrite);
 	}
 
-	extern PH::Base::LogStream<Intern::ConsoleWrite> INFO;
-	extern PH::Base::LogStream<Intern::ConsoleWrite> WARN;
-	extern PH::Base::LogStream<Intern::ConsoleWrite> ERR;	
+	extern PH_ENGINE_API PH::Base::LogStream<Intern::ConsoleWrite> INFO;
+	extern PH_ENGINE_API PH::Base::LogStream<Intern::ConsoleWrite> WARN;
+	extern PH_ENGINE_API PH::Base::LogStream<Intern::ConsoleWrite> ERR;
 
 	struct Display;
 
@@ -55,30 +55,13 @@ namespace PH::Engine {
 		}
 #else
 		template<typename T>
-		static T* inst(const T& inst) {
-			
-			/*T* result = (T*)PH::Base::DynamicAllocateFirstFit(&memory, sizeof(T));
-			*result = inst;
-			return result;*/
-
-			return new T(inst);
-		}
-
-		template<typename T>
-		static void del(T* ptr) {
-
-			delete(ptr);
-		}
-
-
-		template<typename T>
 		static T* alloc() {
 			return (T*)alloc(sizeof(T));
 		}
 
 		
 		template<typename T>
-		static T* instantiate(const T& t) {
+		static T* push(const T& t) {
 			T* inst = (T*)alloc(sizeof(T));
 			*inst = t;
 			return inst;
@@ -153,7 +136,9 @@ namespace PH::Engine {
 
 	//should always be called at the the start of a new frame, updates parameters
 	bool32 beginNewFrame(PH::Platform::Context* c);
-	real32 getTimeStep();
+
+	//returns the time step from last frame in seconds
+	PH_ENGINE_API real32 getTimeStep();
 	
 	//returns the parent display, the parentdisplay is the display created by the platform which is blitted to the screen
 	Display* getParentDisplay();

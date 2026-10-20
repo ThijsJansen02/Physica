@@ -65,45 +65,50 @@ namespace PH::Engine {
 			sizeptr useddescriptors;
 		};
 
-		bool32 begin(Context* context);
-		bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context);
-		bool32 pushTexture(Platform::GFX::Texture texture, PH::Engine::Renderer2D::Context* context);
-		bool32 end(Context* context);
-		bool32 flush(Context* context, Base::Array<Platform::GFX::DescriptorSet> globaldescriptorsets);
+		PH_ENGINE_API bool32 begin(Context* context);
+		PH_ENGINE_API bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 pushTexture(Platform::GFX::Texture texture, PH::Engine::Renderer2D::Context* context);
+		PH_ENGINE_API bool32 end(Context* context);
+		PH_ENGINE_API bool32 flush(Context* context, Base::Array<Platform::GFX::DescriptorSet> globaldescriptorsets);
 
-		bool32 drawTexturedQuad(glm::vec3 position, glm::vec2 size, Platform::GFX::Texture texture, Renderer2D::Context* context);
-		bool32 drawTexturedQuad(const glm::mat4& transform, Platform::GFX::Texture texture, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawTexturedQuad(glm::vec3 position, glm::vec2 size, Platform::GFX::Texture texture, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawTexturedQuad(const glm::mat4& transform, Platform::GFX::Texture texture, Renderer2D::Context* context);
 
 
-		bool32 drawQuadWithID(glm::mat4 transform, glm::vec4 color, uint32 objectid, Renderer2D::Context* m_Context);
-		bool32 drawQuadWithID(const glm::vec3& position, const glm::vec2& scale, const glm::vec4& color, uint32 objectid, Renderer2D::Context* m_Context);
+		PH_ENGINE_API bool32 drawQuadWithID(glm::mat4 transform, glm::vec4 color, uint32 objectid, Renderer2D::Context* m_Context);
+		PH_ENGINE_API bool32 drawQuadWithID(const glm::vec3& position, const glm::vec2& scale, const glm::vec4& color, uint32 objectid, Renderer2D::Context* m_Context);
 
-		Engine::DynamicArray<uint8> compileGLSLSourceToVulkanBinary(const char* source, PH::Platform::GFX::ShaderStageFlags shaderstage);
+		PH_ENGINE_API Engine::DynamicArray<uint8> compileGLSLSourceToVulkanBinary(const char* source, PH::Platform::GFX::ShaderStageFlags shaderstage);
 		
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(Platform::GFX::RenderpassDescription renderpass, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
+		PH_ENGINE_API Platform::GFX::GraphicsPipeline createGraphicsPipelineFromGLSLSource(const Engine::Display* target, const char* vertpath, const char* fragpath, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
+		PH_ENGINE_API Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
+		PH_ENGINE_API Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(Platform::GFX::RenderpassDescription renderpass, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<Platform::GFX::DescriptorSetLayout> userlayouts);
 		
 		//checks weather binaries exist and loads them, otherwise compiles them from source and saves the binaries, returns the binaries either way
-		Engine::DynamicArray<uint8> checkCompileBinaries(const char* path, Platform::GFX::ShaderStageFlags stage);
+		PH_ENGINE_API Engine::DynamicArray<uint8> checkCompileBinaries(const char* path, Platform::GFX::ShaderStageFlags stage);
 
-		bool32 drawColoredQuad(const glm::mat4& transform, glm::vec4 color, Renderer2D::Context* context);
-		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, real32 rotation, glm::vec4 color, Renderer2D::Context* context);
-		bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawColoredQuad(const glm::mat4& transform, glm::vec4 color, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, real32 rotation, glm::vec4 color, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color, Renderer2D::Context* context);
 
-		bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec2 thickness, Renderer2D::Context* context);
-		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec2 thickness, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec2 thickness, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec2 thickness, Renderer2D::Context* context);
 
-		bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context);
-		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context);
-		bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, real32 depth, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawLine(glm::vec3 v1, glm::vec3 v2, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, Renderer2D::Context* context);
+		PH_ENGINE_API bool32 drawLineStrip(Base::Array<glm::vec2> points, glm::vec4 color, glm::vec2 thickness, real32 depth, Renderer2D::Context* context);
 
 
-		bool32 pushView(Context* context, const glm::mat4& view);
-		bool32 pushProjection(Context* context, const glm::mat4& projection);
-		Context* createContext(const InitInfo& initinfo);
+		PH_ENGINE_API bool32 pushView(Context* context, const glm::mat4& view);
+		PH_ENGINE_API bool32 pushProjection(Context* context, const glm::mat4& projection);
+		PH_ENGINE_API Context* createContext(const InitInfo& initinfo);
 
-		Stats getStats(Context* context);
+		PH_ENGINE_API Stats getStats(Context* context);
+
+		PH_ENGINE_API bool32 startFrame(Context* context);
+
+		//does not do anything for now but keep for continuity Begin - End
+		PH_ENGINE_API bool32 endFrame(Context* context);
 	}
 
 	/*

@@ -50,7 +50,14 @@ project "LabCore-3D"
 
 	links
 	{
-		"LabCore"
+		"yaml-cpp",
+		"assimp",
+		"LabCore",
+		"%{Library.platform}"
+	}
+
+	libdirs {
+		"%{LibraryDir.cpython}"
 	}
 
 	postbuildcommands 

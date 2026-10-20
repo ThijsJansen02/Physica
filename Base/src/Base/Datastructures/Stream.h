@@ -25,6 +25,13 @@ namespace PH::Base {
 		}
 
 		template<typename T>
+		Stream& operator<<(const T& obj) {
+			Array<T> arr = { &(T&)obj, 1 };
+			*this << arr;
+			return *this;
+		}
+
+		template<typename T>
 		Stream& operator<<(Base::Array<T> data) {
 			//resize when 
 

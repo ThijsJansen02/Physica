@@ -8,14 +8,15 @@ namespace PH::Engine {
 		
 		union {
 			struct {
+				glm::vec2 bottomleft;
+				glm::vec2 topright;
+			};
+
+			struct {
 				real32 left, bottom;
 				real32 right, top;
 			};
 
-			struct {
-				glm::vec2 bottomleft;
-				glm::vec2 topright;
-			};
 		};
 	};
 

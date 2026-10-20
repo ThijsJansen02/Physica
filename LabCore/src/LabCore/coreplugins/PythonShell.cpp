@@ -95,6 +95,8 @@ namespace PH::LabCore {
 	}
 
 	bool32 pythonShellInstantiate(pythonShellInstance* shell) {
+		*shell = {};
+
 		shell->display = Engine::createImGuiDisplay(1920, 1080);
 		shell->font = appcontext->assets.getAssetByReference<Engine::Font>("defaultfont");
 
@@ -103,6 +105,8 @@ namespace PH::LabCore {
 		shell->current.message = Engine::String::create("");
 		shell->current.color = glm::vec4(1.0f);
 		shell->current.source = CONSOLE;
+
+		shell->cursorposition = 0;
 
 		shell->messageretrieveptr = 0;
 
@@ -182,8 +186,7 @@ namespace PH::LabCore {
 		glm::vec2 nextpos = Engine::drawText(shell->font, shell->current.message.getC_Str(), drawptr, 1.0f, shell->current.color, renderer2D->getContext());
 		drawptr.y = nextpos.y - shell->font->pixelheight;
 
-		renderer2D->end();
-		renderer2D->flush({nullptr, 0});
+		renderer2D->end();	
 
 		Engine::endRenderPass(shell->display);
 		
@@ -404,6 +407,25 @@ namespace PH::LabCore {
 
 	PYBIND11_EMBEDDED_MODULE(labcore, m) {
 
+		py::class_<Engine::String>(m, "String")
+			.def(py::init([](const char* string) {
+			return Engine::String::create(string);
+				}))
+			.def("__str__", &Engine::String::getC_Str)
+			.def("__len__", &Engine::String::getLength)
+			.def_property(
+				"value",
+				[](const Engine::String& s) {
+					return s.getC_Str();
+				},
+				[](Engine::String& s, const char* value) {
+					s.set(value);
+				})
+			.def("__del__", [](Engine::String& self) {
+			Engine::String::destroy(&self);
+			});
+
+
 		py::class_<glm::vec4>(m, "Vec4")
 			.def(py::init<float, float, float, float>())
 			.def_readwrite("x", &glm::vec4::x)
@@ -415,11 +437,12 @@ namespace PH::LabCore {
 			if (focussedshell) {
 				focussedshell->display.clearcolor = color;
 			}
-		});
+		}, py::arg("color"));
 
-		m.def("print", printToConsole, py::arg("str"));
-
-
+		m.def("print", [](py::object obj) {
+			std::string str = py::str(obj);
+			printToConsole(str.c_str());
+			}, py::arg("printable"));
 	}
 
 	ViewDescription getPythonShellViewDescription() {

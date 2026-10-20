@@ -30,6 +30,7 @@ IncludeDir["zlib"] = "%{wks.location}/dep/zlib/include"
 
 
 LibraryDir = {}
+
 LibraryDir["vulkanSDK"] = "%{VULKAN_SDK}/Lib"
 LibraryDir["openssl"] = "%{wks.location}/dep/openssl/lib/VC/x64"
 LibraryDir["libssh"] = "%{wks.location}/dep/libssh/lib"
@@ -39,6 +40,8 @@ LibraryDir["cpython"] = "%{wks.location}/dep/embeddedpython/libs"
 --LibraryDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/libs"
 
 Library = {}
+Library["platform"] = "%{wks.location}/bin/" .. outputdir .. "/Platform/Platform.lib"
+
 Library["cpython_debug"] = "%{LibraryDir.cpython}/python313.lib"
 Library["cpython"] = "%{LibraryDir.cpython}/python313.lib"
 

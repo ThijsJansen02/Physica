@@ -15,8 +15,8 @@ namespace PH::Engine {
 			bool32 end() {
 				return Renderer2D::end(m_Context);
 			}
-			bool32 flush(Base::Array<Platform::GFX::DescriptorSet> globaldescriptorsets) {
-				return Renderer2D::flush(m_Context, globaldescriptorsets);
+			bool32 flush(Base::Array<Platform::GFX::DescriptorSet> additionaldescriptors) {
+				return Renderer2D::flush(m_Context, additionaldescriptors);
 			}
 			bool32 drawTexturedQuad(const glm::mat4& transform, Platform::GFX::Texture texture) {
 				return Renderer2D::drawTexturedQuad(transform, texture, m_Context);

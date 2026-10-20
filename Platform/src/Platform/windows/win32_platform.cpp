@@ -545,18 +545,12 @@ PH::bool32 win32_loadApplication(HWND windowhandle, const char* dllname, Applica
 	applicationInitializeFN* applicationInitialize = (applicationInitializeFN*)GetProcAddress(applicationlib, "applicationInitialize");
 	if (!applicationInitialize) { ERR << "failed to load application Initialize\n"; return false; }
 
-	applicationReloadFN* applicationReload = (applicationReloadFN*)GetProcAddress(applicationlib, "applicationReload");
-	if (!applicationReload) { ERR << "failed to load application reload\n"; return false; }
-
 	app->applicationDestroy = applicationDestroy;
 	app->applicationUpdate = applicationUpdate;
-	app->applicationReload = applicationReload;
 	app->applicationInitialize = applicationInitialize;
 
 	return true;
 }
-
-PH_DLL_EXPORT bool applicationReload(PH::Platform::Intern::PlatformAPI* platform);
 
 struct PlatformAppContext {
 	HWND windowhandle;
@@ -593,6 +587,8 @@ PH_OPEN_FILE_DIALOG(win32_openFileDialog) {
 	return false;
 
 }
+
+bool loadPlatformAPI(PH::Platform::Intern::PlatformAPI* platform);
 
 PH::uint32 lastwindowwidth;
 PH::uint32 lastwindowheight;
@@ -677,8 +673,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	api.gfxdrawimguiwidgets = vulkan_draw_imgui_widgets;
 	api.gfxcreateimguiimage = vulkan_create_imgui_image;
 
-	app.applicationReload(&api);
-	applicationReload(&api);
+	loadPlatformAPI(&api);
 
 	QueryPerformanceCounter(&systemstartcount);
 	QueryPerformanceFrequency(&PerformanceFrequency);

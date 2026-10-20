@@ -14,6 +14,21 @@ namespace PH::Base {
 		return strlen;
 	}
 
+	//returns wheter the first matches str2 till the end of string 2 even if string 2 continues
+	inline bool32 stringPartOf(const char* str1, const char* str2) {
+		while (*str1 != '\0' && *str2 != '\0') {
+			if (*str1 != *str2) {
+				return false;
+			}
+			str1++;
+			str2++;
+		}
+
+		//if string 1 reached the end it is the same as part of string 2
+		return *str1 == '\0';
+	}
+
+	//returns wheter the strings are exactly the same
 	inline bool32 stringCompare(const char* str1, const char* str2) {
 		while (*str1 != 0 && *str2 != 0) {
 			if (*str1 != *str2) {
@@ -22,6 +37,8 @@ namespace PH::Base {
 			str1++;
 			str2++;
 		}
+
+		//if both are terminated strings are the same
 		return *str1 == *str2;
 	}
 
@@ -107,6 +124,7 @@ namespace PH::Base {
 			return string;
 		}
 
+		//returns a substring from the begining of this to the next entry of character c
 		SubString getTill(char c) {
 
 			char* str = m_Str;
@@ -116,7 +134,19 @@ namespace PH::Base {
 				}
 				str++;
 			}
-			return SubString::create(m_Str, str - m_Str + 1);
+			return SubString::create(m_Str, str - m_Str);
+		}
+
+		//returns Substring from the begining of this till the first orrurrance of compstr
+		SubString getTill(const char* compstr) {
+			char* str = m_Str;
+			while (*str != 0) {
+				if (stringPartOf(compstr, str)) {
+					break;
+				}
+				str++;
+			}
+			return SubString::create(m_Str, str - m_Str);
 		}
 
 		SubString operator-(uint32 l) {
@@ -126,7 +156,7 @@ namespace PH::Base {
 		}
 
 		/// <summary>
-		/// returns the substring from the last found char c, if no such character is found the return is the whole string
+		/// returns the substring till the last found entry of character c
 		/// </summary>
 		/// <param name="c"></param>
 		/// <returns></returns>
@@ -191,6 +221,19 @@ namespace PH::Base {
 			result.m_Str += length;
 			result.m_Length -= length;
 			return result;
+		}
+
+		//returns substring from the position after the first time str occurs in the substring
+		SubString getFrom(const char* compstr) {
+			char* str = m_Str;
+			while (*str != 0 && (str - m_Str) < m_Length) {
+				if (stringPartOf(compstr, str)) {
+					str += stringLength(compstr);
+					break;
+				}
+				str++;
+			}
+			return SubString::create(str, (m_Str + m_Length) - str);
 		}
 
 		SubString getFrom(char c) {

@@ -125,6 +125,17 @@ namespace PH::Engine {
 
 		return true;
 	}
+
+	void PH_ENGINE_API destroyDisplay(Display* display) {
+
+		PH::Platform::GFX::destroyFrameBuffers(&display->fb, 1);
+		PH::Platform::GFX::destroyTextures(&display->colorattachment, 1);
+	}
+
+	void PH_ENGINE_API destroyImGuiDisplay(ImGuiDisplay* display) {
+
+	}
+
 	bool32 endRenderPass(const Display& display) {
 		Platform::GFX::endRenderpass();
 

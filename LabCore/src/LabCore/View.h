@@ -39,16 +39,23 @@ namespace PH::LabCore {
 		ImGuiWindowFlags windowflags;
 		ImVec2 windowpadding;
 
-		//name of the view, used for identification and display in the GUI
+		//name of the view, used for identification and display in the GUI also unique identifier for description
 		Engine::String name;		
 	};
+
+	typedef Engine::UUID ViewID;
 
 	//instance of a view, this is created by the application when a view is added to the application, and it is destroyed when the view is removed from the application
 	struct ViewInstance {
 		ViewDescription* viewdescription;
 		void* instancedata;
-		Engine::UUID instanceid;
+
+		//id is unique identifier for this view instance
+		ViewID instanceid;
 		
+		//name of string for display
+		Engine::String name;
+
 		bool32 isfocussed;
 
 		Engine::Box2D region;
@@ -59,6 +66,8 @@ namespace PH::LabCore {
 
 	ViewInstance createViewInstance(ViewDescription* description);
 	ViewInstance createViewInstance(ViewDescription* description, Engine::UUID id);
+
+	void destroyViewInstance(ViewInstance* view);
 	
 	//updates all views in the application, this is called by the application in the update loop
 	void updateViews(Engine::ArrayList<ViewInstance>& views);

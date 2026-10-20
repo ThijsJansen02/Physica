@@ -1,21 +1,7 @@
 openviews:
-  - viewname: Python Shell
-    instanceid: 1903772043
-    viewdata:
-      shellbgcolor: [0.2, 0.3, 0.1, 1]
-      messages:
-        - message: lc.print("hello world")
-          source: 0
-        - message: hello world
-          source: 1
-        - message: lc.setShellClearColor({1.0, 0.0, 0.0, 1.0})
-          source: 0
-        - message: "TypeError: setShellClearColor(): incompatible function arguments. The following argument types are supported:\n    1. (arg0: labcore.Vec4) -> None\n\nInvoked with: {0.0, 1.0}\n\nAt:\n  <string>(2): <module>\n"
-          source: 1
-        - message: lc.setShellClearColor(lc.Vec4(1.0, 0.0, 0.0, 1.0))
-          source: 0
-        - message: lc.setShellClearColor(lc.Vec4(0.2, 0.3, 0.1, 1.0))
-          source: 0
   - viewname: Scene View
-    instanceid: 3343439719
-    viewdata
+    instanceid: 3190987699
+    viewdata:
+      Camera:
+        direction: [0.6764364, 0.52249676, 0.51904887]
+        position: [-1.747652, -1.1297697, -0.8838801]

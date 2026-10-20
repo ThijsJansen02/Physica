@@ -44,8 +44,8 @@ project "LabCore"
 		"PH_SCENE_IMPLEMENT",
 		"IMGUI_API=__declspec(dllexport)",
 		"PH_LABCORE_EXPORT",
+		"PH_PLATFORM_IMPORT",
 		"PH_ENGINE_EXPORT",
-		"PH_PLATFORM_EXPORT",
 		"PH_SHARED_BUILD",
 		"YAML_CPP_STATIC_DEFINE"
 	}
@@ -57,6 +57,7 @@ project "LabCore"
 	links
 	{
 		"base",
+		"Platform",
 		"Engine"
 	}
 

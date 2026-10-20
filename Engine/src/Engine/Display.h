@@ -21,7 +21,7 @@ namespace PH::Engine {
 		glm::vec2 viewport;
 
 		//the static display renderpass
-		static PH::Platform::GFX::RenderpassDescription defaultrenderpassdescription;
+		PH_ENGINE_API static PH::Platform::GFX::RenderpassDescription defaultrenderpassdescription;
 	};
 
 	inline real32 getDisplayAspectRatio(const Display& display) {
@@ -37,6 +37,9 @@ namespace PH::Engine {
 
 	Display PH_ENGINE_API createDisplay(uint32 width, uint32 height);
 	ImGuiDisplay PH_ENGINE_API createImGuiDisplay(uint32 width, uint32 height);
+
+	void PH_ENGINE_API destroyDisplay(Display* display);
+	void PH_ENGINE_API destroyImGuiDisplay(ImGuiDisplay *display);
 
 
 
