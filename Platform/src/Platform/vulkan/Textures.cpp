@@ -159,15 +159,21 @@ namespace PH::Vulkan {
 		return sampler;
 	}
 
-	PH::bool32 destroyTexture(VulkanAppContext* context, PH::Platform::GFX::Texture* textures, PH::uint32 count) {
-		for (uint32 i = 0; i < count; i++) {
-			auto& texture = textures[i];
-			auto& textureimage = context->textureimages[texture];
-			vkDestroyImageView(context->device, textureimage.view, nullptr);
-			vkDestroyImage(context->device, textureimage.image, nullptr);
-			vkFreeMemory(context->device, textureimage.imagememory, nullptr);
-			vkDestroySampler(context->device, textureimage.sampler, nullptr);
-		}
+	PH::bool32 postDestroyTextures(VulkanAppContext* context, PH::Platform::GFX::Texture* textures, PH::uint32 count) {
+		//destroyTexture(context, textures)
+		return true;
+	}
+
+	PH::bool32 destroyTexture(VulkanAppContext* context, PH::Platform::GFX::Texture texture) {
+	
+		auto& textureimage = context->textureimages[texture];
+
+		vkDestroyImageView(context->device, textureimage.view, nullptr);
+		vkDestroyImage(context->device, textureimage.image, nullptr);
+		vkFreeMemory(context->device, textureimage.imagememory, nullptr);
+		vkDestroySampler(context->device, textureimage.sampler, nullptr);
+
+		context->textureimages.remove(texture);
 
 		return true;
 	}
@@ -309,7 +315,7 @@ namespace PH::Vulkan {
 	}
 
 	PH_GFX_DESTROY_TEXTURES(destroyTextures) {
-		return destroyTexture(context_s, textures, count);
+		return postDestroyTextures(context_s, textures, count);
 	}
 
 	PH_GFX_CREATE_TEXTURES(createTextures) {

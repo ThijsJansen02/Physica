@@ -62,9 +62,14 @@ namespace PH::RpGui {
 		return (PH::int16)(result > 0.0f ? result + 0.5 : result - 0.5);
 	}
 
-	//should maybe floor or round the value correctly but I can do that another time
 	inline PH::int32 convertToFixedPoint32(real64 in) {
 		uint64 mult = 1 << 30;
+		real64 result = in * mult;
+		return (PH::int32)(result > 0.0f ? result + 0.5 : result - 0.5);
+	}
+
+	inline PH::int32 convertToFixedPoint24(real64 in) {
+		uint64 mult = 1 << 22;
 		real64 result = in * mult;
 		return (PH::int32)(result > 0.0f ? result + 0.5 : result - 0.5);
 	}
@@ -264,7 +269,7 @@ namespace PH::RpGui {
 	};
 
 	struct FilterFileLayout_RPAPI {
-		BiquadCoefficients_RPAPI filters[2];
+		BiquadCoefficients_RPAPI filters[4];
 	};
 
 	inline void sendTFToRP_API_V2(TransferFunction* tf, real64 targetFS) {
@@ -272,8 +277,6 @@ namespace PH::RpGui {
 		uint32 index = 0;
 
 		auto* filterfile = Engine::Allocator::alloc<FilterFileLayout_RPAPI>();
-
-		Engine::INFO << "Sending Filter with samplerate: " << targetFS << "\n";
 
 		for (Filter& f : tf->filters) {
 
@@ -288,12 +291,12 @@ namespace PH::RpGui {
 			f.cutoffFrequency = unwarpedCF;
 			f.antiCutoffFrequency = unwarpedACF;
 
-			if (index < 2) {
-				filterfile->filters[index].b0 = convertToFixedPoint32(dcoeffs.b[0]);
-				filterfile->filters[index].b1 = convertToFixedPoint32(dcoeffs.b[1]);
-				filterfile->filters[index].b2 = convertToFixedPoint32(dcoeffs.b[2]);
-				filterfile->filters[index].a1 = convertToFixedPoint32(dcoeffs.a[1]);
-				filterfile->filters[index].a2 = convertToFixedPoint32(dcoeffs.a[2]);
+			if (index < 4) {
+				filterfile->filters[index].b0 = convertToFixedPoint24(dcoeffs.b[0]);
+				filterfile->filters[index].b1 = convertToFixedPoint24(dcoeffs.b[1]);
+				filterfile->filters[index].b2 = convertToFixedPoint24(dcoeffs.b[2]);
+				filterfile->filters[index].a1 = convertToFixedPoint24(dcoeffs.a[1]);
+				filterfile->filters[index].a2 = convertToFixedPoint24(dcoeffs.a[2]);
 			}
 			index++;
 		}

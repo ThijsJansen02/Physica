@@ -83,6 +83,8 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	examplefunction.filters.pushBack(filter);
 	filter.cutoffFrequency = 10000.0f;
 	examplefunction.filters.pushBack(filter);
+	filter.cutoffFrequency = 14000.0f;
+	examplefunction.filters.pushBack(filter);
 
 	return examplefunction;
 }
@@ -497,7 +499,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			ImGui::EndCombo();
 		}
 
-		Engine::INFO << ImGui::GetIO().DeltaTime << "\n";
+		//Engine::INFO << ImGui::GetIO().DeltaTime << "\n";
 
 		if (DragDouble("cutoff frequency", &f.cutoffFrequency, 1.0f)) {
 			b_dirty = true;
