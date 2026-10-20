@@ -55,8 +55,17 @@ layout(location = 3) in vec3 Normal;
 //output to color buffer
 layout(location = 0) out vec4 outAlbedo;
 
+
+
 void main() {	
-    outAlbedo = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+    vec3 lightdir = vec3(0.2, -1.0f, 0.3);
+
+    lightdir = normalize(lightdir);
+
+    float diffuse = dot(lightdir, Normal);
+
+    outAlbedo = vec4(diffuse * vec3(1.0f, 1.0f, 1.0f), 1.0f);
 }
 
 >>>END_OF_FILE

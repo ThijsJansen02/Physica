@@ -113,15 +113,18 @@ namespace PH::LabCore3D {
 		auto vertbin = Engine::Renderer2D::compileGLSLSourceToVulkanBinary(vertsourcestr.getC_Str(), PH::Platform::GFX::SHADER_STAGE_VERTEX_BIT);
 		auto fragbin = Engine::Renderer2D::compileGLSLSourceToVulkanBinary(fragsourcestr.getC_Str(), PH::Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
 
-		if (!pipe->bindir.isEmpty()) {
-			writeBinariesToDisk(vertbin.getArray(), fragbin.getArray(), pipe->bindir.getC_Str());
+		if (vertbin.empty() || fragbin.empty()) {
+			return false;
 		}
-
 
 		Platform::GFX::GraphicsPipeline p = create3DGraphicsPipelineFromBinaries(Engine::Display::defaultrenderpassdescription, vertbin.getArray(), fragbin.getArray(), { &DefferedRenderer::scenedescriptorlayout, 1 });
 		
 		if (p == PH_GFX_NULL) {
 			return false;
+		}
+
+		if (!pipe->bindir.isEmpty()) {
+			writeBinariesToDisk(vertbin.getArray(), fragbin.getArray(), pipe->bindir.getC_Str());
 		}
 
 		//if all went well replace old pipeline with new one
