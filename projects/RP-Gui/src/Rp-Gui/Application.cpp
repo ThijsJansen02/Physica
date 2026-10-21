@@ -497,9 +497,10 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			ImGui::EndCombo();
 		}
 
-		for (const auto& parameter : f.getParameters())
+		const Parameters params = f.getParameters();
+		for (size_t i = 0; i < params.totalParams; i++)
 		{
-			if (DragDouble(parameter.first, (double*)parameter.second, *parameter.second * dragSpeed)) b_dirty = true;
+			if (DragDouble(params.labels[i], (double*)params.valuePtrs[i], *params.valuePtrs[i] * dragSpeed)) b_dirty = true;
 		}
 
 		if (b_dirty) {

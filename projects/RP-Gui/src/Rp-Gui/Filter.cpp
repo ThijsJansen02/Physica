@@ -63,36 +63,39 @@ void Filter::calculateCoefficients()
 	};
 }
 
-const std::map<const char*, const real64*> Filter::getParameters() const
+const Parameters Filter::getParameters() const
 {
-	std::map<const char*, const real64*> map;
 	switch (type)
 	{
 	case LOWPASS:
 	case BANDPASS:
 	case BANDSTOP:
 	case HIGHPASS:
-		map.insert(std::pair("Cutoff Frequency", &cutoffFrequency));
-		map.insert(std::pair("Q Factor", &qFactor));
-		break;
+	{
+		const char* labels[] = { "Cutoff Frequency", "Q Factor" };
+		const real64* coeffs[] = { &cutoffFrequency, &qFactor };
+
+		return Parameters(labels, coeffs, sizeof(coeffs) / sizeof(real64*));
+	}
 	case ALLPASS:
-		break;
+	{
+		return { nullptr, nullptr, 0 };
+	}
 	case RESONANCE_ANTI_RESONANCE:
-		map.insert(std::pair("Cutoff Frequency", &cutoffFrequency));
-		map.insert(std::pair("Q Factor", &qFactor));
-		map.insert(std::pair("Anti-Cutoff Frequency", &antiCutoffFrequency));
-		map.insert(std::pair("Anti-Q Factor", &antiQFactor));
-		break;
+	{
+		const char* labels[] = { "Cutoff Frequency", "Q Factor", "Anti-Cutoff Frequency", "Anti-Q Factor" };
+		const real64* coeffs[] = { &cutoffFrequency, &qFactor, &antiCutoffFrequency, &antiQFactor };
+
+		return Parameters(labels, coeffs, sizeof(coeffs) / sizeof(real64*));
+	}
 	case COEFFICIENTS:
-		map.insert(std::pair("b0", &b0));
-		map.insert(std::pair("b1", &b1));
-		map.insert(std::pair("b2", &b2));
-		map.insert(std::pair("a0", &a0));
-		map.insert(std::pair("a1", &a1));
-		map.insert(std::pair("a2", &a2));
-		break;
+	{
+		const char* labels[] = { "b0", "b1", "b2", "a0", "a1", "a2" };
+		const real64* coeffs[] = { &b0, &b1, &b2, &a0, &a1, &a2 };
+
+		return Parameters(labels, coeffs, sizeof(coeffs) / sizeof(real64*));
+	}
 	};
-	return map;
 }
 
 Filter Filter::deserialize(const YAML::Node& node)

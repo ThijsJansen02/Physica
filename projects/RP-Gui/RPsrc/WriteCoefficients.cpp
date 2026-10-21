@@ -19,10 +19,10 @@
 #define GPIO_TRI2  0x0C
 
 #define WRITE_PIN_OFFSET 1
-#define ADRESS_PIN_OFFSET 8
+#define ADDRESS_PIN_OFFSET 8
 
 #define WRITE_PIN_MASK  (1 << WRITE_PIN_OFFSET)
-#define ADRESS_PINS_MASK (255 << ADRESS_PIN_OFFSET)
+#define ADDRESS_PINS_MASK (255 << ADDRESS_PIN_OFFSET)
 
 void print_binary(unsigned int n) {
     // Determine the number of bits in the integer
@@ -76,14 +76,13 @@ void writebits(uint32_t offset, uint32_t value, uint32_t nbits, volatile uint32_
 
 #define DEBUG_BUILD
 
-void writeCoefficient(volatile uint32_t* gpio, uint32_t value, uint32_t adress, uint32_t timing_ns = 1000) {
+void writeCoefficient(volatile uint32_t* gpio, uint32_t value, uint32_t address, uint32_t timing_ns = 1000) {
 
-    //write the needed data in the data bus
-    gpio[GPIO_DATA2 / 4] = value;
+    // Write the needed data in the data bus
+    gpio[GPIO_DATA2 / 4] = value; // Why do we divide by 4?
 
-    
-    //write in the adress
-    writebits(ADRESS_PIN_OFFSET, adress, 8, &gpio[GPIO_DATA1 / 4]);
+    // Write the address
+    writebits(ADDRESS_PIN_OFFSET, address, 8, &gpio[GPIO_DATA1 / 4]);
     
     
 #ifdef DEBUG_BUILD
@@ -137,12 +136,10 @@ struct FilterFileLayout {
     BiquadCoefficients filters[2];
 };
 
-
-
 int main (int argc, char **argv) {
 
-    //the adresses in memory where the filters are located
-    int32_t fpga_filtercoeff_base_adress[2] = {0, 5};
+    //the addresses in memory where the filters are located
+    int32_t fpga_filtercoeff_base_address[2] = {0, 5};
 
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd < 0) {
@@ -156,6 +153,8 @@ int main (int argc, char **argv) {
         printf("failed to open coefficient file");
         return -1;
     }
+
+    printf("test");
 
     FilterFileLayout filters{};
     size_t nelements_read = fread(&filters, sizeof(FilterFileLayout), 1, filterfile);
@@ -187,12 +186,12 @@ int main (int argc, char **argv) {
     
     //writing the filter
 
-    uint32_t adress = fpga_filtercoeff_base_adress[filter];
-    writeCoefficient(gpio1, filters.filters[filter].b0, adress++);
-    writeCoefficient(gpio1, filters.filters[filter].b1, adress++);
-    writeCoefficient(gpio1, filters.filters[filter].b2, adress++);
-    writeCoefficient(gpio1, filters.filters[filter].a1, adress++);
-    writeCoefficient(gpio1, filters.filters[filter].a2, adress++);
+    uint32_t address = fpga_filtercoeff_base_address[filter];
+    writeCoefficient(gpio1, filters.filters[filter].b0, address++);
+    writeCoefficient(gpio1, filters.filters[filter].b1, address++);
+    writeCoefficient(gpio1, filters.filters[filter].b2, address++);
+    writeCoefficient(gpio1, filters.filters[filter].a1, address++);
+    writeCoefficient(gpio1, filters.filters[filter].a2, address++);
     
     return 0;
 }

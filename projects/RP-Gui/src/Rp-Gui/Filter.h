@@ -13,6 +13,24 @@ struct BiQuadCoefficients {
 	real64 a[3];
 };
 
+// Stores arrays of displayed labels with corresponding value pointer
+struct Parameters {
+	const char* labels[6];
+	const real64* valuePtrs[6];
+
+	const int totalParams;
+
+	Parameters(const char* l[], const real64* v[], const int t)
+		: totalParams(t)
+	{
+		for (size_t i = 0; i < t; i++)
+		{
+			labels[i] = l[i];
+			valuePtrs[i] = v[i];
+		}
+	}
+};
+
 enum FilterType {
 	LOWPASS,
 	BANDPASS,
@@ -42,7 +60,7 @@ public:
 	inline const BiQuadCoefficients& getBiquadCoefficients() const { return coeffs; };
 	inline const BiQuadCoefficients& getInvertedCoefficients() const { return { coeffs.a[0], coeffs.a[1], coeffs.a[2], coeffs.b[0], coeffs.b[1], coeffs.b[2] }; };
 
-	const std::map<const char*, const real64*> getParameters() const;
+	const Parameters getParameters() const;
 
 	static Filter deserialize(const YAML::Node& filter);
 	void serialize(YAML::Emitter& out) const;
