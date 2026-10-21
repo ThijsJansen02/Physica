@@ -114,6 +114,8 @@ void writeCoefficient(volatile uint32_t* gpio, uint32_t value, uint32_t address,
     //sleep inbetween writes
     nanosleep(&ts, &rem);
 
+    printf("hello world!");
+
     //reset the write pin
     writebit(WRITE_PIN_OFFSET, 0, &gpio[GPIO_DATA1 / 4]);
 
@@ -122,6 +124,7 @@ void writeCoefficient(volatile uint32_t* gpio, uint32_t value, uint32_t address,
     print_binary(gpio[GPIO_DATA1 / 4]);
 #endif
 
+    nanosleep(&ts, &rem);
 }
 
 struct BiquadCoefficients {
@@ -133,13 +136,13 @@ struct BiquadCoefficients {
 };
 
 struct FilterFileLayout {
-    BiquadCoefficients filters[2];
+    BiquadCoefficients filters[4];
 };
 
 int main (int argc, char **argv) {
 
-    //the addresses in memory where the filters are located
-    int32_t fpga_filtercoeff_base_address[2] = {0, 5};
+    //the adresses in memory where the filters are located
+    int32_t fpga_filtercoeff_base_adress[4] = {0, 5, 10, 15};
 
     int fd = open("/dev/mem", O_RDWR | O_SYNC);
     if (fd < 0) {
@@ -169,10 +172,6 @@ int main (int argc, char **argv) {
 
     unsigned int filter = 0;
 
-    // Which filter will we update
-    if (argc > 1) {
-        filter = atoi(argv[1]);
-    } 
 
     volatile uint32_t *gpio1 = (volatile uint32_t*)mmap(
         NULL, GPIO_SIZE,
@@ -184,14 +183,52 @@ int main (int argc, char **argv) {
     gpio1[GPIO_TRI1 / 4] =  0x00000000;
     gpio1[GPIO_TRI2 / 4] = 0x00000000;
     
-    //writing the filter
 
-    uint32_t address = fpga_filtercoeff_base_address[filter];
-    writeCoefficient(gpio1, filters.filters[filter].b0, address++);
-    writeCoefficient(gpio1, filters.filters[filter].b1, address++);
-    writeCoefficient(gpio1, filters.filters[filter].b2, address++);
-    writeCoefficient(gpio1, filters.filters[filter].a1, address++);
-    writeCoefficient(gpio1, filters.filters[filter].a2, address++);
-    
+    //filter 1
+    uint32_t adress = fpga_filtercoeff_base_adress[filter];
+    writeCoefficient(gpio1, filters.filters[filter].b0, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].b1, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].b2, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].a1, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].a2, adress++);
+
+    //filter 2
+    filter++;
+    adress = fpga_filtercoeff_base_adress[filter];
+    writeCoefficient(gpio1, filters.filters[filter].b0, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].b1, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].b2, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].a1, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].a2, adress++);
+
+    //filter 3
+    filter++;
+    adress = fpga_filtercoeff_base_adress[filter];
+    writeCoefficient(gpio1, filters.filters[filter].b0, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].b1, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].b2, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].a1, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].a2, adress++);
+
+    //filter 4
+    filter++;
+    adress = fpga_filtercoeff_base_adress[filter];
+    writeCoefficient(gpio1, filters.filters[filter].b0, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].b1, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].b2, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].a1, adress++);
+    writeCoefficient(gpio1, filters.filters[filter].a2, adress++);
+
+
+
+    //toggle shadow pulse
+    timespec ts{};
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000;
+
+    writebit(2, 1, &gpio1[GPIO_DATA1 / 4]);
+    nanosleep(ts);
+    writebit(2, 0, &gpio1[GPIO_DATA1 / 4]);
+    nanosleep(ts);
     return 0;
 }
