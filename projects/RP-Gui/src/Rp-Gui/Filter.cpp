@@ -92,13 +92,13 @@ Parameters Filter::getParameters()
 	case RESONANCE_ANTI_RESONANCE:
 		parameters.labels[0] = "Cutoff Frequency";
 		parameters.labels[1] = "Q Factor";
-		parameters.labels[0] = "Anti-Cutoff Frequency";
-		parameters.labels[1] = "Anti-Q Factor";
+		parameters.labels[2] = "Anti-Cutoff Frequency";
+		parameters.labels[3] = "Anti-Q Factor";
 
 		parameters.values[0] = &cutoffFrequency;
 		parameters.values[1] = &qFactor;
-		parameters.values[0] = &antiCutoffFrequency;
-		parameters.values[1] = &antiQFactor;
+		parameters.values[2] = &antiCutoffFrequency;
+		parameters.values[3] = &antiQFactor;
 
 		parameters.size = 4;
 
