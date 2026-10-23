@@ -185,9 +185,10 @@ namespace PH::LabCore3D {
 		}
 	}
 
-	GFX::GraphicsPipeline createDefferedGeometryPipeline(const Binaries& b) {
+	GFX::GraphicsPipeline createDefferedGeometryPipeline(const Binaries& b, GFX::DescriptorSetLayout userlayout) {
 
-		GFX::GraphicsPipeline p = create3DGraphicsPipelineFromBinaries(DefferedRenderer::geometryrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), { &DefferedRenderer::scenedescriptorlayout, 1 }, false);
+		GFX::DescriptorSetLayout layouts[2] = { DefferedRenderer::scenedescriptorlayout, userlayout };
+		GFX::GraphicsPipeline p = create3DGraphicsPipelineFromBinaries(DefferedRenderer::geometryrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), { layouts, 2 }, false);
 
 		if (p == PH_GFX_NULL) {
 			return {};
@@ -215,10 +216,10 @@ namespace PH::LabCore3D {
 
 
 	//builds the graphics pipeline based on the type and the binaries
-	GFX::GraphicsPipeline buildGraphicsPipeline(PipelineType type, const Binaries& binaries) {
+	GFX::GraphicsPipeline buildGraphicsPipeline(PipelineType type, const Binaries& binaries, GFX::DescriptorSetLayout userlayout) {
 		switch (type) {
 		case LC_PIPELINE_TYPE_3D_DEFFERED_MATERIAL:
-			return createDefferedGeometryPipeline(binaries);
+			return createDefferedGeometryPipeline(binaries, userlayout);
 		case LC_PIPELINE_TYPE_3D_DEFFERED_LIGHTING:
 			return createDefferedLightingPipeline(binaries);
 		}
@@ -234,12 +235,15 @@ namespace PH::LabCore3D {
 		}
 	}
 
-	void reflectOnBinaries(Binaries& b, GraphicsPipeline* p) {
+	Engine::ArrayList<ShaderResource> reflectOnBinaries(Binaries& b, const char* debugsrcpath = "") {
+
+
+		Engine::ArrayList<ShaderResource> result = Engine::ArrayList<ShaderResource>::create(1);
 
 		spirv_cross::Compiler compiler((uint32*)b.fragsrc.raw(), b.fragsrc.getCapacity() / 4);
 		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
-		Engine::INFO << "OpenGLShader::Reflect - " << "fragment shader: " << p->srcpath.getC_Str() << "\n";
+		Engine::INFO << "OpenGLShader::Reflect - " << "fragment shader: " << debugsrcpath << "\n";
 		Engine::INFO << "		uniform buffers: " << resources.uniform_buffers.size() << "\n";
 		Engine::INFO << "		sampled images: " << resources.sampled_images.size() << "\n";
 
@@ -276,13 +280,15 @@ namespace PH::LabCore3D {
 				res.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 				res.texture = nullptr;
 
-				p->resources.pushBack(res);
+				result.pushBack(res);
 			}
 
 			Engine::INFO << resource.name.c_str() << "\n";
 			Engine::INFO << "Set: " << set << "\n";
 			Engine::INFO << "binding: " << binding << "\n";
 		}
+
+		return result;
 	}
 
 	
@@ -300,6 +306,8 @@ namespace PH::LabCore3D {
 
 				//should change in the future when using arraylike descriptor
 				b.descriptorcount = 1;
+
+				bindings.pushBack(b);
 			}
 		}
 
@@ -311,12 +319,20 @@ namespace PH::LabCore3D {
 		return r;
 	}
 
-	void updateDescriptorSet(Base::Array<ShaderResource> resources, GFX::DescriptorSet set, uint32 targetset) {
+	//updates the descriptor set with the given resources, returns false if not all descriptor bindings have a bound resource
+	bool32 updateDescriptorSet(Base::Array<ShaderResource> resources, GFX::DescriptorSet set, uint32 targetset) {
+		bool32 result = true;
+
 		for (const auto& res : resources) {
 			if (res.set == targetset) {
-				if (res.type == GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && res.texture) {
-					Texture* tex = (Texture*)res.texture->assetdata;
+				if (res.type == GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
 
+					if (!res.texture) {
+						result = false;
+						continue;
+					}
+					
+					Texture* tex = (Texture*)res.texture->assetdata;
 
 					GFX::DescriptorImageInfo im;
 					im.texture = tex->texture;
@@ -326,16 +342,19 @@ namespace PH::LabCore3D {
 					w.arrayelement = 0;
 					w.descriptorcount = 1;
 					w.dstbinding = res.binding;
-					w.dstset = targetset;
+					w.dstset = set;
 					w.dynamicwrite = false;
 					w.type = res.type;
 					w.descriptorinfo = &im;
+
+					GFX::updateDescriptorSets(&w, 1);
 				}
 			}
 		}
+		return result;
 	}
 
-	GFX::DescriptorSet createResourceDescriptorSet(GFX::DescriptorSetLayout layout, uint32 targetset) {
+	GFX::DescriptorSet createResourceDescriptorSet(GFX::DescriptorSetLayout layout) {
 		GFX::DescriptorSet r;
 		GFX::DescriptorSetCreateinfo inf;
 		inf.dynamic = false;
@@ -346,31 +365,57 @@ namespace PH::LabCore3D {
 		return r;
 	}
 
-	GraphicsPipeline createGraphicsPipeline(const char* sourcepath, const char* binpath, PipelineType type) {
+	LabCore3D::GraphicsPipeline createGraphicsPipeline(const char* sourcepath, const char* binpath, PipelineType type) {
 
 		GraphicsPipeline pl{};
 		pl.internalpipeline = PH_GFX_NULL;
 		pl.binpath = Engine::String::create(binpath);
 		pl.srcpath = Engine::String::create(sourcepath);
-		pl.resources = Engine::ArrayList<ShaderResource>::create(0);
+		pl.resources = {};
 		pl.type = type;
+		pl.isvalid = false;
 
 		Binaries b;
 		if (!loadBinaries(&b, sourcepath, binpath)) {
 			Engine::WARN << "failed to load binarie for pipeline: " << sourcepath;
 		}
 
+		auto res = reflectOnBinaries(b, pl.srcpath.getC_Str());
+		GFX::DescriptorSetLayout userlayout = createDescriptorSetLayoutForResources(res.getArray(), 1);
+		//GFX::DescriptorSet defaultdescriptorset = createResourceDescriptorSet(userlayout);
 
-		pl.internalpipeline = buildGraphicsPipeline(type, b);
+		GFX::GraphicsPipeline p = buildGraphicsPipeline(type, b, userlayout);
+		
+		if (p == PH_GFX_NULL) {
+			res.destroy(&res);
 
-		reflectOnBinaries(b, &pl);
-		pl.descriptorsetlayout = createDescriptorSetLayoutForResources(pl.resources.getArray(), 1);
-		pl.defaultdescriptorset = createResourceDescriptorSet(pl.descriptorsetlayout, 0);
+			Engine::WARN << "failed to create graphics pipeline " << sourcepath << "\n";
+			return {};
+		}
 
 		releaseBinaries(&b);
 
+		pl.resources = res;
+		pl.internalpipeline = p;
+		//pl.defaultuserdescriptorset = defaultdescriptorset;
+		pl.userlayout = userlayout;
+
 		return pl;
 
+	}
+
+	bool32 revalidateDescriptorSet(GraphicsPipeline* pipe) {
+
+		GFX::DescriptorSet set = createResourceDescriptorSet(pipe->userlayout);
+		pipe->isvalid = updateDescriptorSet(pipe->resources.getArray(), set, 1) && (pipe->internalpipeline != PH_GFX_NULL);
+
+		if (pipe->defaultuserdescriptorset != PH_GFX_NULL) {
+			GFX::destroyDescriptorSets(&pipe->defaultuserdescriptorset, 1);
+		}
+
+		pipe->defaultuserdescriptorset = set;
+
+		return true;
 	}
 
 	bool32 reloadGraphicsPipelineFromGLSL(GraphicsPipeline* pipe) {
@@ -385,23 +430,44 @@ namespace PH::LabCore3D {
 		}
 
 
-		GFX::GraphicsPipeline p = buildGraphicsPipeline(pipe->type, b);
+		auto res = reflectOnBinaries(b, pipe->srcpath.getC_Str());
+		GFX::DescriptorSetLayout userlayout = createDescriptorSetLayoutForResources(res.getArray(), 1);
+		GFX::DescriptorSet defaultdescriptorset = createResourceDescriptorSet(userlayout);
+
+		GFX::GraphicsPipeline p = buildGraphicsPipeline(pipe->type, b, userlayout);
+
 		if (p == PH_GFX_NULL) {
+			res.destroy(&res);
+
+			Engine::WARN << "failed to create graphics pipeline " << pipe->srcpath.getC_Str() << "\n";
 			return false;
 		}
 
-		pipe->resources.clear();
-		reflectOnBinaries(b, pipe);
 		releaseBinaries(&b);
+		if (pipe->resources.getCapacity() != 0) {
+			pipe->resources.destroy(&pipe->resources);
+		}
 
-		pipe->descriptorsetlayout = createDescriptorSetLayoutForResources(pipe->resources.getArray(), 1);
-		pipe->defaultdescriptorset = createResourceDescriptorSet(pipe->descriptorsetlayout, 0);
-		//add code to release old graphics pipeline (platform does not exist yet!)
+		if (pipe->internalpipeline != PH_GFX_NULL) {
+			//add code to destroy old pipe;
+		}
 
+		if (pipe->userlayout != PH_GFX_NULL) {
+			GFX::destroyDescriptorSetLayouts(&pipe->userlayout, 1);
+		}
+
+		if (pipe->defaultuserdescriptorset != PH_GFX_NULL) {
+			GFX::destroyDescriptorSets(&pipe->defaultuserdescriptorset, 1);
+		}
+
+		pipe->resources = res;
 		pipe->internalpipeline = p;
+		pipe->defaultuserdescriptorset = defaultdescriptorset;
+		pipe->userlayout = userlayout;
+		pipe->isvalid = false;
+
 		return true;
 	}
-	
 
 	void deserializeGraphicsPipeline(const char* path, GraphicsPipeline* pipe) {
 

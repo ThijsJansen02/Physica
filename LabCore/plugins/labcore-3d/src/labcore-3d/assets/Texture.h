@@ -6,7 +6,7 @@
 
 namespace PH::LabCore3D {
 
-	struct Texture {
+	struct Texture : public Engine::AssetBase {
 		static Engine::AssetDescriptionID getAssetDescriptionID() {
 			return PH_ASSET_TEXTURE;
 		}

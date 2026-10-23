@@ -24,6 +24,7 @@ group ""
 
 group "labcore-plugins"
     include "LabCore/plugins/labcore-3d"
+    include "LabCore/plugins/labcore-plt"
 group ""
 
 group "projects"

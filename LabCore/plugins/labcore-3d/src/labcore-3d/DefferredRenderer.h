@@ -62,7 +62,14 @@ namespace PH::LabCore3D {
 		glm::vec4 clearcolor;
 	};
 
+
 	struct DefferedRenderer {
+
+		enum OutputSource {
+			DEFFERED_ALBEDO = 0,
+			DEFFERED_NORMAL,
+			DEFFERED_LIGHTING
+		};
 
 		static DefferedRenderer create();
 		static DefferedRenderer create(const DefferedRendererCreateInfo& info);
@@ -85,7 +92,7 @@ namespace PH::LabCore3D {
 		void applyLightpass(GraphicsPipeline* pipe);
 		void applyPostProcess();
 
-		void output(Engine::Display* target);
+		void output(Engine::Display* target, OutputSource source);
 
 		PH::Platform::GFX::Viewport viewport;
 		glm::vec4 albedoclearcolor;

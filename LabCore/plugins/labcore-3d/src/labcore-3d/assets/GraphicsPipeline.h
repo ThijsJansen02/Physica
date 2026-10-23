@@ -38,23 +38,26 @@ namespace PH::LabCore3D {
 
 		//the resources the shader requirers
 		Engine::ArrayList<ShaderResource> resources;
-		PH::Platform::GFX::DescriptorSetLayout descriptorsetlayout;
-		PH::Platform::GFX::DescriptorSet defaultdescriptorset;
+		PH::Platform::GFX::DescriptorSetLayout userlayout;
+		PH::Platform::GFX::DescriptorSet defaultuserdescriptorset;
 
 		//path to the source path
 		Engine::String srcpath;
 
 		//path to the directory where the binaries are stored
 		Engine::String binpath;
+
+		bool32 isvalid;
 	};
 
-	//api should definitly be different in the future
-	void updateDescriptorSet(Base::Array<ShaderResource> resources, Platform::GFX::DescriptorSet set, uint32 targetset);
+	//updates the descriptor set with the given resources, returns false if not all descriptor bindings have a bound resource
+	bool32 updateDescriptorSet(Base::Array<ShaderResource> resources, Platform::GFX::DescriptorSet set, uint32 targetset);
 
 
 	GraphicsPipeline createGraphicsPipeline(const char* sourcepath, const char* binpath, PipelineType type);
 
 	bool32 reloadGraphicsPipelineFromGLSL(GraphicsPipeline* pipe);
+	bool32 revalidateDescriptorSet(GraphicsPipeline* pipe);
 
 	//GraphicsPipeline createDefferedLightingPipeline(const char* sourcepaht, const char* binpath);
 

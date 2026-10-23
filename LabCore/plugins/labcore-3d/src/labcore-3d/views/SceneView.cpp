@@ -6,15 +6,25 @@
 
 namespace PH::LabCore3D {
 
+	const char* sourceoptions[] = { "albedo", "normal", "lighting" }; 
+
 	PH::bool32 drawSceneView(SceneView* sceneview) {
 		
 		glm::vec2 viewsize = LabCore::getViewSize();
-		setCameraPerspective(&sceneview->camera, 70.0f, sceneview->display.viewport.x / sceneview->display.viewport.y, 0.1f, 100.0f);
-		glm::mat4 viewmatrix = calculateCameraViewMatrix(sceneview->camera);
+
+		//imgui draw part
+		real32 titlebarheight = ImGui::GetFrameHeight();
+		ImVec2 displaysize = ImGui::GetContentRegionAvail();
+		sceneview->display.viewport = { displaysize.x, displaysize.y };
+
 
 		//should have more consistency between x, y and width and height. This is confusing
 		renderer.viewport.width = sceneview->display.viewport.x;
 		renderer.viewport.height = sceneview->display.viewport.y;
+
+		setCameraPerspective(&sceneview->camera, 70.0f, sceneview->display.viewport.x / sceneview->display.viewport.y, 0.1f, 100.0f);
+		glm::mat4 viewmatrix = calculateCameraViewMatrix(sceneview->camera);
+
 
 		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
 		auto* cubemesh = assets->getAssetByReference<Mesh>("cubemesh");
@@ -31,19 +41,32 @@ namespace PH::LabCore3D {
 
 		renderer.endGeometryPass();
 		renderer.applyLightpass(lightingpipe);
-		renderer.output(&sceneview->display);
+		renderer.output(&sceneview->display, sceneview->displaysrc);
 
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 5, 5 });
 		if (ImGui::Begin("scene info")) {
 			ImGui::Text("camera direction: %f, %f, %f", sceneview->camera.direction.x, sceneview->camera.direction.y, sceneview->camera.direction.z);
 
+
+
+			if(ImGui::BeginCombo("renderer output", sourceoptions[sceneview->displaysrc])) {
+
+				for (uint32 i = 0; i < ARRAY_LENGTH(sourceoptions); i ++) {
+
+					if (ImGui::Selectable(sourceoptions[i], i == sceneview->displaysrc)) {
+						sceneview->displaysrc = (DefferedRenderer::OutputSource)i;
+					}
+
+				}
+
+				ImGui::EndCombo();
+			}
 		}
+		ImGui::PopStyleVar();
 		ImGui::End();
 		
 
-		//imgui draw part
-		real32 titlebarheight = ImGui::GetFrameHeight();
-		ImVec2 displaysize = ImGui::GetContentRegionAvail();
-		sceneview->display.viewport = { displaysize.x, displaysize.y };
+		
 		ImGui::Image(
 			sceneview->display.imguitexture,
 			displaysize,
@@ -97,6 +120,8 @@ namespace PH::LabCore3D {
 
 		view->camera.direction = { 0.0f, 0.0f, -1.0f };
 		view->camera.position = { 0.0f, 0.0f, 5.0f };
+
+		view->displaysrc = DefferedRenderer::OutputSource::DEFFERED_LIGHTING;
 
 		return true;
 	}
