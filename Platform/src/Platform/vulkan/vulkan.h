@@ -117,8 +117,14 @@ namespace PH::Vulkan {
 		VkDescriptorSet set[MAX_FRAMES_IN_FLIGHT];
 	};
 
+	struct SubPass {
+		uint32 colorattachmentcount;
+	};
+
 	struct Renderpass {
 		VkRenderPass renderpass;
+
+		Vulkan::ArrayList<Vulkan::SubPass> subpasses;
 	};
 
 	struct Shader {

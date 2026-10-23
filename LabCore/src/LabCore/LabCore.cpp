@@ -10,7 +10,7 @@
 
 namespace py = pybind11;
 
-typedef void(*plugininitfn)();
+typedef void(*plugininitfn)(const char* plugindir);
 
 namespace PH::LabCore {
 
@@ -51,18 +51,24 @@ namespace PH::LabCore {
 				Engine::INFO << e.what();
 			}
 		}
-		
+				
+		plugininitfn plugininit_ = nullptr;
+
 		//load labcore-3D plugin
 		HMODULE applicationlib = LoadLibraryA("LabCore-3D.dll");
 		if (applicationlib == nullptr) {
 			Engine::ERR << "failed to load application\n";
 			PH_DEBUG_BREAK();
 		}
-
-		plugininitfn plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
-		if (!plugininit_) { Engine::ERR << "failed to load application update\n"; }
-
-		plugininit_();
+		else {
+			plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
+			if (!plugininit_) { 
+				Engine::ERR << "failed to load application update\n"; 
+			} else {
+				plugininit_("plugins/labcore-3d");
+			}
+		}
+		
 
 
 	}

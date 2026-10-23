@@ -1,6 +1,6 @@
 #include "Camera.h"
 
-#define GLM_FORCE_LEFT_HANDED
+//#define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -10,7 +10,9 @@
 namespace PH::LabCore3D {
 
 	void setCameraPerspective(Camera* camera, real32 fov, real32 aspectratio, real32 nearplane, real32 farplane) {
-		camera->perspective = glm::perspectiveLH(glm::radians(fov), aspectratio, nearplane, farplane);
+		glm::mat4 invert_y = glm::mat4({ 1.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f });
+
+		camera->perspective = invert_y * glm::perspectiveLH(glm::radians(fov), aspectratio, nearplane, farplane);
 	}
 
 	glm::mat4 calculateCameraViewMatrix(const Camera& camera) {
@@ -27,11 +29,11 @@ namespace PH::LabCore3D {
 	void rotateCameraPitch(Camera* camera, real32 pitch) {
 
 		glm::vec3 negtangent = -1.0f * glm::normalize(glm::cross(camera->direction, { 0.0f, 1.0f, 0.0f }));
-		glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians(pitch), negtangent);
+		glm::mat4 rotate = glm::rotate(glm::mat4(1.0f), glm::radians(pitch), -negtangent);
 
 		camera->direction = rotate * glm::vec4(camera->direction, 1.0f);
 
-		glm::normalize(camera->direction);
+		camera->direction = glm::normalize(camera->direction);
 	}
 
 	void rotateCameraYaw(Camera* camera, real32 yaw) {
@@ -39,7 +41,7 @@ namespace PH::LabCore3D {
 
 		camera->direction = rotate * glm::vec4(camera->direction, 1.0f);
 
-		glm::normalize(camera->direction);
+		camera->direction = glm::normalize(camera->direction);
 	}
 
 	void rotateCamera(Camera* camera, real32 pitch, real32 yaw) {

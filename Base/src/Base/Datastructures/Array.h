@@ -243,7 +243,9 @@ namespace PH::Base {
 				PH::Base::copyMemory(m_Data, newarray, m_Count * sizeof(type));
 			}
 
-			allocator::dealloc(m_Data);
+			if (m_Data) {
+				allocator::dealloc(m_Data);
+			}
 			m_Count = count;
 			m_Data = newarray;
 		}

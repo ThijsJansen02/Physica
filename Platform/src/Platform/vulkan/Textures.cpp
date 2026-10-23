@@ -5,6 +5,10 @@ namespace PH::Vulkan {
 	//defined in Buffers.cpp;
 	uint32 findMemoryType(VkPhysicalDevice physicaldevice, uint32 typefilter, VkMemoryPropertyFlags properties);
 
+	bool hasStencilComponent(VkFormat format) {
+		return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+	}
+
 	void transitionImageLayout(VulkanAppContext* context, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32 layercount) {
 		
 		VkCommandBuffer commandBuffer = beginSingleTimeCommands(context);
@@ -22,6 +26,17 @@ namespace PH::Vulkan {
 		barrier.subresourceRange.layerCount = layercount;
 		barrier.subresourceRange.levelCount = 1;
 
+		if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+			if (hasStencilComponent(format)) {
+				barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
+		}
+		else {
+			barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+
 		VkPipelineStageFlags sourceStage;
 		VkPipelineStageFlags destinationStage;
 
@@ -32,13 +47,6 @@ namespace PH::Vulkan {
 			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		}
-		else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		}
 		else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
 			barrier.srcAccessMask = 0;
 			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -46,8 +54,22 @@ namespace PH::Vulkan {
 			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+			sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		}
+		else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)) {
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+			sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		}
 		else {
-			WARN << "unsupported layout transition!\n";
+			WARN << "layout transition not supported!\n";
 		}
 
 		vkCmdPipelineBarrier(
@@ -180,6 +202,47 @@ namespace PH::Vulkan {
 		return true;
 	}
 
+	uint32_t GetFormatSize(VkFormat format)
+	{
+		switch (format)
+		{
+		case VK_FORMAT_R8_UNORM:
+		case VK_FORMAT_R8_UINT:
+		case VK_FORMAT_R8_SINT:
+			return 1;
+
+		case VK_FORMAT_R8G8_UNORM:
+		case VK_FORMAT_R16_SFLOAT:
+		case VK_FORMAT_R16_UINT:
+			return 2;
+
+		case VK_FORMAT_R8G8B8A8_UNORM:
+		case VK_FORMAT_R8G8B8A8_SRGB:
+		case VK_FORMAT_B8G8R8A8_SRGB:
+		case VK_FORMAT_R16G16_SFLOAT:
+		case VK_FORMAT_R32_SFLOAT:
+		case VK_FORMAT_D32_SFLOAT:
+		case VK_FORMAT_D24_UNORM_S8_UINT:
+			return 4;
+
+		case VK_FORMAT_D32_SFLOAT_S8_UINT:
+			return 5;
+
+		case VK_FORMAT_R16G16B16A16_SFLOAT:
+		case VK_FORMAT_R32G32_SFLOAT:
+			return 8;
+
+		case VK_FORMAT_R32G32B32_SFLOAT:
+			return 12;
+
+		case VK_FORMAT_R32G32B32A32_SFLOAT:
+			return 16;
+
+		default:
+			WARN << "unsupported format";
+		}
+	}
+
 	PH::bool32 createTextures(
 		VulkanAppContext* context, 
 		PH::Platform::GFX::TextureCreateInfo* createinfos, 
@@ -306,6 +369,16 @@ namespace PH::Vulkan {
 					);
 				}
 
+				if (createinfo.usage & PH::Platform::GFX::IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+					transitionImageLayout(
+						context,
+						textureimage.image,
+						convertFormat(createinfo.format),
+						VK_IMAGE_LAYOUT_UNDEFINED,
+						hasStencilComponent(imagecreateinfo.format) ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+						createinfo.ArrayLayers
+					);
+				}
 			}
 
 			textureimage.view = createImageView(context, textureimage.image, createinfo);

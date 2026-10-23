@@ -262,6 +262,9 @@ namespace PH::Platform {
 			PrimitiveTopology topology;
 			RenderpassDescription renderpass;
 
+			bool32 blend;
+			///uint32 colorblendattachments;
+
 			CullModeFlags cullmode;
 			bool32 depthtest;
 

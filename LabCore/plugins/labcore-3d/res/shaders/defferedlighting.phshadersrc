@@ -1,0 +1,64 @@
+
+>>>VERTEX_SHADER
+
+#version 450
+
+//vertexbuffer attributes
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+
+//instancebuffer attributes
+layout(location = 2) in vec4 inRotScaleMat;
+layout(location = 3) in vec3 instanceTranslation;
+layout(location = 4) in vec4 instanceColor;
+layout(location = 5) in uint inTextureIndex;
+
+//outgoing attributes
+layout(location = 0) out vec4 fragColor;
+layout(location = 1) out vec2 TexCoord;
+layout(location = 2) out uint TextureIndex;
+
+layout(set = 0, binding = 1) uniform Scene {
+	mat4 projection;
+	mat4 view;
+} scene;	
+
+void main() {
+
+	mat2 rotscalematrix = mat2(inRotScaleMat);
+    gl_Position = scene.projection * scene.view * (vec4(rotscalematrix * inPosition.xy, inPosition.z, 1.0) + vec4(instanceTranslation, 0.0));
+
+    fragColor = instanceColor;
+	TexCoord = inTexCoord;
+	TextureIndex = inTextureIndex;
+}
+
+>>>FRAGMENT_SHADER
+
+#version 450
+
+layout(location = 0) in vec4 fragColor;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 2) flat in uint TextureIndex;
+
+layout(location = 0) out vec4 outColor;
+
+layout(set = 0, binding = 0) uniform sampler2D texSampler[32];
+
+void main() {
+	
+
+	vec3 lightdir = vec3(0.2, -1.0f, 0.8);	
+	lightdir = normalize(lightdir);
+    
+	vec4 albedo = texture(texSampler[TextureIndex], TexCoord);
+	vec3 normal = texture(texSampler[TextureIndex + 1], TexCoord).xyz;
+
+    float diffuse = 0.7 * max(dot(-lightdir, normal), 0.0);
+    float ambient = 0.1;
+
+
+    outColor = vec4((diffuse + ambient) * albedo.xyz, 1.0);
+}
+
+>>>END_OF_FILE

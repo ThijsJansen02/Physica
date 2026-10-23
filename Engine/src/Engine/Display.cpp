@@ -15,7 +15,7 @@ namespace PH::Engine {
 		colorattachment.initiallayout = Platform::GFX::IMAGE_LAYOUT_UNDEFINED;
 		colorattachment.finallayout = Platform::GFX::IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		colorattachment.format = Platform::GFX::FORMAT_R8G8B8A8_SRGB;
+		colorattachment.format = Platform::GFX::FORMAT_R8G8B8A8_UNORM;
 		colorattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
 		colorattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_STORE;
 
@@ -37,10 +37,10 @@ namespace PH::Engine {
 		Platform::GFX::SubpassDependency dependency{};
 		dependency.srcsubpass = GFX_SUBPASS_EXTERNAL;
 		dependency.dstsubpass = 0;
-		dependency.dststagemask = PH::Platform::GFX::PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.srcstagemask = PH::Platform::GFX::PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstaccessmask = PH::Platform::GFX::ACCESS_MEMORY_WRITE_BIT;
-		dependency.srcaccessmask = PH::Platform::GFX::ACCESS_MEMORY_WRITE_BIT;
+		dependency.srcstagemask = PH::Platform::GFX::PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dststagemask = PH::Platform::GFX::PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		dependency.srcaccessmask = PH::Platform::GFX::ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency.dstaccessmask = PH::Platform::GFX::ACCESS_SHADER_READ_BIT;
 
 		Platform::GFX::AttachmentDescription attachmentdescriptions[] = { colorattachment };
 
@@ -61,7 +61,7 @@ namespace PH::Engine {
 
 
 		Platform::GFX::TextureCreateInfo texturecreate{};
-		texturecreate.format = Platform::GFX::FORMAT_R8G8B8A8_SRGB;
+		texturecreate.format = Platform::GFX::FORMAT_R8G8B8A8_UNORM;
 		texturecreate.width = width;
 		texturecreate.height = height;
 		texturecreate.data = nullptr;

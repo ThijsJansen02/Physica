@@ -32,10 +32,10 @@ project "LabCore-3D"
 		"%{IncludeDir.cpython}",
 		"%{IncludeDir.cpythonPCheaders}",
 		"%{IncludeDir.labcore}",
+		"%{IncludeDir.vulkanSDK}",
 
 		--"%{IncludeDir.imguizmo}",
-		"%{IncludeDir.stb}",
-		"%{IncludeDir.libssh}"
+		"%{IncludeDir.stb}"
 	}
 
 	defines 
@@ -80,14 +80,36 @@ project "LabCore-3D"
 		runtime "Debug"
 		symbols "on"
 
+		
+		links {
+			"%{Library.shaderC_Debug}",
+			"%{Library.SPIRV_Cross_Debug}",
+			"%{Library.SPIRV_Tools_Debug}"
+		}
+
+
+
 	filter "configurations:Release"
 		defines "PH_RELEASE"
 		runtime "Release"
 		optimize "on"
 
+		links {
+			"%{Library.shaderC_Release}",
+			"%{Library.SPIRV_Cross_Release}",
+			"%{Library.SPIRV_Tools_Release}"
+		}
+
+
 	filter "configurations:Dist"
 		defines "PH_DIST"
 		runtime "Release"
 		optimize "on"
+
+		links {
+			"%{Library.shaderC_Release}",
+			"%{Library.SPIRV_Cross_Release}",
+			"%{Library.SPIRV_Tools_Release}"
+		}
 
     

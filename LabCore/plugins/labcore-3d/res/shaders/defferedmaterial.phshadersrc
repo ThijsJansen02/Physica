@@ -54,18 +54,16 @@ layout(location = 3) in vec3 Normal;
 
 //output to color buffer
 layout(location = 0) out vec4 outAlbedo;
+layout(location = 1) out vec4 outNormal;
 
-
+layout(set = 1, binding = 0) uniform sampler2D albedotexture;
 
 void main() {	
 
-    vec3 lightdir = vec3(0.2, -1.0f, 0.3);
+    vec3 albedo = vec3(1.0, 1.0, 1.0);
 
-    lightdir = normalize(lightdir);
-
-    float diffuse = dot(lightdir, Normal);
-
-    outAlbedo = vec4(diffuse * vec3(1.0f, 1.0f, 1.0f), 1.0f);
+    outAlbedo = vec4(albedo, 1.0f);
+    outNormal = vec4(Normal, 1.0f);
 }
 
 >>>END_OF_FILE

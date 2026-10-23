@@ -17,6 +17,9 @@ namespace PH::Vulkan {
 		for (uint32 i = 0; i < count; i++) {
 			PH::Platform::GFX::RenderpassDescriptionCreateinfo& createinfo = createinfos[i];
 
+			Renderpass renderpass;
+			renderpass.subpasses = Vulkan::ArrayList<SubPass>::create(createinfo.subpasses.count);
+
 			//create the attachments
 			auto attachments = Base::ArrayList<VkAttachmentDescription, ArenaAllocator>::create(createinfo.attachments.count);
 			for (const Platform::GFX::AttachmentDescription& des : createinfo.attachments) {
@@ -54,6 +57,11 @@ namespace PH::Vulkan {
 				VkSubpassDescription description{};
 				description.colorAttachmentCount = (uint32)colorattachmentreferences.getCount();
 				description.pColorAttachments = colorattachmentreferences.raw();
+
+				//write the subpass description to the cpu side description
+				Vulkan::SubPass subpassdescription;
+				subpassdescription.colorattachmentcount = description.colorAttachmentCount;
+				renderpass.subpasses.pushBack(subpassdescription);
 
 				VkAttachmentReference depthstencil{};
 				if (subpass.depthstencilattachment) {
@@ -99,7 +107,6 @@ namespace PH::Vulkan {
 				return false;
 			}
 
-			Renderpass renderpass;
 			renderpass.renderpass = vkrenderpass;
 
 			descriptions[i] = (PH::Platform::GFX::RenderpassDescription)context->renderpasses.add(renderpass);

@@ -128,6 +128,12 @@ namespace PH::Engine {
 			addReferenceToAsset<Asset>(asset, name);
 			return identifier;
 		}
+
+		template<typename Asset>
+		Engine::ArrayList<AssetIdentifier*> getAllIdentifiersOfType() {
+			AssetPool* pool = getAssetPool<Asset>();
+			return pool->assets.getAll<Engine::Allocator>();
+		}
 		
 
 		//gets asset by reference, does not guarantee that the asset is of correct type, use with caution

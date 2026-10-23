@@ -68,10 +68,10 @@ namespace PH::LabCore {
 				ImGui::PopStyleVar(1);
 			}
 
-			if (tobedeleted) {
-				destroyViewInstance(tobedeleted);
-				views.remove(tobedeleted);
-			}
+		}
+		if (tobedeleted) {
+			destroyViewInstance(tobedeleted);
+			views.remove(tobedeleted);
 		}
 		openview = nullptr;
 	}

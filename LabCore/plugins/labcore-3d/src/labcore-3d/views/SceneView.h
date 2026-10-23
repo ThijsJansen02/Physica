@@ -2,7 +2,7 @@
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/Display.h>
 
-#include "Camera.h"
+#include "../Camera.h"
 
 namespace PH::LabCore3D {
 

@@ -223,22 +223,34 @@ namespace PH::Vulkan {
 			multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
 			multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-			VkPipelineColorBlendAttachmentState colorblendattachment{};
-			colorblendattachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT;// | VK_COLOR_COMPONENT_A_BIT;
-			colorblendattachment.blendEnable = VK_TRUE;
-			colorblendattachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-			colorblendattachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-			colorblendattachment.colorBlendOp = VK_BLEND_OP_ADD;
-			colorblendattachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-			colorblendattachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-			colorblendattachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+			auto& rp = context->renderpasses[createinfo.renderpass];
+			uint32 targetsubpass = 0;
+			Vulkan::ArrayList<VkPipelineColorBlendAttachmentState> colorblendattachments = Vulkan::ArrayList<VkPipelineColorBlendAttachmentState>::create(
+				rp.subpasses[targetsubpass].colorattachmentcount);
+
+
+			for (uint32 i = 0; i < rp.subpasses[targetsubpass].colorattachmentcount; i++) {
+				VkPipelineColorBlendAttachmentState colorblendattachment{};
+				colorblendattachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT;// | VK_COLOR_COMPONENT_A_BIT;
+				colorblendattachment.blendEnable = createinfo.blend ? VK_TRUE : VK_FALSE;
+				colorblendattachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+				colorblendattachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				colorblendattachment.colorBlendOp = VK_BLEND_OP_ADD;
+				colorblendattachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+				colorblendattachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+				colorblendattachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+				colorblendattachments.pushBack(colorblendattachment);
+			}
+
 			
 			VkPipelineColorBlendStateCreateInfo colorblending{};
 			colorblending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 			colorblending.logicOpEnable = VK_FALSE;
 			colorblending.logicOp = VK_LOGIC_OP_COPY; // Optional
-			colorblending.attachmentCount = 1;
-			colorblending.pAttachments = &colorblendattachment;
+			colorblending.attachmentCount = colorblendattachments.getCount();
+			colorblending.pAttachments = colorblendattachments.raw();
 			colorblending.blendConstants[0] = 0.0f; // Optional
 			colorblending.blendConstants[1] = 0.0f; // Optional
 			colorblending.blendConstants[2] = 0.0f; // Optional

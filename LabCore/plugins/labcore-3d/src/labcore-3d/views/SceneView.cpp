@@ -2,36 +2,43 @@
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/coreassets/Font.h>
 
-#include "DefferredRenderer.h"
+#include "../DefferredRenderer.h"
 
 namespace PH::LabCore3D {
 
 	PH::bool32 drawSceneView(SceneView* sceneview) {
 		
-		Engine::beginRenderPass(sceneview->display);
-
 		glm::vec2 viewsize = LabCore::getViewSize();
 		setCameraPerspective(&sceneview->camera, 70.0f, sceneview->display.viewport.x / sceneview->display.viewport.y, 0.1f, 100.0f);
 		glm::mat4 viewmatrix = calculateCameraViewMatrix(sceneview->camera);
 
-		renderer.begin();
+		//should have more consistency between x, y and width and height. This is confusing
+		renderer.viewport.width = sceneview->display.viewport.x;
+		renderer.viewport.height = sceneview->display.viewport.y;
+
+		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
+		auto* cubemesh = assets->getAssetByReference<Mesh>("cubemesh");
+		auto* pipe = assets->getAssetByReference<GraphicsPipeline>("defaultmaterialpipe");
+
+		renderer.beginGeometryPass();
 
 		renderer.setProjection(sceneview->camera.perspective);
 		renderer.setView(viewmatrix);
 
-		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
-
-		auto* cubemesh = assets->getAssetByReference<Mesh>("cubemesh");
-		auto* pipe = assets->getAssetByReference<GraphicsPipeline>("defaultmaterialpipe");
-
 		renderer.drawMesh(cubemesh, pipe);
 
-		renderer.end();
+		auto* lightingpipe = assets->getAssetByReference<GraphicsPipeline>("defaultlightingpipe");
 
-		
-		
+		renderer.endGeometryPass();
+		renderer.applyLightpass(lightingpipe);
+		renderer.output(&sceneview->display);
 
-		Engine::endRenderPass(sceneview->display);
+		if (ImGui::Begin("scene info")) {
+			ImGui::Text("camera direction: %f, %f, %f", sceneview->camera.direction.x, sceneview->camera.direction.y, sceneview->camera.direction.z);
+
+		}
+		ImGui::End();
+		
 
 		//imgui draw part
 		real32 titlebarheight = ImGui::GetFrameHeight();

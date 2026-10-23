@@ -41,27 +41,70 @@ namespace PH::LabCore3D {
 		glm::mat4 view;
 	};
 
+	struct GBuffer {
+		sizeptr widhth;
+		sizeptr height;
+
+		PH::Platform::GFX::Framebuffer fb;
+		PH::Platform::GFX::Texture albedo;
+		PH::Platform::GFX::Texture normal;
+		PH::Platform::GFX::Texture depth;
+	};
+
+	struct DefferedRendererCreateInfo {
+		sizeptr maxinstancecount;
+		sizeptr gbufferwidth;
+		sizeptr gbufferheight;
+
+
+		//initial values, can be changed on the fly
+		PH::Platform::GFX::Viewport viewport;
+		glm::vec4 clearcolor;
+	};
+
 	struct DefferedRenderer {
 
 		static DefferedRenderer create();
-		static DefferedRenderer create(sizeptr maxinstancecount);
+		static DefferedRenderer create(const DefferedRendererCreateInfo& info);
 
-		void setProjection(glm::mat4 projection);
-		void setView(glm::mat4 view);
-
-		void begin();
-		void end();
-
-		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline);
-
-		Engine::DynamicGPUBuffer<MeshInstance> instancebuffer;
-		Engine::DynamicGPUBuffer<CameraVariables> cameravariables;
-		
-		sizeptr instanceptr;
+		static PH::Platform::GFX::RenderpassDescription createGeometryRenderpass();
+		static PH::Platform::GFX::RenderpassDescription geometryrenderpass;
 
 		static PH::Platform::GFX::DescriptorSetLayout createSceneDescriptorLayout();
 		static PH::Platform::GFX::DescriptorSetLayout scenedescriptorlayout;
+
+		static PH::Platform::GFX::RenderpassDescription createLightingRendererpass();
+		static PH::Platform::GFX::RenderpassDescription lightingrenderpass;
+
+		void beginGeometryPass();
+		void setProjection(glm::mat4 projection);
+		void setView(glm::mat4 view);
+		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline);
+		void endGeometryPass();
+
+		void applyLightpass(GraphicsPipeline* pipe);
+		void applyPostProcess();
+
+		void output(Engine::Display* target);
+
+		PH::Platform::GFX::Viewport viewport;
+		glm::vec4 albedoclearcolor;
+
+		GBuffer gbuffer;
+
+		Platform::GFX::Framebuffer lightpassbuffer;
+		Platform::GFX::Texture lightpassattachment;
+
+		Engine::DynamicGPUBuffer<MeshInstance> instancebuffer;
+		Engine::DynamicGPUBuffer<CameraVariables> cameravariables;
+
+		sizeptr instanceptr;
+
 		PH::Platform::GFX::DescriptorSet scenedescriptorset;
+
+	private:
+		void begin();
+		void end();
 	};
 	
 	extern DefferedRenderer renderer;
