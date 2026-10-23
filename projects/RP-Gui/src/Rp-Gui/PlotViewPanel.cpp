@@ -24,7 +24,8 @@ namespace PH::RpGui {
 			Base::Complex<real64> y = 1.0f;
 
 			for (const auto& filter : function->filters) {
-				const BiQuadCoefficients coeffs = (invert) ? filter.getInvertedCoefficients() : filter.getBiquadCoefficients();
+				BiQuadCoefficients coeffs = (invert) ? filter.getInvertedCoefficients() : filter.getBiquadCoefficients();
+				coeffs *= static_cast<real64>(pow(10.0, 0.25*function->visualGain/20.0));
 				y = y * applyFilter(pow(10.0f, x) * Base::Complex<real64>::i(), coeffs);
 			}
 

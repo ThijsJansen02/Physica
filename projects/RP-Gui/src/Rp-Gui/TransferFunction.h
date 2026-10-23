@@ -21,12 +21,13 @@ namespace PH::RpGui {
 		bool32 lowprecision = false;
 		uint32 decimation = 1;
 		bool32 b_invert = false;
+		real64 visualGain = 0.0f; // Shifts transfer function visually by amount in dB
 
 		const real64 getFilterSampleRate() const { return (real64)RP_FPGA_SAMPLERATE / decimation; };
 	};
 
 	inline real64 prewarp(real64 f_continuous, real64 f_sample) {
-		return 2 * f_sample * atan(f_continuous / (2 * f_sample));
+		return 2 * f_sample * tan(f_continuous / (2 * f_sample));
 	}
 
 	inline void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 f_sample)
@@ -215,6 +216,7 @@ namespace PH::RpGui {
 		out << YAML::Key << "decimation" << YAML::Value << function.decimation;
 		out << YAML::Key << "lowprecision" << YAML::Value << function.lowprecision;
 		out << YAML::Key << "remotebitfilepath" << YAML::Value << function.remotebitfile.getC_Str();
+		out << YAML::Key << "visual_gain" << YAML::Value << function.visualGain;
 		out << YAML::Key << "filters" << YAML::Value << YAML::BeginSeq;
 
 		for (const auto& filter : function.filters) {
@@ -251,6 +253,13 @@ namespace PH::RpGui {
 		}
 		else {
 			result.decimation = 4;
+		}
+
+		if (t["visual_gain"]) {
+			result.visualGain = t["visual_gain"].as<real64>();
+		}
+		else {
+			result.visualGain = 0.0;
 		}
 
 		for (const auto& f : t["filters"]) {

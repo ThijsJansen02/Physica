@@ -12,20 +12,12 @@ void Filter::calculateCoefficients()
 		coeffs.a[1] = cutoffFrequency / qFactor;
 		coeffs.a[2] = cutoffFrequency * cutoffFrequency;
 		break;
-	case BANDPASS:
-		coeffs.a[0] = 1;
-		coeffs.a[1] = cutoffFrequency / qFactor;
-		coeffs.a[2] = cutoffFrequency * cutoffFrequency;
+	case NOTCH:
 		coeffs.b[0] = 1;
-		coeffs.b[1] = cutoffFrequency;
-		coeffs.b[2] = cutoffFrequency * cutoffFrequency;
-		break;
-	case BANDSTOP:
-		coeffs.b[0] = 1;
-		coeffs.b[1] = cutoffFrequency / qFactor;
+		coeffs.b[1] = 2 * cutoffFrequency / qFactor;
 		coeffs.b[2] = cutoffFrequency * cutoffFrequency;
 		coeffs.a[0] = 1;
-		coeffs.a[1] = cutoffFrequency;
+		coeffs.a[1] = 2 * pow(10.0, -gain/20.0) * cutoffFrequency / qFactor;
 		coeffs.a[2] = cutoffFrequency * cutoffFrequency;
 		break;
 	case HIGHPASS:
@@ -63,39 +55,75 @@ void Filter::calculateCoefficients()
 	};
 }
 
-const Parameters Filter::getParameters() const
+
+Parameters Filter::getParameters()
 {
+	Parameters parameters;
+
 	switch (type)
 	{
 	case LOWPASS:
-	case BANDPASS:
-	case BANDSTOP:
 	case HIGHPASS:
-	{
-		const char* labels[] = { "Cutoff Frequency", "Q Factor" };
-		const real64* coeffs[] = { &cutoffFrequency, &qFactor };
+		parameters.labels[0] = "Cutoff Frequency";
+		parameters.labels[1] = "Q Factor";
 
-		return Parameters(labels, coeffs, sizeof(coeffs) / sizeof(real64*));
-	}
+		parameters.values[0] = &cutoffFrequency;
+		parameters.values[1] = &qFactor;
+
+		parameters.size = 2;
+
+		break;
+	case NOTCH:
+		parameters.labels[0] = "Cutoff Frequency";
+		parameters.labels[1] = "Q Factor";
+		parameters.labels[2] = "Gain [dB]";
+
+		parameters.values[0] = &cutoffFrequency;
+		parameters.values[1] = &qFactor;
+		parameters.values[2] = &gain;
+
+		parameters.size = 3;
+
+		break;
 	case ALLPASS:
-	{
-		return { nullptr, nullptr, 0 };
-	}
+		parameters.size = 0;
+
+		break;
 	case RESONANCE_ANTI_RESONANCE:
-	{
-		const char* labels[] = { "Cutoff Frequency", "Q Factor", "Anti-Cutoff Frequency", "Anti-Q Factor" };
-		const real64* coeffs[] = { &cutoffFrequency, &qFactor, &antiCutoffFrequency, &antiQFactor };
+		parameters.labels[0] = "Cutoff Frequency";
+		parameters.labels[1] = "Q Factor";
+		parameters.labels[0] = "Anti-Cutoff Frequency";
+		parameters.labels[1] = "Anti-Q Factor";
 
-		return Parameters(labels, coeffs, sizeof(coeffs) / sizeof(real64*));
-	}
+		parameters.values[0] = &cutoffFrequency;
+		parameters.values[1] = &qFactor;
+		parameters.values[0] = &antiCutoffFrequency;
+		parameters.values[1] = &antiQFactor;
+
+		parameters.size = 4;
+
+		break;
 	case COEFFICIENTS:
-	{
-		const char* labels[] = { "b0", "b1", "b2", "a0", "a1", "a2" };
-		const real64* coeffs[] = { &b0, &b1, &b2, &a0, &a1, &a2 };
+		parameters.labels[0] = "b0";
+		parameters.labels[1] = "b1";
+		parameters.labels[2] = "b2";
+		parameters.labels[3] = "a0";
+		parameters.labels[4] = "a1";
+		parameters.labels[5] = "a2";
 
-		return Parameters(labels, coeffs, sizeof(coeffs) / sizeof(real64*));
-	}
+		parameters.values[0] = &b0;
+		parameters.values[1] = &b1;
+		parameters.values[2] = &b2;
+		parameters.values[3] = &a0;
+		parameters.values[4] = &a1;
+		parameters.values[5] = &a2;
+
+		parameters.size = 6;
+
+		break;
 	};
+
+	return parameters;
 }
 
 Filter Filter::deserialize(const YAML::Node& node)
@@ -104,6 +132,7 @@ Filter Filter::deserialize(const YAML::Node& node)
 	filter.type = static_cast<FilterType>(node["filter-type"].as<int>());
 	filter.cutoffFrequency = node["cutoff"].as<real64>();
 	filter.qFactor = node["qfactor"].as<real64>();
+	filter.gain = node["gain"].as<real64>();
 	filter.antiCutoffFrequency = node["anticutoff"].as<real64>();
 	filter.antiQFactor = node["antiqfactor"].as<real64>();
 	filter.b0 = node["b0"].as<real64>();
@@ -125,6 +154,7 @@ void Filter::serialize(YAML::Emitter& out) const
 
 	out << YAML::Key << "cutoff" << YAML::Value << cutoffFrequency;
 	out << YAML::Key << "qfactor" << YAML::Value << qFactor;
+	out << YAML::Key << "gain" << YAML::Value << gain;
 	out << YAML::Key << "anticutoff" << YAML::Value << antiCutoffFrequency;
 	out << YAML::Key << "antiqfactor" << YAML::Value << antiQFactor;
 	out << YAML::Key << "b0" << YAML::Value << b0;

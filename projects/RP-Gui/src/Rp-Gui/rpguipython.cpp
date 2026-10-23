@@ -139,8 +139,7 @@ PYBIND11_EMBEDDED_MODULE(RpGui, m) {
 	py::enum_<FilterType>(m, "FilterType")
 		.value("LOWPASS", FilterType::LOWPASS)
 		.value("HIGHPASS", FilterType::HIGHPASS)
-		.value("BANDSTOP", FilterType::BANDSTOP)
-		.value("BANDPASS", FilterType::BANDPASS)
+		.value("NOTCH", FilterType::NOTCH)
 		.value("ALLPASS", FilterType::ALLPASS)
 		.value("RESONANCE_ANTI_RESONANCE", FilterType::RESONANCE_ANTI_RESONANCE)
 		.value("COEFFICIENTS", FilterType::COEFFICIENTS);

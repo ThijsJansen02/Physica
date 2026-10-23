@@ -499,10 +499,10 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			ImGui::EndCombo();
 		}
 
-		const Parameters params = f.getParameters();
-		for (size_t i = 0; i < params.totalParams; i++)
+		Parameters params = f.getParameters();
+		for (size_t i = 0; i < params.size; i++)
 		{
-			if (DragDouble(params.labels[i], (double*)params.valuePtrs[i], *params.valuePtrs[i] * dragSpeed)) b_dirty = true;
+			if (DragDouble(params.labels[i], (double*)params.values[i], *params.values[i] * dragSpeed)) b_dirty = true;
 		}
 
 		if (b_dirty) {
@@ -526,6 +526,9 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 		b_update = false;
 	}
 
+	ImGui::SeparatorText("Display Options");
+
+	DragDouble("Gain Offset [dB] - Visual Only!", &tf->visualGain, 10 * dragSpeed, -100.0, 100.0);
 }
 
 void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {
