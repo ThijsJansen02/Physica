@@ -78,6 +78,24 @@ namespace PH::RpGui {
 		return (coeffs.b[0] * s * s + coeffs.b[1] * s + coeffs.b[2]) / (coeffs.a[0] * s * s + coeffs.a[1] * s + coeffs.a[2]);
 	}
 
+	inline real64 filterMagnitude(real64 omega, const BiQuadCoefficients& coeffs) {
+		Base::Complex<real64> s = omega * Base::Complex<real64>::i();
+
+		Base::Complex<real64> f = (coeffs.b[0] * s * s + coeffs.b[1] * s + coeffs.b[2]) / (coeffs.a[0] * s * s + coeffs.a[1] * s + coeffs.a[2]);
+
+		return f.modulus();
+
+	}
+
+	inline real64 filterPhase(real64 omega, const BiQuadCoefficients& coeffs) {
+		Base::Complex<real64> s = omega * Base::Complex<real64>::i();
+
+		Base::Complex<real64> f = (coeffs.b[0] * s * s + coeffs.b[1] * s + coeffs.b[2]) / (coeffs.a[0] * s * s + coeffs.a[1] * s + coeffs.a[2]);
+
+		return f.arg();
+
+	}
+
 	inline BiQuadCoefficients bilinearTransform(BiQuadCoefficients continuous, real64 targetfs) {
 		BiQuadCoefficients result;
 		bilinearTransform(continuous.b, result.b, targetfs);

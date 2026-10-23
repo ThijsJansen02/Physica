@@ -554,6 +554,8 @@ void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {
 		}
 	}
 
+	if (ImGui::Checkbox("Show Filtered", &plotdata->showfiltered));
+
 	ImGui::DragFloat("Line Thickness", &plotdata->thickness, plotdata->thickness * 0.1f);
 	ImGui::ColorEdit3("Color", &plotdata->color.r);
 	ImGui::PopID();
@@ -678,9 +680,37 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	}
 
 	for (const auto& plotdata : RpGui::context->openedplots) {
+
+		//draw 
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
+
+		for (auto& item : copy) {
+			//write items in db
+			PH::real64 r = 20 * log10f(item.y);
+
+			item.y = r;
+			item.x = log10f(item.x);
+		}
+
 		drawPlot(copy.getArray(), plot->range, region, plotdata.color, glm::vec2{plotdata.thickness, plotdata.thickness});
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
+
+		if (plotdata.showfiltered) {
+			copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
+
+			for (auto& item : copy) {
+				for (const auto& f : RpGui::context->activetransferfunctions[0].filters) {
+					item.y = item.y * filterMagnitude(item.x, f.getBiquadCoefficients());
+				}
+
+				//write item in db
+				item.y = 20 * log10f(item.y);
+				item.x = log10f(item.x);
+			}
+			drawPlot(copy.getArray(), plot->range, region, plotdata.color * 0.5f, glm::vec2{ plotdata.thickness, plotdata.thickness });
+			Engine::DynamicArray<glm::vec2>::destroy(&copy);
+		}
+
 	}
 
 	//start drawing the text
@@ -731,8 +761,35 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	
 	for (auto& plotdata : RpGui::context->openedplots) {
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.phasedata.getArray());
+
+		for (auto& item : copy) {
+			for (const auto& f : RpGui::context->activetransferfunctions[0].filters) {
+				item.y = item.y * filterMagnitude(item.x, f.getBiquadCoefficients());
+			}
+
+			//write item in db
+			item.y = glm::degrees(item.y);
+			item.x = log10f(item.x);
+		}
+
 		drawPlot(copy.getArray(), plot->range, region, plotdata.color, glm::vec2{ plotdata.thickness, plotdata.thickness });
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
+
+		if (plotdata.showfiltered) {
+			copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
+
+			for (auto& item : copy) {
+				for (const auto& f : RpGui::context->activetransferfunctions[0].filters) {
+					item.y = item.y - filterPhase(item.x, f.getBiquadCoefficients());
+				}
+
+				//write item in db
+				item.y = glm::degrees(item.y);
+				item.x = log10f(item.x);
+			}
+			drawPlot(copy.getArray(), plot->range, region, plotdata.color * 0.5f, glm::vec2{ plotdata.thickness, plotdata.thickness });
+			Engine::DynamicArray<glm::vec2>::destroy(&copy);
+		}
 	}
 
 	//start drawing the text
