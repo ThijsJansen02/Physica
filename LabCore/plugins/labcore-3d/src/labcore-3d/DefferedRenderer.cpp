@@ -337,7 +337,7 @@ namespace PH::LabCore3D {
 		renderpassbegin.renderarea = { (uint32)gbuffer.widhth, (uint32)gbuffer.height };
 
 		glm::vec4 cc = albedoclearcolor;
-		glm::vec4 ncc = { 0.2f, 0.2f, 0.2f, 1.0f };
+		glm::vec4 ncc = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 		Platform::GFX::ClearValue clearvalues[3];
 		clearvalues[0] = { cc.r, cc.g, cc.b, cc.a };
@@ -368,7 +368,7 @@ namespace PH::LabCore3D {
 	void beginInternalRenderpass(DefferedRenderer* this_, GFX::RenderpassDescription renderpass, GFX::Framebuffer framebuffer) {
 		GFX::RenderpassbeginInfo bi{};
 
-		glm::vec4 cc = { 0.0f, 0.0f, 0.0f, 1.0f };
+		glm::vec4 cc = { 0.3f, 0.3f, 0.3f, 1.0f };
 
 		Platform::GFX::ClearValue clearvalues[1];
 		clearvalues[0] = { cc.r, cc.g, cc.b, cc.a };
@@ -427,7 +427,7 @@ namespace PH::LabCore3D {
 	}
 
 
-	void DefferedRenderer::output(Engine::Display* target) {
+	void DefferedRenderer::output(Engine::Display* target, OutputSource source) {
 		auto* renderer2d = LabCore::getRenderer2D();
 
 		beginInternalRenderpass(this, target->renderpass, target->fb);
@@ -441,8 +441,17 @@ namespace PH::LabCore3D {
 		renderer2d->pushProjection(glm::mat4(1.0f));
 		renderer2d->pushView(glm::mat4(1.0f));
 
+		GFX::Texture srctexture = lightpassattachment;
+		if (source == DEFFERED_ALBEDO) {
+			srctexture = gbuffer.albedo;
+		}
+
+		if (source == DEFFERED_NORMAL) {
+			srctexture = gbuffer.normal;
+		}
+
 		//just renderer albedo to the display for now!
-		renderer2d->drawTexturedQuad({ 0.0f, 0.0f, 0.0f }, { 2.0f, 2.0f }, lightpassattachment);
+		renderer2d->drawTexturedQuad({ 0.0f, 0.0f, 0.0f }, { 2.0f, 2.0f }, srctexture);
 
 		renderer2d->end();
 
@@ -470,9 +479,15 @@ namespace PH::LabCore3D {
 
 	void DefferedRenderer::drawMesh(Mesh* mesh, GraphicsPipeline* pipeline) {
 		
+		if (!pipeline->isvalid) {
+			return;
+		}
+
 		PH::Platform::GFX::bindGraphicsPipeline(pipeline->internalpipeline);
 
-		PH::Platform::GFX::bindDescriptorSets(&scenedescriptorset, 0, 1);
+		//bind userset and scene set
+		GFX::DescriptorSet descriptorsets[2] = { scenedescriptorset, pipeline->defaultuserdescriptorset };
+		PH::Platform::GFX::bindDescriptorSets(descriptorsets, 0, 2);
 
 		PH::Platform::GFX::bindIndexBuffer(mesh->indexbuffer, 0);
 

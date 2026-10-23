@@ -55,10 +55,13 @@ void main() {
 	vec3 normal = texture(texSampler[TextureIndex + 1], TexCoord).xyz;
 
     float diffuse = 0.7 * max(dot(-lightdir, normal), 0.0);
-    float ambient = 0.1;
+    float ambient = 0.3;
 
-
-    outColor = vec4((diffuse + ambient) * albedo.xyz, 1.0);
+	if(length(normal) == 0.0) {
+		outColor = vec4(albedo.xyz, 1.0);
+	} else {
+    	outColor = vec4((diffuse + ambient) * albedo.xyz, 1.0);
+	}
 }
 
 >>>END_OF_FILE

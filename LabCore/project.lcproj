@@ -3,8 +3,8 @@ openviews:
     instanceid: 3609787000
     viewdata:
       Camera:
-        direction: [0.60940087, -0.53583014, 0.5843943]
-        position: [-1.38004, 1.1299434, -1.4086267]
+        direction: [0.2425866, -0.3485928, 0.905337]
+        position: [-0.78492224, 1.015012, -2.211702]
   - viewname: Material View
     instanceid: 1678971740
     viewdata:

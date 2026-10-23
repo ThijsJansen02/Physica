@@ -332,6 +332,7 @@ namespace PH::Platform {
 			uint32 arrayelement;
 			uint32 descriptorcount;
 
+			//if dynamicwrite is set the write only applies to the current frame, the descriptor sets bound to the frames in flight are not written
 			bool32 dynamicwrite;
 
 			void* descriptorinfo;

@@ -163,7 +163,9 @@ namespace PH::Vulkan {
 
 	enum VulkanObjectType {
 		VULKAN_FRAMEBUFFER,
-		VULKAN_TEXTURE
+		VULKAN_TEXTURE,
+		VULKAN_DESCRIPTORSET,
+		VULKAN_DESCRIPTORSET_LAYOUT
 	};
 
 	struct ObjectDeletePost {

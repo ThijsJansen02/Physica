@@ -659,6 +659,7 @@ namespace PH::Vulkan {
 		createinfo.poolSizeCount = 2;
 		createinfo.pPoolSizes = &poolsizes[0];
 		createinfo.maxSets = VULKAN_DESCRIPTOR_POOL_SIZE;
+		createinfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 		VkDescriptorPool result;
 
@@ -888,6 +889,8 @@ namespace PH::Vulkan {
 
 	bool32 destroyFrameBuffer(VulkanAppContext* context, PH::Platform::GFX::Framebuffer framebuffer);
 	PH::bool32 destroyTexture(VulkanAppContext* context, PH::Platform::GFX::Texture texture);
+	bool32 destroyDescriptorSets(VulkanAppContext* context, Platform::GFX::DescriptorSet* desctiptorsets, uint32 count);
+	bool32 destroyDesctiptorSetLayouts(VulkanAppContext* context, Platform::GFX::DescriptorSetLayout* layouts, uint32 count);
 
 	void cleanupDeleteQueue(VulkanAppContext* context) {
 		uint32 pc = 0;
@@ -896,14 +899,23 @@ namespace PH::Vulkan {
 			ObjectDeletePost* p = &context->objectdeletequeue[pc];
 
 			if (p->framecounter <= 0) {
+
 				switch (p->objecttype) {
-				case VULKAN_FRAMEBUFFER: {
-					destroyFrameBuffer(context, p->object);
-					break;
-				}
-				case VULKAN_TEXTURE: {
-					destroyTexture(context, p->object);
-				}
+					case VULKAN_FRAMEBUFFER: {
+						destroyFrameBuffer(context, p->object);
+						break;
+					}
+					case VULKAN_TEXTURE: {
+						destroyTexture(context, p->object);
+						break;
+					}
+					case VULKAN_DESCRIPTORSET: {
+						destroyDescriptorSets(context, &p->object, 1);
+						break;
+					}
+					case VULKAN_DESCRIPTORSET_LAYOUT: {
+						destroyDesctiptorSetLayouts(context, &p->object, 1);
+					}
 				}
 
 				context->objectdeletequeue.remove(pc);

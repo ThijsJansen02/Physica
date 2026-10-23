@@ -60,7 +60,7 @@ layout(set = 1, binding = 0) uniform sampler2D albedotexture;
 
 void main() {	
 
-    vec3 albedo = vec3(1.0, 1.0, 1.0);
+    vec3 albedo = texture(albedotexture, TexCoord).xyz;
 
     outAlbedo = vec4(albedo, 1.0f);
     outNormal = vec4(Normal, 1.0f);

@@ -69,7 +69,13 @@ extern "C" {
 		sprintf_s<256>(srcpath, "%s/res/textures/brickmaterial/albedo.jpg", plugindir);
 		PH::LabCore3D::Texture* albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture(srcpath));
 		
-		assetlib->addAsset(albedo, albedoid, "albedotexture");
+		assetlib->addAsset(albedo, albedoid, "brick_albedo");
+
+
+		sprintf_s<256>(srcpath, "%s/res/textures/metal/albedo.jpg", plugindir);
+		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture(srcpath));
+
+		assetlib->addAsset(albedo, albedoid, "metal_albedo");
 
 		//meshes
 		PH::LabCore3D::Mesh* cube = PH::Engine::Allocator::push(PH::LabCore3D::createCubeMesh());

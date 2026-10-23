@@ -46,7 +46,11 @@ namespace PH::LabCore3D {
 				Engine::ArrayList<Engine::AssetIdentifier*> textureoptions = assets->getAllIdentifiersOfType<Texture>();
 				for (auto& res : p->resources) {
 					if (res.type == Platform::GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+						auto* old = res.texture;
 						res.texture = assetSelecter(res.name.getC_Str(), res.texture, textureoptions.getArray(), "select texture");
+						if (old != res.texture) {
+							revalidateDescriptorSet(p);
+						}
 					}
 
 				}

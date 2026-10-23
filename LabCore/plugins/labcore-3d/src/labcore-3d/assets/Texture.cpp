@@ -8,7 +8,7 @@ namespace PH::LabCore3D {
 
 	using namespace PH::Platform;
 
-	Texture createTexture(const char* sourcepath) {
+	LabCore3D::Texture createTexture(const char* sourcepath) {
 
 		Platform::FileBuffer f;
 		Platform::loadFile(&f, sourcepath);

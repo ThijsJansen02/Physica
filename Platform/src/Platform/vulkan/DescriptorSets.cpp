@@ -62,8 +62,21 @@ namespace PH::Vulkan {
 		return true;
 	}
 
+	bool32 postDescriptorSetLayoutDestroy(VulkanAppContext* context, Platform::GFX::DescriptorSetLayout* layouts, uint32 count) {
+		
+		for (uint32 i = 0; i < count; i++) {
+			ObjectDeletePost p;
+			p.framecounter = MAX_FRAMES_IN_FLIGHT;
+			p.objecttype = VULKAN_DESCRIPTORSET_LAYOUT;
+			p.object = layouts[i];
+
+			context->objectdeletequeue.pushBack(p);
+		}
+		return true;
+	}
+
 	PH_GFX_DESTROY_DESCIPTOR_SET_LAYOUTS(destroyDescriptorSetLayouts) {
-		return destroyDesctiptorSetLayouts(context_s, layouts, count);
+		return postDescriptorSetLayoutDestroy(context_s, layouts, count);
 	}
 
 	bool32 createDescriptorSets(
@@ -88,6 +101,7 @@ namespace PH::Vulkan {
 
 			volatile DescriptorSetLayout* layoutobj = &context->descriptorsetlayouts[createinfo.layout];
 
+			//should convert max frames in flight to actual amount of frames in flight
 			VkDescriptorSetLayout layout = layoutobj->layout;
 			if (createinfo.dynamic) {
 				for (uint32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -172,8 +186,8 @@ namespace PH::Vulkan {
 			vkwrite.dstBinding = write.dstbinding;
 			auto set = context->descriptorsets[write.dstset];
 
-			//vkwrite.dstBinding = set.set;
-
+			
+			//if the write is dynamic only write to the current frame set, if the buffer is static itself all underlying sets point to the same set
 			if (!set.isdynamic || write.dynamicwrite) {
 				vkwrite.dstSet = set.set[context->frameindex];
 
@@ -303,17 +317,28 @@ namespace PH::Vulkan {
 	}
 
 	bool32 destroyDescriptorSets(VulkanAppContext* context, Platform::GFX::DescriptorSet* desctiptorsets, uint32 count) {
-		/*
 		for (uint32 i = 0; i < count; i++) {
-
-			vkFreeDescriptorSets()
-
+			Vulkan::DescriptorSet& s = context->descriptorsets[desctiptorsets[i]];
+			
+			//if the buffer is dynamic, destroy sets for all frames in flight;
+			if (s.isdynamic) {
+				vkFreeDescriptorSets(context->device, context->descriptorpool, MAX_FRAMES_IN_FLIGHT, s.set);
+			}
+			else {
+				vkFreeDescriptorSets(context->device, context->descriptorpool, 1, s.set);
+			}
 		}
-		*/
+		return true;
+	}
+
+	bool32 postDestroyDescriptorSets(VulkanAppContext* context, Platform::GFX::DescriptorSet* desctiptorsets, uint32 count) {
+		for (uint32 i = 0; i < count; i++) {
+			postObjectDeleteMessage(context, desctiptorsets[i], VULKAN_DESCRIPTORSET);
+		}
 		return true;
 	}
 
 	PH_GFX_DESTROY_DESCRIPTOR_SETS(destroyDescriptorSets) {
-		return destroyDescriptorSets(context_s, descriptorsets, count);
+		return postDestroyDescriptorSets(context_s, descriptorsets, count);
 	}
 }
