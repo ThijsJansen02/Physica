@@ -92,9 +92,15 @@ namespace PH::LabCore {
 	}
 
 	void destroyViewInstance(ViewInstance* view) {
+		if (view->viewdescription->destroy_ && view->instancedata) {
+			view->viewdescription->destroy_(view->instancedata);
+		}
+
+		if (view->instancedata) {
+			Engine::Allocator::dealloc(view->instancedata);
+		}
+
 		Engine::String::destroy(&view->name);
-		view->viewdescription->destroy_(view->instancedata);
-		PH::Engine::Allocator::dealloc(view->instancedata);
 	}
 
 	
@@ -126,4 +132,10 @@ namespace PH::LabCore {
 		}
 	}
 
+	void destroyAllViewInstances(Engine::ArrayList<ViewInstance>* views) {
+		for (auto& view : *views) {
+			destroyViewInstance(&view);
+		}
+		views->clear();
+	}
 }

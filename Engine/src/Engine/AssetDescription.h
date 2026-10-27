@@ -21,6 +21,7 @@ namespace PH::Engine {
 
 	typedef void (*SerializeAsset)(YAML::Emitter& out, AssetBase* asset);
 	typedef void (*deserializeAsset)(YAML::Node node, AssetBase* asset);
+	typedef void (*destroyAsset)(AssetBase* asset);
 	//typedef void (*createAsset)(void* assetinitinfo);
 
 	//holds the description for an asset 
@@ -32,6 +33,7 @@ namespace PH::Engine {
 		
 		SerializeAsset serialize_;
 		deserializeAsset deserialize_;
+		destroyAsset destroy_;
 
 		sizeptr localdatasize;
 	};

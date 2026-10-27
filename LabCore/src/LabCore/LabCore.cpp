@@ -12,53 +12,66 @@ namespace py = pybind11;
 
 typedef void(*plugininitfn)(const char* plugindir);
 
+#define RENDERER_2D_INSTANCE_BUFFER_SIZE MEGA_BYTE * 16
+
 namespace PH::LabCore {
 
 	void loadShaders();
 
-	void init() {
-
-		appcontext->defaultrenderpassdescription = Engine::getParentDisplay()->renderpass;
-		loadShaders();
-
-		Engine::String pythonhome = Engine::String::create("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
+	void loadIni() {
+		appcontext->pythonhome = Engine::String::create("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
 		appcontext->projectpath = Engine::String::create("example_project.lcproj");
+		appcontext->projectdir = Engine::String::create("");
 
 		YAML::Node ini = Engine::FileIO::loadYamlfile("labcore.ini");
 		if (ini) {
 			if (ini["projectpath"]) {
 				appcontext->projectpath.set(ini["projectpath"].as<Engine::String>());
+				appcontext->projectdir.set(appcontext->projectpath.getSubString().getTillLast('/'));
 			}
 
 			if (ini["pythonhome"]) {
-				pythonhome.set(ini["pythonhome"].as<Engine::String>());
+				appcontext->pythonhome.set(ini["pythonhome"].as<Engine::String>());
 			}
 		}
+	}
 
+	void writeIni() {
 
+		YAML::Emitter out;
+		out << YAML::BeginMap;
+		out << YAML::Key << "pythonhome" << YAML::Value << appcontext->pythonhome.getC_Str();
+		out << YAML::Key << "projectpath" << YAML::Value << appcontext->projectpath.getC_Str();
+		out << YAML::EndMap;
+		Engine::FileIO::writeYamlFile(out, "labcore.ini");
+	}
+
+	void initRenderer() {
 		Engine::Renderer2D::InitInfo rendererinit{};
 		rendererinit.currentpipeline = appcontext->defaultgraphicspipeline2D;
-		rendererinit.instancebuffersize = MEGA_BYTE * 16;
+		rendererinit.instancebuffersize = RENDERER_2D_INSTANCE_BUFFER_SIZE;
 		appcontext->renderer2D = Engine::Renderer2D::Wrapper::create(rendererinit);
 
 		renderer2D = &appcontext->renderer2D;
+	}
 
+	void initViews() {
 		//create the list of views and viewinstances
 		appcontext->views = Engine::ArrayList<ViewDescription>::create(1);
 		appcontext->viewinstances = Engine::ArrayList<ViewInstance>::create(1);
+	}
 
+	void initAssetLibrary() {
 		//create asset library and add font asset
 		appcontext->assets = Engine::AssetLibrary::createAssetLibrary();
 		appcontext->assets.addAssetType(Engine::createFontDescription());
 
 		//statically adding a font to the asset library. application should always have a font available to draw text with, this is going to be used for the python shell and for the view instances
 		Engine::Font* font = Engine::Allocator::push(Engine::createFont("c:/windows/fonts/Arial.ttf", 512, 16));
-		auto identifier = appcontext->assets.addAsset<Engine::Font>(font, 683249087875, "defaultfont");
-		
-		//should definitly be a relative path
-		initPython(pythonhome.getC_Str());
-		Engine::String::destroy(&pythonhome);
+		auto identifier = appcontext->assets.addPersistentAsset<Engine::Font>(font, 683249087875, "defaultfont");
+	}
 
+	void initPyLabCore() {
 		PH::Platform::FileBuffer file;
 		if (PH::Platform::loadFile(&file, "res/labcoreinit.py")) {
 			try {
@@ -68,6 +81,10 @@ namespace PH::LabCore {
 				Engine::INFO << e.what();
 			}
 		}
+	}
+
+	//inits the plugins that are part of the project, in the future the project file should determine the installed plugins
+	void initPlugins() {
 
 		plugininitfn plugininit_ = nullptr;
 
@@ -79,16 +96,48 @@ namespace PH::LabCore {
 		}
 		else {
 			plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
-			if (!plugininit_) { 
-				Engine::ERR << "failed to load application update\n"; 
-			} else {
-				plugininit_("plugins/labcore-3d");
+			if (!plugininit_) {
+				Engine::ERR << "failed to load application update\n";
+			}
+			else {
+				Engine::String pluginhome = Engine::String::create(appcontext->labcorehome.getC_Str());
+				pluginhome.append("/plugins/labcore-3d/");
+				plugininit_(pluginhome.getC_Str());
+				Engine::String::destroy(&pluginhome);
 			}
 		}
+
+		//set the working directoy back to labcore home
+		Platform::setCurrentDirectory(appcontext->labcorehome.getSubString());
 	}
+
+	void init() {
+
+		char buffer[256];
+		PH::Platform::getCurrentDirectory(buffer, 256);
+		appcontext->labcorehome = Engine::String::create(buffer);
+		appcontext->labcorehome.replace('\\', '/');
+
+
+		loadShaders();
+		loadIni();
+		initRenderer();
+		initViews();
+		initAssetLibrary();
+
+		//should definitly be a relative path
+		initPython(appcontext->pythonhome.getC_Str());
+
+		initPyLabCore();
+		initPlugins();
+
+	}
+
+	
 
 	void destroy() {
 
+		writeIni();
 		serializeProject(appcontext->projectpath.getC_Str());
 
 		//TODO add destruction off all the resources that were created in the application
@@ -97,6 +146,11 @@ namespace PH::LabCore {
 
 	void serializeProject(const char* filepath) {
 		//TODO implement serialization of the project
+
+
+		//serialize project happens in the home working directory
+		PH::Platform::setCurrentDirectory(appcontext->labcorehome.getSubString());
+
 
 		YAML::Emitter out;
 
@@ -127,14 +181,22 @@ namespace PH::LabCore {
 		out << YAML::Key << "includedassets" << YAML::Value;
 		appcontext->assets.serializeAssetIdentifiers(out);
 
-
 		out << YAML::EndMap;
-
 		Engine::FileIO::writeYamlFile(out, filepath);
+
+		//now serialize all serializable assets
+		PH::Platform::setCurrentDirectory(appcontext->projectdir.getSubString());
+		appcontext->assets.serializeAssets();
+
+		ImGui::SaveIniSettingsToDisk("imgui.ini");
 	}
 
 	void deserializeProject(const char* filepath) {
 		//TODO implement deserialization of the project
+
+		//deserialize project must 
+
+		Engine::INFO << "opening project: " << filepath << "\n";
 
 		auto project = Engine::FileIO::loadYamlfile(filepath);
 		if (!project) {
@@ -166,6 +228,20 @@ namespace PH::LabCore {
 				}
 			}
 		}
+
+		appcontext->projectpath.set(filepath);
+		appcontext->projectpath.replace('\\', '/');
+		appcontext->projectdir.set(appcontext->projectpath.getSubString().getTillLast('/'));
+
+		PH::Platform::setCurrentDirectory(appcontext->projectdir.getSubString());
+
+		auto includedassets = project["includedassets"];
+
+		if (includedassets) {
+			appcontext->assets.deserializeAssetIdentifiers(includedassets);
+		}
+
+		ImGui::LoadIniSettingsFromDisk("imgui.ini");
 	}
 
 	void drawMenuBar() {
@@ -181,7 +257,7 @@ namespace PH::LabCore {
 					char buffer[256];
 
 					PH::Platform::OpenFileDialogInfo info;
-					info.filter = ".lcproj";
+					info.filter = LabCore::projectextension;
 					info.read = true;
 					info.resultbuffer = buffer;
 					info.resultbuffersize = 256;
@@ -189,7 +265,20 @@ namespace PH::LabCore {
 
 					if (PH::Platform::openFileDialog(info)) {
 
-						Engine::INFO << "new projectfile: " << buffer << "\n";
+						serializeProject(appcontext->projectpath.getC_Str());
+
+						destroyAllViewInstances(&appcontext->viewinstances);
+
+						//remove all assets from the previous project
+						appcontext->assets.removeAllSerializabeAssets();
+
+						Engine::String newprojectpath = Engine::String::create(buffer);
+						newprojectpath.replace('\\', '/');
+
+						Base::setExtension(&newprojectpath, LabCore::projectextension);
+						
+						appcontext->projectpath.set(newprojectpath);
+						appcontext->projectdir.set(newprojectpath.getSubString().getTillLast('/'));
 
 					}
 				}

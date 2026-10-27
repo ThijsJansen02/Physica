@@ -12,7 +12,6 @@ namespace PH::LabCore3D {
 		
 		glm::vec2 viewsize = LabCore::getViewSize();
 
-		//imgui draw part
 		real32 titlebarheight = ImGui::GetFrameHeight();
 		ImVec2 displaysize = ImGui::GetContentRegionAvail();
 		sceneview->display.viewport = { displaysize.x, displaysize.y };
@@ -43,11 +42,13 @@ namespace PH::LabCore3D {
 		renderer.applyLightpass(lightingpipe);
 		renderer.output(&sceneview->display, sceneview->displaysrc);
 
+
+		//imgui draw part
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 5, 5 });
 		if (ImGui::Begin("scene info")) {
 			ImGui::Text("camera direction: %f, %f, %f", sceneview->camera.direction.x, sceneview->camera.direction.y, sceneview->camera.direction.z);
 
-
+			ImGui::Text("FPS: %f", 1.0f / Engine::getTimeStep());
 
 			if(ImGui::BeginCombo("renderer output", sourceoptions[sceneview->displaysrc])) {
 
@@ -116,7 +117,7 @@ namespace PH::LabCore3D {
 
 	PH::bool32 instantiateSceneView(SceneView* view) {
 		view->display = Engine::createImGuiDisplay(1920, 1080);
-		view->display.clearcolor = { 0.5f, 0.1f, 0.1f, 1.0f };
+		view->display.clearcolor = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 		view->camera.direction = { 0.0f, 0.0f, -1.0f };
 		view->camera.position = { 0.0f, 0.0f, 5.0f };

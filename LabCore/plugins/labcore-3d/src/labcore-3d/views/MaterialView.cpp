@@ -6,6 +6,7 @@
 
 #include "../assets/Texture.h"
 #include "../DefferredRenderer.h"
+#include "../LabCore3D.h"
 
 namespace PH::LabCore3D {
 
@@ -66,11 +67,21 @@ namespace PH::LabCore3D {
 
 
 		if (view->currentpipe) {
+
+			//set current directory to home or projectdir depending on the asset
+			if (view->currentpipe->flags & Engine::PH_ASSET_SERIALIZABLE) {
+				PH::Platform::setCurrentDirectory(LabCore::getCurrentProjectDir());
+			}
+			else {
+				PH::Platform::setCurrentDirectory(LabCore3D::home.getSubString());
+			}
+
 			if(view->currentpipe->status == Engine::LOADED) {
 				GraphicsPipeline* p = (GraphicsPipeline*)view->currentpipe->assetdata;
 
 				if (ImGui::Button("reload")) {
 					reloadGraphicsPipelineFromGLSL(p);
+
 
 					LabCore::getAssetLibrary()->SerializeAsset<PH::LabCore3D::GraphicsPipeline>(view->currentpipe, view->currentpipe->filepath.getC_Str());
 				}
@@ -137,6 +148,14 @@ namespace PH::LabCore3D {
 		
 		if (e.type == PH_EVENT_TYPE_KEY_PRESSED) {
 			if (e.lparam == PH_KEY_S && Engine::Events::isKeyPressed(PH_CONTROL)) {
+				//set current directory to home or projectdir depending on the asset
+				if (data->currentpipe->flags & Engine::PH_ASSET_SERIALIZABLE) {
+					PH::Platform::setCurrentDirectory(LabCore::getCurrentProjectDir());
+				}
+				else {
+					PH::Platform::setCurrentDirectory(LabCore3D::home.getSubString());
+				}
+
 				LabCore::getAssetLibrary()->SerializeAsset<GraphicsPipeline>(data->currentpipe, data->currentpipe->filepath.getC_Str());
 			}
 		}

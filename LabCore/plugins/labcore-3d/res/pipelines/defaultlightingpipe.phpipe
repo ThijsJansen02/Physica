@@ -1,11 +1,15 @@
-assetID: 2983062809953302303
-references:
-  - defaultlightingpipe
+assetidentifier:
+  assetid: 2983062809953302303
+  assetdescriptionid: 983741375477342588
+  filepath: res/pipelines/defaultlightingpipe.phpipe
+  flags: 0
+  references:
+    - defaultlightingpipe
 asset:
   type: 2
-  binpath: plugins/labcore-3d/res/shaders/bin/defferedlighting.phshaderbin
-  srcpath: plugins/labcore-3d/res/shaders/defferedlighting.phshadersrc
-  userbuffer: !!binary "AAAAwAAAgL8AAIC/AAAAAAAAgD/Q5Es/AAAAAAAAAAAAAAA/cj8kPwAAgD8AAEBAyXa+Pw=="
+  binpath: res/shaders/bin/defferedlighting.phshaderbin
+  srcpath: res/shaders/defferedlighting.phshadersrc
+  userbuffer: !!binary "AACAPwAAgL8AAIA/EAAAAAAAgD/veX4/WOkpPwAAAABQLSw/AACAPwAAgD8AAIBAuB7FPg=="
   resources:
     - name: Scene
       binding: 1

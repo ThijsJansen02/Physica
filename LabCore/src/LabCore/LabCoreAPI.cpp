@@ -34,6 +34,9 @@ namespace PH::LabCore {
 		return &LabCore::appcontext->assets;
 	}
 
+	Base::SubString getCurrentProjectDir() {
+		return appcontext->projectdir.getSubString();
+	}
 
 	namespace py = pybind11;
 

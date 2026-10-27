@@ -1,10 +1,6 @@
 #pragma once
-
+#include <Engine/Engine.h>
 
 namespace PH::LabCore3D {
-
-	extern	const char* plugindir;
-
-
-
+	extern PH::Engine::String home;
 }

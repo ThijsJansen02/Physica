@@ -667,8 +667,12 @@ namespace PH::LabCore3D {
 
 		if (n["userbuffer"]) {
 			YAML::Binary b = n["userbuffer"].as<YAML::Binary>();
-			pipe->userbuffer.uploadData((uint8*)b.data(), b.size());
-			Base::copyMemory((void*)b.data(), pipe->userbufferlocaldata, Base::minVal(pipe->userbuffer.capacity, b.size()));
+
+			//only upload memory if the shader actually requires it
+			if (pipe->userbuffer.capacity > 0) {
+				pipe->userbuffer.uploadData((uint8*)b.data(), b.size());
+				Base::copyMemory((void*)b.data(), pipe->userbufferlocaldata, Base::minVal(pipe->userbuffer.capacity, b.size()));
+			}
 		}
 
 		//if the resources completly revalidate the descriptorset than revalidate the descriptorset
@@ -676,7 +680,7 @@ namespace PH::LabCore3D {
 			revalidateDescriptorSet(pipe);
 		}
 
-		//destroy create resources
+		//destroy created resources
 		Engine::String::destroy(&binpath);
 		Engine::String::destroy(&srcpath);
 		Engine::ArrayList<ShaderResource>::destroy(&resources);

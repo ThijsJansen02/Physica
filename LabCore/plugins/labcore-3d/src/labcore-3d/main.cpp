@@ -13,14 +13,18 @@
 #include "assets/Texture.h"
 
 namespace py = pybind11;
+using namespace PH;
 
-const char* PH::LabCore3D::plugindir = nullptr;
+PH::Engine::String PH::LabCore3D::home = {};
 
 extern "C" {
 	_declspec(dllexport) void init(const char* plugindir) {
 		
 		//set the directory of this plugin
-		PH::LabCore3D::plugindir = plugindir;
+		PH::LabCore3D::home = Engine::String::create(plugindir);
+
+		//set directory to labcore home
+		PH::Platform::setCurrentDirectory(PH::LabCore3D::home.getSubString());
 
 
 		//the global scene descriptor set layout for deffered renderer
@@ -45,41 +49,28 @@ extern "C" {
 		PH::Engine::UUID brickid = 65465143419846515;
 		PH::Engine::UUID normalid = 64641685878151;
 
-		//graphics pipelines
-		char srcpath[256];
-		char binpath[256];
-		char assetpath[256];
 
 		//textures
-		sprintf_s<256>(srcpath, "%s/res/textures/brickmaterial/albedo.jpg", plugindir);
-		PH::LabCore3D::Texture* albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture(srcpath));
-		
-		assetlib->addAsset(albedo, brickid, "brick_albedo");
+		PH::LabCore3D::Texture* albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture("res/textures/brickmaterial/albedo.jpg"));
+		assetlib->addPersistentAsset(albedo, brickid, "brick_albedo");
 
-		sprintf_s<256>(srcpath, "%s/res/textures/brickmaterial/normal_dx.jpg", plugindir);
-		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture(srcpath, PH::Platform::GFX::FORMAT_R8G8B8A8_UNORM));
+		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture("res/textures/brickmaterial/normal_dx.jpg", PH::Platform::GFX::FORMAT_R8G8B8A8_UNORM));
+		assetlib->addPersistentAsset(albedo, normalid, "brick_normal");
 
-		assetlib->addAsset(albedo, normalid, "brick_normal");
-		
-		sprintf_s<256>(srcpath, "%s/res/textures/metal/albedo.jpg", plugindir);
-		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture(srcpath));
-
-		assetlib->addAsset(albedo, albedoid, "metal_albedo");
+		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture("res/textures/metal/albedo.jpg"));
+		assetlib->addPersistentAsset(albedo, albedoid, "metal_albedo");
 
 
 
 		//default deffered material
-		sprintf_s<256>(assetpath, "%s/res/pipelines/defaultmaterialpipe.phpipe", plugindir);
-		assetlib->deserializeAsset<PH::LabCore3D::GraphicsPipeline>(assetpath);
+		assetlib->deserializeAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultmaterialpipe.phpipe");
 
-		sprintf_s<256>(assetpath, "%s/res/pipelines/defaultlightingpipe.phpipe", plugindir);
-		assetlib->deserializeAsset<PH::LabCore3D::GraphicsPipeline>(assetpath);
-
-
+		//default lightingpipe
+		assetlib->deserializeAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultlightingpipe.phpipe");
 
 		//meshes
 		PH::LabCore3D::Mesh* cube = PH::Engine::Allocator::push(PH::LabCore3D::createCubeMesh());
-		assetlib->addAsset(cube, cubeid, "cubemesh");
+		assetlib->addPersistentAsset(cube, cubeid, "cubemesh");
 
 		//python module test
 		PyObject* raw = PH::LabCore::createPythonModule("LabCore3D");

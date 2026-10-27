@@ -75,6 +75,8 @@ namespace PH::LabCore {
 	//draws all views in the application, this is called by the application in the update loop
 	void drawViews(Engine::ArrayList<ViewInstance>& views);
 
+	void destroyAllViewInstances(Engine::ArrayList<ViewInstance>* views);
+
 	//passes the event trough to the focussed view
 	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance>& views, const PH::Platform::Event& e);
 }

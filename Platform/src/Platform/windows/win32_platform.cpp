@@ -561,9 +561,31 @@ void win32_getCurrentDirectory(char* buffer, PH::sizeptr maxsize) {
 }
 
 PH::bool32 win32_setCurrentDirectory(PH::Base::SubString directory) {
-	 auto str = PH::Base::String<PlatformAllocator>::create(directory);
-
+	auto str = PH::Base::String<PlatformAllocator>::create(directory);
+	str.replace('/', '\\');
 	bool r = SetCurrentDirectoryA(str.getC_Str());
+	if (!r) {
+		DWORD error = GetLastError();
+		LPSTR message = nullptr;
+		FormatMessageA(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			nullptr,
+			error,
+			0,
+			reinterpret_cast<LPSTR>(&message),
+			0,
+			nullptr
+		);
+
+		INFO << "Error " << (PH::uint32)error << ": "
+			<< (message ? message : "Unknown error")
+			<< '\n';
+
+		if (message)
+			LocalFree(message);
+	}
 
 	PH::Base::String<PlatformAllocator>::destroy(&str);
 	return r;
@@ -700,7 +722,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	context.windowheight = state.windowheight;
 	context.imguicontext = ImGui::GetCurrentContext();
 	
-	context.appmemsize = GIGA_BYTE;
+	context.appmemsize = GIGA_BYTE / 4;
 	context.appmemory = VirtualAlloc(nullptr, context.appmemsize, MEM_COMMIT, PAGE_READWRITE);
 	
 	context.ellapsedtimeseconds = 0.0f;

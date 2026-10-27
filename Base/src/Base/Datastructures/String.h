@@ -149,6 +149,11 @@ namespace PH::Base {
 			return string;
 		}
 
+		char operator[](sizeptr index) {
+			PH_DEBUG_ASSERT(index < m_Length, "index is higher than the length of the string")
+			return m_Str[index];
+		}
+
 		//returns a substring from the begining of this to the next entry of character c
 		SubString getTill(char c) {
 
@@ -241,10 +246,18 @@ namespace PH::Base {
 			return SubString::create(lastfound, (m_Str + m_Length) - lastfound);
 		}
 
-		SubString moveHead(sizeptr length) {
+		//returns a substring with the head moved
+		SubString moveHead(int64 length) {
 			SubString result = *this;
 			result.m_Str += length;
 			result.m_Length -= length;
+			return result;
+		}
+
+		SubString moveTail(int64 length) {
+			SubString result = *this;
+			//result.m_Str += length;
+			result.m_Length += length;
 			return result;
 		}
 
@@ -282,6 +295,18 @@ namespace PH::Base {
 
 		bool32 compare(const char* str) {
 			stringCompare(this->getC_Str(), str, this->m_Length);
+			return false;
+		}
+
+		bool32 contains(char other) {
+			char* str = this->m_Str;
+			
+			while (*str != '\0' && (str - this->m_Str) < m_Length) {
+				if (*str == other) {
+					return true;
+				}
+				str++;
+			}
 			return false;
 		}
 
@@ -554,6 +579,44 @@ namespace PH::Base {
 		return left.compare(right);
 	}
 
+	inline bool32 isFilepath(Base::SubString str) {
+		return str.contains('.');
+	}
+
+	inline bool32 isDirPath(Base::SubString str) {
+		return !str.contains('.');
+	}
+
+	inline bool32 hasExtension(Base::SubString str) {
+		return str.contains('.');
+	}
+
+	inline bool32 isAbsolutePath(Base::SubString str) {
+		return str[1] == ':';
+	}
+
+	template<typename allocator>
+	void setExtension(String<allocator>* str, const char* extension) {
+		str->replace('\\', '/');
+
+		if (hasExtension(str->getSubString())) {
+			str->set(str->getTillLastExcluding('.'));
+			str->append(extension);
+		}
+		else {
+			str->append(extension);
+		}
+	}
+
+	//returns the filename of the substring, requires all backward slashes to be replaced by forward slashes
+	inline SubString getFileName(SubString filepath) {
+		return filepath.getFromLast('/');
+	}
+
+	//returns the filename of the substring, requires all backward slashes to be replaced by forward slashes
+	inline SubString getFileNameWithoutExtension(SubString filepath) {
+		return filepath.getFromLast('/').getTillLast('.').moveTail(-1);
+	}
 
 	template<typename allocator>
 	class FilePath {

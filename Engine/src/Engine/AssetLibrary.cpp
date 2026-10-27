@@ -27,14 +27,17 @@ namespace PH::Engine {
 		
 		AssetIdentifier identifier;
 		identifier.assetdata = asset;
-		identifier.assetdescription = description;
+		identifier.assetdescription = description->id;
 		identifier.assetid = id;
 
 		//could optimize this to a string pool or one string seperated by ; 
 		identifier.references = Engine::ArrayList<Engine::String>::create();
 
 		identifier.filepath = Engine::String::create("");
-		identifier.status = LOADED;
+		identifier.status = UNLOADED;
+		if (asset) {
+			identifier.status = LOADED;
+		}
 
 		return identifier;
 	}

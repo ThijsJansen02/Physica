@@ -7,12 +7,13 @@
 #include "View.h"
 
 namespace PH::LabCore {
+
+static const char* projectextension = ".lcproj";
+
 	struct AppContext {
 		PH::Platform::GFX::GraphicsPipeline defaultgraphicspipeline2D;
 		PH::Platform::GFX::GraphicsPipeline defaultfontpipeline2D;
 
-
-		PH::Platform::GFX::RenderpassDescription defaultrenderpassdescription;
 
 		PH::Engine::Renderer2D::Wrapper renderer2D;
 
@@ -24,7 +25,12 @@ namespace PH::LabCore {
 
 		PH::Engine::AssetLibrary assets;
 
+		//the relevant filepaths
+		Engine::String projectdir;
 		Engine::String projectpath;
+
+		Engine::String labcorehome;
+		Engine::String pythonhome;
 	};
 
 	extern AppContext* appcontext;

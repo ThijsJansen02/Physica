@@ -1,11 +1,15 @@
-assetID: 16439805985763607426
-references:
-  - defaultmaterialpipe
+assetidentifier:
+  assetid: 16439805985763607426
+  assetdescriptionid: 983741375477342588
+  filepath: res/pipelines/defaultmaterialpipe.phpipe
+  flags: 0
+  references:
+    - defaultmaterialpipe
 asset:
   type: 0
-  binpath: plugins/labcore-3d/res/shaders/bin/defferedmaterial.phshaderbin
-  srcpath: plugins/labcore-3d/res/shaders/defferedmaterial.phshadersrc
-  userbuffer: !!binary "AACAPwAAAEABAAAA"
+  binpath: res/shaders/bin/defferedmaterial.phshaderbin
+  srcpath: res/shaders/defferedmaterial.phshadersrc
+  userbuffer: !!binary "AACAPwAAgD8BAAAA"
   resources:
     - name: MaterialProperties
       binding: 0

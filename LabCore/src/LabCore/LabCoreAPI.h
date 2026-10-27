@@ -29,6 +29,8 @@ namespace PH::LabCore {
 
 	PH_LABCORE_API Engine::AssetLibrary* getAssetLibrary();
 
+	PH_LABCORE_API Base::SubString getCurrentProjectDir();
+
 	//will be de deprecated when pipelines are made into material assets
 	PH_LABCORE_API PH::Platform::GFX::GraphicsPipeline getDefault2DGraphicsPipeline();
 	PH_LABCORE_API PH::Platform::GFX::GraphicsPipeline getDefault2DFontPipeline();
