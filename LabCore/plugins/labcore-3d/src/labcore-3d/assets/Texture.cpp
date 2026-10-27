@@ -8,8 +8,7 @@ namespace PH::LabCore3D {
 
 	using namespace PH::Platform;
 
-	LabCore3D::Texture createTexture(const char* sourcepath) {
-
+	LabCore3D::Texture createTexture(const char* sourcepath, GFX::Format format) {
 		Platform::FileBuffer f;
 		Platform::loadFile(&f, sourcepath);
 
@@ -23,19 +22,11 @@ namespace PH::LabCore3D {
 		PH::Platform::GFX::TextureCreateInfo ai{};
 		ai.data = nullptr;
 
-		if (c == 4) {
-			ai.format = GFX::FORMAT_R8G8B8A8_SRGB;
-		}
-
-		if (c == 3) {
-			ai.format = GFX::FORMAT_R8G8B8_SRGB;
-		}
-
-		ai.format = GFX::FORMAT_R8G8B8A8_SRGB;
+		ai.format = format;
 
 		ai.data = im;
-		ai.height = w;
-		ai.width = h;
+		ai.height = h;
+		ai.width = w;
 		ai.usage = GFX::IMAGE_USAGE_SAMPLED_BIT | GFX::IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
 		GFX::Texture texture;
@@ -54,6 +45,11 @@ namespace PH::LabCore3D {
 		Platform::unloadFile(&f);
 
 		return r;
+	}
+
+	LabCore3D::Texture createTexture(const char* sourcepath) {
+
+		return createTexture(sourcepath, GFX::FORMAT_R8G8B8A8_SRGB);
 	}
 
 	void serializeTexture(const YAML::Emitter& out, Texture* tex) {

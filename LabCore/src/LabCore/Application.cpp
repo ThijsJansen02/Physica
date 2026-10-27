@@ -43,7 +43,7 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize)
 
 	SetupImGuiStyle();
 
-	deserializeProject("project.lcproj");
+	deserializeProject(appcontext->projectpath.getC_Str());
 
 	return true;
 }

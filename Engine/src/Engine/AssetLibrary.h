@@ -1,6 +1,7 @@
 #pragma once
 #include "AssetDescription.h"
 #include <Base/Datastructures/HashMap.h>
+#include <Engine/coreassets/Font.h>
 
 namespace PH::Engine {
 
@@ -11,6 +12,12 @@ namespace PH::Engine {
 	inline bool32 stringCompare(const Base::SubString& left, const Base::SubString& right) {
 		return Base::stringCompare(left.getC_Str(), right.getC_Str());
 	}
+
+	typedef enum AssetFlagsBits {
+		PH_ASSET_SERIALIZABLE = 1
+	};	
+	
+	typedef uint32 AssetFlags;
 
 	enum AssetStatus {
 		LOADED,
@@ -24,6 +31,7 @@ namespace PH::Engine {
 	struct AssetIdentifier {
 		AssetID assetid;
 		AssetStatus status;
+		AssetFlags flags;
 
 		//maybe make this an ID if we do not require the asset description to be persistent in memory but for now it is persistent
 		AssetDescription* assetdescription;
@@ -60,16 +68,69 @@ namespace PH::Engine {
 			return assetpools.get_last(descriptionid)->description;
 		}
 
+
 		template<typename Asset>
 		AssetPool* getAssetPool() {
-			return assetpools.get_last(Asset::getAssetDescriptionID());
+			AssetDescriptionID descriptionid = Asset::getAssetDescriptionID();
+			return assetpools.get_last(descriptionid);
 		}
 
+		void serializeReferences(YAML::Emitter& out, Base::Array<Engine::String> references) {
+
+			out << YAML::BeginSeq;
+			for (const auto& ref : references) {
+				out << YAML::Value << ref.getC_Str();
+			}
+			out << YAML::EndSeq;
+		}
+
+		void SerializeIdentifier(YAML::Emitter& out, AssetIdentifier* identifier) {
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "assetid" << YAML::Value << identifier->assetid;
+			out << YAML::Key << "filepath" << YAML::Value << identifier->filepath.getC_Str();
+			out << YAML::Key << "flags" << YAML::Value << identifier->flags;
+			out << YAML::Key << "references" << YAML::Value;
+			serializeReferences(out, identifier->references.getArray());
+
+			out << YAML::EndMap;
+		}
+
+
 	public:
+
+		//serialize
+		void serializeAssetIdentifiers(YAML::Emitter& out) {
+			Engine::ArrayList<AssetPool*> pools = this->assetpools.getAll<Engine::Allocator>();
+			
+			out << YAML::BeginSeq;
+			for (AssetPool* pool: pools) {
+				Engine::ArrayList<AssetIdentifier*> assets = pool->assets.getAll<Engine::Allocator>();
+
+				out << YAML::BeginMap;
+				out << YAML::Key << "descriptionid" << YAML::Value << pool->description.id;
+				
+				out << YAML::Key << "includedassets" << YAML::Value << YAML::BeginSeq;
+				for (AssetIdentifier* identifier : assets) {
+					if (identifier->flags & PH_ASSET_SERIALIZABLE) {
+						SerializeIdentifier(out, identifier);
+					}
+				}
+				out << YAML::EndMap;
+				Engine::ArrayList<AssetIdentifier*>::destroy(&assets);
+			}
+			out << YAML::EndSeq;
+			Engine::ArrayList<AssetPool*>::destroy(&pools);
+		}
+
+		void deserializeAssetIdentifiers(YAML::Emitter& out) {
+
+		}
+
 		//retrieves an assetidentifier of type Asset based on the given id, returns nullptr if the asset is not found
 		template<typename Asset>
 		AssetIdentifier* getAssetIdentifier(AssetID id) {
-			AssetPool* pool = getAssetPool<Asset>();
+			auto* pool = getAssetPool<Asset>();
 
 			return pool->assets.get_last(id);
 		}
@@ -111,14 +172,77 @@ namespace PH::Engine {
 		template<typename Asset>
 		AssetIdentifier* addAsset(Asset* asset, AssetID id) {
 			//asset should be derived from AssetBase, so we can cast it to AssetBase
-			AssetPool* pool = getAssetPool<Asset>();
+			auto* pool = getAssetPool<Asset>();
 			AssetIdentifier* identifier = pool->assets.add(id, createAssetIdentifier((AssetBase*)asset, id, &pool->description));
+
+			//asset is loaded and not serializable
+			identifier->flags = 0;
+			identifier->status = AssetStatus::LOADED;
 
 			AssetBase* base = (AssetBase*)asset;
 			base->identifier = identifier;
 			base->id = id;
 
 			return identifier;
+		}
+
+		//serialize asset in location of users choice
+		template<typename Asset>
+		void SerializeAsset(AssetIdentifier* identifier, const char* path) {
+
+			YAML::Emitter out;
+
+			AssetPool* pool = getAssetPool<Asset>();
+
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "assetID" << YAML::Value << identifier->assetid;
+			out << YAML::Key << "references";
+			serializeReferences(out, identifier->references.getArray());
+
+			out << YAML::Key << "asset";
+			if (pool->description.serialize_) {
+				pool->description.serialize_(out, identifier->assetdata);
+			}
+
+			out << YAML::EndMap;
+			
+			Engine::FileIO::writeYamlFile(out, path);
+		}
+
+		template<typename Asset>
+		AssetIdentifier* deserializeAsset(const char* path) {
+			auto* pool = getAssetPool<Asset>();
+
+			YAML::Node root = Engine::FileIO::loadYamlfile(path);
+			if (!root) {
+				return nullptr;
+			}
+
+			void* assetdata = nullptr;
+
+			if (pool->description.deserialize_ && root["asset"]) {
+				assetdata = Engine::Allocator::alloc(pool->description.localdatasize);
+				pool->description.deserialize_(root["asset"], (AssetBase*)assetdata);
+			} else {
+				Engine::WARN << "failed to load asset " << path;
+				return nullptr;
+			}
+
+			AssetID id = root["assetID"].as<AssetID>();
+
+			AssetIdentifier* result = addAsset<Asset>((Asset*)assetdata, id);
+			if (root["references"]) {
+				for (auto ref : root["references"]) {
+					Engine::String str = ref.as<Engine::String>();
+
+					addReferenceToAsset<Asset>(id, str.getC_Str());
+					Engine::String::destroy(&str);
+				}
+			}
+
+			result->filepath = Engine::String::create(path);
+			return result;
 		}
 
 
@@ -131,7 +255,7 @@ namespace PH::Engine {
 
 		template<typename Asset>
 		Engine::ArrayList<AssetIdentifier*> getAllIdentifiersOfType() {
-			AssetPool* pool = getAssetPool<Asset>();
+			auto* pool = getAssetPool<Asset>();
 			return pool->assets.getAll<Engine::Allocator>();
 		}
 		
@@ -140,7 +264,7 @@ namespace PH::Engine {
 		template<typename Asset>
 		Asset* getAssetByReference(const char* reference) {
 
-			AssetPool* pool = getAssetPool<Asset>();
+			auto* pool = getAssetPool<Asset>();
 
 			AssetIdentifier* identifier = *pool->assetreferences.get_last(Base::SubString(reference));
 			if(!identifier) {

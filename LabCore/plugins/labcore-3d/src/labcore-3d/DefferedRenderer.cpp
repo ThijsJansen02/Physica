@@ -413,7 +413,7 @@ namespace PH::LabCore3D {
 		renderer2d->pushProjection(glm::mat4(1.0f));
 		renderer2d->pushView(glm::mat4(1.0f));
 
-		renderer2d->pushGraphicsPipeline(pipe->internalpipeline);
+		renderer2d->pushGraphicsPipeline(pipe->internalpipeline, { &pipe->defaultuserdescriptorset, 1 });
 		renderer2d->pushTexture(gbuffer.albedo);
 		renderer2d->pushTexture(gbuffer.normal);
 

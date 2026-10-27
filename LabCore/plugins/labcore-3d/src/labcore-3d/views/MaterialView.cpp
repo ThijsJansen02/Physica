@@ -2,6 +2,7 @@
 #include "MaterialView.h"
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/coreassets/Font.h>
+#include <Engine/Events.h>
 
 #include "../assets/Texture.h"
 #include "../DefferredRenderer.h"
@@ -26,6 +27,35 @@ namespace PH::LabCore3D {
 		return newselected;
 	}
 
+	bool32 drawUniformBufferMembers(UniformBufferResource* ubr, GraphicsPipeline* pipe) {
+		real32 dragspeed = 0.01;
+		bool32 dirty = false;
+
+		uint8* bufferdata = (uint8*)pipe->userbufferlocaldata;
+
+		for (auto& bm : ubr->members) {
+			if (bm.type == LC_BUFFER_MEMBER_FLOAT) {
+				if (bm.name.contains("_color")) {
+					if (bm.vecsize == 3) {
+						dirty |= ImGui::ColorEdit3(bm.name.getC_Str(), (float*)(bufferdata + bm.userbufferoffset));
+					}
+
+					if (bm.vecsize == 4) {
+						dirty |= ImGui::ColorEdit4(bm.name.getC_Str(), (float*)(bufferdata + bm.userbufferoffset));
+					}
+				}
+				else {
+					real32 speed = *(real32*)(bufferdata + bm.userbufferoffset) * dragspeed;
+					dirty |= ImGui::DragScalarN(bm.name.getC_Str(), ImGuiDataType_Float, (bufferdata + bm.userbufferoffset), bm.vecsize, speed);
+				}
+			}
+
+			if (bm.type == LC_BUFFER_MEMBER_UINT) {
+				dirty |= ImGui::InputScalarN(bm.name.getC_Str(), ImGuiDataType_U32, (bufferdata + bm.userbufferoffset), bm.vecsize);
+			}
+		}
+		return dirty;
+	}
 
 	PH::bool32 drawMaterialView(MaterialView* view) {
 		
@@ -41,20 +71,39 @@ namespace PH::LabCore3D {
 
 				if (ImGui::Button("reload")) {
 					reloadGraphicsPipelineFromGLSL(p);
+
+					LabCore::getAssetLibrary()->SerializeAsset<PH::LabCore3D::GraphicsPipeline>(view->currentpipe, view->currentpipe->filepath.getC_Str());
 				}
 
 				Engine::ArrayList<Engine::AssetIdentifier*> textureoptions = assets->getAllIdentifiersOfType<Texture>();
+				
+				uint8* bufferdata = (uint8*)p->userbufferlocaldata;
+				bool ubosdirty = false;
+				bool texturesdirty = false;
+
 				for (auto& res : p->resources) {
+					if (res.type == Platform::GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+						
+						UniformBufferResource* ubr = res.uniformbufferresource;
+						ubosdirty |= drawUniformBufferMembers(ubr, p);
+					}
+
 					if (res.type == Platform::GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
 						auto* old = res.texture;
 						res.texture = assetSelecter(res.name.getC_Str(), res.texture, textureoptions.getArray(), "select texture");
 						if (old != res.texture) {
-							revalidateDescriptorSet(p);
+							texturesdirty = true;
 						}
 					}
-
 				}
 
+				if (ubosdirty) {
+					revalidateUniformBuffers(p, &view->stagingbuffer);
+				}
+				if (texturesdirty) {
+					LabCore::getAssetLibrary()->SerializeAsset<PH::LabCore3D::GraphicsPipeline>(view->currentpipe, view->currentpipe->filepath.getC_Str());
+					revalidateTextures(p);
+				}
 			}
 		}
 
@@ -67,9 +116,14 @@ namespace PH::LabCore3D {
 		return true;
 	}
 
+#define MATERIALVIEW_STAGING_BUFFER_SIZE 1024
+
+	using namespace PH::Platform;
+
 	PH::bool32 instantiateMaterialView(MaterialView* view) {
 
 		view->currentpipe = nullptr;
+		view->stagingbuffer = Engine::DynamicGPUBuffer<uint8>::create(MATERIALVIEW_STAGING_BUFFER_SIZE, GFX::BUFFER_USAGE_TRANSFER_SRC_BIT);
 
 		return true;
 	}
@@ -80,6 +134,13 @@ namespace PH::LabCore3D {
 	}
 
 	PH::bool32 materialViewOnEvent(MaterialView* data, const PH::Platform::Event& e) {
+		
+		if (e.type == PH_EVENT_TYPE_KEY_PRESSED) {
+			if (e.lparam == PH_KEY_S && Engine::Events::isKeyPressed(PH_CONTROL)) {
+				LabCore::getAssetLibrary()->SerializeAsset<GraphicsPipeline>(data->currentpipe, data->currentpipe->filepath.getC_Str());
+			}
+		}
+		
 		return true;
 	}
 

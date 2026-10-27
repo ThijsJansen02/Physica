@@ -23,6 +23,8 @@ namespace PH::LabCore {
 		PH::Engine::ArrayList<ViewInstance> viewinstances;
 
 		PH::Engine::AssetLibrary assets;
+
+		Engine::String projectpath;
 	};
 
 	extern AppContext* appcontext;

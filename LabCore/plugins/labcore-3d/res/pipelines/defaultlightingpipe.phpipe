@@ -1,0 +1,13 @@
+assetID: 2983062809953302303
+references:
+  - defaultlightingpipe
+asset:
+  type: 2
+  binpath: plugins/labcore-3d/res/shaders/bin/defferedlighting.phshaderbin
+  srcpath: plugins/labcore-3d/res/shaders/defferedlighting.phshadersrc
+  userbuffer: !!binary "AAAAwAAAgL8AAIC/AAAAAAAAgD/Q5Es/AAAAAAAAAAAAAAA/cj8kPwAAgD8AAEBAyXa+Pw=="
+  resources:
+    - name: Scene
+      binding: 1
+      type: 6
+      set: 1

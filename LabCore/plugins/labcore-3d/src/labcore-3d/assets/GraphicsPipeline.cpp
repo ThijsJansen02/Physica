@@ -199,10 +199,10 @@ namespace PH::LabCore3D {
 	}
 
 	//lighting pipeline should be suitable for the 2d renderer
-	GFX::GraphicsPipeline createDefferedLightingPipeline(const Binaries& b) {
+	GFX::GraphicsPipeline createDefferedLightingPipeline(const Binaries& b, GFX::DescriptorSetLayout userlayout) {
 
-		//is of type 2d graphics pipe
-		GFX::GraphicsPipeline p = Engine::Renderer2D::createGraphicsPipelineFromBinaries(DefferedRenderer::lightingrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), { nullptr, 0 });
+		//the lighting pipe is made out of a renderer2d graphicspipe with a custom renderpass
+		GFX::GraphicsPipeline p = Engine::Renderer2D::createGraphicsPipelineFromBinaries(DefferedRenderer::lightingrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), { &userlayout, 1 });
 
 		if (p == PH_GFX_NULL) {
 			return {};
@@ -221,7 +221,7 @@ namespace PH::LabCore3D {
 		case LC_PIPELINE_TYPE_3D_DEFFERED_MATERIAL:
 			return createDefferedGeometryPipeline(binaries, userlayout);
 		case LC_PIPELINE_TYPE_3D_DEFFERED_LIGHTING:
-			return createDefferedLightingPipeline(binaries);
+			return createDefferedLightingPipeline(binaries, userlayout);
 		}
 	}
 
@@ -235,7 +235,7 @@ namespace PH::LabCore3D {
 		}
 	}
 
-	Engine::ArrayList<ShaderResource> reflectOnBinaries(Binaries& b, const char* debugsrcpath = "") {
+	Engine::ArrayList<ShaderResource> reflectOnBinaries(const Binaries& b, uint32 targetset, const char* debugsrcpath = "") {
 
 
 		Engine::ArrayList<ShaderResource> result = Engine::ArrayList<ShaderResource>::create(1);
@@ -243,23 +243,90 @@ namespace PH::LabCore3D {
 		spirv_cross::Compiler compiler((uint32*)b.fragsrc.raw(), b.fragsrc.getCapacity() / 4);
 		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
-		Engine::INFO << "OpenGLShader::Reflect - " << "fragment shader: " << debugsrcpath << "\n";
+		Engine::INFO << "VulkanShader::Reflect - " << "fragment shader: " << debugsrcpath << "\n";
 		Engine::INFO << "		uniform buffers: " << resources.uniform_buffers.size() << "\n";
 		Engine::INFO << "		sampled images: " << resources.sampled_images.size() << "\n";
 
 		Engine::INFO << "Uniform buffers: \n";
 
-		for (const auto& resource : resources.uniform_buffers)
-		{
-			const auto& bufferType = compiler.get_type(resource.base_type_id);
-			uint32_t bufferSize = compiler.get_declared_struct_size(bufferType);
+		uint32 userbufferoffset = 0;
+		for (const auto& resource : resources.uniform_buffers) {
+
+			const auto& buffertype = compiler.get_type(resource.base_type_id);
+			uint32_t buffersize = compiler.get_declared_struct_size(buffertype);
 			uint32_t binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
-			int memberCount = bufferType.member_types.size();
+			uint32_t set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+			int membercount = buffertype.member_types.size();
+			
+			//I want only the resources for set 1 because set 1 is the user set for the pipeline
+			if (set != targetset) {
+				continue;
+			}
 
 			Engine::INFO << resource.name.c_str() << "\n";
-			Engine::INFO << "Size = " << bufferSize << "\n";
+			Engine::INFO << "Size = " << buffersize << "\n";
 			Engine::INFO << "Binding = " << binding << "\n";
-			Engine::INFO << "Members = " << memberCount << "\n\n";
+			Engine::INFO << "Members = " << membercount << "\n\n";
+
+			ShaderResource res{};
+			res.binding = binding;
+			res.name = Engine::String::create(resource.name.c_str());
+			res.type = GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			res.set = set;
+
+			
+			UniformBufferResource ubr{};
+			ubr.userbufferoffset = userbufferoffset;
+			ubr.members = Engine::ArrayList<BufferMember>::create(membercount);
+			ubr.buffersize = buffersize;
+
+			//increment user buffer offset to accomodate for the next buffer
+			userbufferoffset += buffersize;
+
+			for (unsigned i = 0; i < membercount; i++)
+			{
+				//the buffer member;
+				BufferMember bm;
+
+				auto& member_type = compiler.get_type(buffertype.member_types[i]);
+				size_t member_size = compiler.get_declared_struct_member_size(buffertype, i);
+
+				// Get member offset within this struct.
+				size_t offset = compiler.type_struct_member_offset(buffertype, i);
+			
+				const std::string& name = compiler.get_member_name(buffertype.self, i);
+				Engine::INFO << "member: " << i << ", Name: " << name.c_str() << ", Size: " << member_size << ", Offset" << offset << "\n";
+
+				//im not going to use multi dimensional arrays for now!
+				bm.name = Engine::String::create(name.c_str());
+
+				bm.arraysize = member_type.array.size() == 0 ? 1 : member_type.array[0];
+
+				if (bm.arraysize > 1) {
+					bm.arraystride = compiler.type_struct_member_array_stride(buffertype, i);
+				}
+				
+				bm.vecsize = member_type.vecsize;
+				bm.columsize = member_type.columns;
+
+				bm.offset = offset;
+				bm.userbufferoffset = ubr.userbufferoffset + offset;
+
+				bm.type = LC_BUFFER_MEMBER_UNDEFINED;
+
+				//for now only support float and unit
+				if (member_type.basetype == spirv_cross::SPIRType::Float) {
+					bm.type = LC_BUFFER_MEMBER_FLOAT;
+				}
+
+				if (member_type.basetype == spirv_cross::SPIRType::UInt) {
+					bm.type = LC_BUFFER_MEMBER_UINT;
+				}
+				ubr.members.pushBack(bm);
+			}
+
+			res.uniformbufferresource = Engine::Allocator::push<UniformBufferResource>(ubr);
+			result.pushBack(res);
 		}
 
 		Engine::INFO << "\n===================================================\n\n";
@@ -288,16 +355,28 @@ namespace PH::LabCore3D {
 			Engine::INFO << "binding: " << binding << "\n";
 		}
 
+		Engine::INFO << "\n===================================================\n\n";
+
 		return result;
 	}
 
+	uint32 getUserBufferSize(Base::Array<ShaderResource> resources, uint32 targetset) {
+		
+		uint32 size = 0;
+		for (auto& res : resources) {
+			if (res.set == targetset && res.type == GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+				size += res.uniformbufferresource->buffersize;
+			}
+		}
+		return size;
+	}
 	
-	GFX::DescriptorSetLayout createDescriptorSetLayoutForResources(Base::Array<ShaderResource> resources, uint32 set) {
+	GFX::DescriptorSetLayout createDescriptorSetLayoutForResources(Base::Array<ShaderResource> resources, uint32 targetset) {
 
 		GFX::DescriptorSetLayoutCreateinfo inf;
 		Engine::ArrayList<GFX::DescriptorBinding> bindings = Engine::ArrayList<GFX::DescriptorBinding>::create(resources.count);
 		for (auto& res : resources) {
-			if (res.set == set) {
+			if (res.set == targetset) {
 				GFX::DescriptorBinding b;
 
 				b.type = res.type;
@@ -320,11 +399,20 @@ namespace PH::LabCore3D {
 	}
 
 	//updates the descriptor set with the given resources, returns false if not all descriptor bindings have a bound resource
-	bool32 updateDescriptorSet(Base::Array<ShaderResource> resources, GFX::DescriptorSet set, uint32 targetset) {
-		bool32 result = true;
+	bool32 updateDescriptorSet(Base::Array<ShaderResource> resources, GFX::Buffer userbuffer, GFX::DescriptorSet set, uint32 targetset) {
 
+		bool32 result = true;
 		for (const auto& res : resources) {
 			if (res.set == targetset) {
+				
+				GFX::DescriptorWrite w{};
+				w.arrayelement = 0;
+				w.descriptorcount = 1;
+				w.dstbinding = res.binding;
+				w.dstset = set;
+				w.dynamicwrite = false;
+				w.type = res.type;
+
 				if (res.type == GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
 
 					if (!res.texture) {
@@ -336,19 +424,19 @@ namespace PH::LabCore3D {
 
 					GFX::DescriptorImageInfo im;
 					im.texture = tex->texture;
-
-					GFX::DescriptorWrite w;
-
-					w.arrayelement = 0;
-					w.descriptorcount = 1;
-					w.dstbinding = res.binding;
-					w.dstset = set;
-					w.dynamicwrite = false;
-					w.type = res.type;
 					w.descriptorinfo = &im;
-
 					GFX::updateDescriptorSets(&w, 1);
 				}
+
+				if (res.type == GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+					GFX::DescriptorBufferInfo bi;
+					bi.buffer = userbuffer;
+					bi.offset = res.uniformbufferresource->userbufferoffset;
+					bi.range = res.uniformbufferresource->buffersize;
+					w.descriptorinfo = &bi;
+					GFX::updateDescriptorSets(&w, 1);
+				}
+
 			}
 		}
 		return result;
@@ -365,49 +453,10 @@ namespace PH::LabCore3D {
 		return r;
 	}
 
-	LabCore3D::GraphicsPipeline createGraphicsPipeline(const char* sourcepath, const char* binpath, PipelineType type) {
-
-		GraphicsPipeline pl{};
-		pl.internalpipeline = PH_GFX_NULL;
-		pl.binpath = Engine::String::create(binpath);
-		pl.srcpath = Engine::String::create(sourcepath);
-		pl.resources = {};
-		pl.type = type;
-		pl.isvalid = false;
-
-		Binaries b;
-		if (!loadBinaries(&b, sourcepath, binpath)) {
-			Engine::WARN << "failed to load binarie for pipeline: " << sourcepath;
-		}
-
-		auto res = reflectOnBinaries(b, pl.srcpath.getC_Str());
-		GFX::DescriptorSetLayout userlayout = createDescriptorSetLayoutForResources(res.getArray(), 1);
-		//GFX::DescriptorSet defaultdescriptorset = createResourceDescriptorSet(userlayout);
-
-		GFX::GraphicsPipeline p = buildGraphicsPipeline(type, b, userlayout);
-		
-		if (p == PH_GFX_NULL) {
-			res.destroy(&res);
-
-			Engine::WARN << "failed to create graphics pipeline " << sourcepath << "\n";
-			return {};
-		}
-
-		releaseBinaries(&b);
-
-		pl.resources = res;
-		pl.internalpipeline = p;
-		//pl.defaultuserdescriptorset = defaultdescriptorset;
-		pl.userlayout = userlayout;
-
-		return pl;
-
-	}
-
 	bool32 revalidateDescriptorSet(GraphicsPipeline* pipe) {
 
 		GFX::DescriptorSet set = createResourceDescriptorSet(pipe->userlayout);
-		pipe->isvalid = updateDescriptorSet(pipe->resources.getArray(), set, 1) && (pipe->internalpipeline != PH_GFX_NULL);
+		pipe->isvalid = updateDescriptorSet(pipe->resources.getArray(), pipe->userbuffer.buffer, set, 1) && (pipe->internalpipeline != PH_GFX_NULL);
 
 		if (pipe->defaultuserdescriptorset != PH_GFX_NULL) {
 			GFX::destroyDescriptorSets(&pipe->defaultuserdescriptorset, 1);
@@ -416,6 +465,151 @@ namespace PH::LabCore3D {
 		pipe->defaultuserdescriptorset = set;
 
 		return true;
+	}
+
+	//tries to couple the old resources with the new, if any resource of the new resources does not exist in the old resources returns false false
+	bool32 revalidateResourcesForTargetSetBinding(Base::Array<ShaderResource> newresources, Base::Array<ShaderResource> oldresources, uint32 targetset) {
+		bool32 isvalid = true;
+		for (auto& newres : newresources) {
+
+			if (newres.set != targetset) {
+				continue;
+			}
+
+			//uniform buffer descriptors are automatically valid
+			if (newres.type == GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+				continue;
+			}
+
+			//trying to find if the resources exists in the existing resource pack
+			if (newres.type == GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+				bool32 foundres = false;
+				for (auto& oldres : oldresources) {
+					if (oldres.set == newres.set && oldres.binding == newres.binding && oldres.type == newres.type) {
+						newres.texture = oldres.texture;
+						foundres = true;
+						break;
+					}
+				}
+				isvalid &= foundres;
+			}
+		}
+		return isvalid;
+	}
+
+#define USER_DESCRIPTORSET_TARGET 1
+
+	bool32 areResourcesValidForTargetSet(Base::Array<ShaderResource> resources, uint32 targetset) {
+		for (auto& res : resources) {
+			if (res.set != targetset) {
+				continue;
+			}
+
+			if(res.type == GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+				continue;
+			}
+
+			if (res.type == GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER && res.texture == nullptr) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool32 reloadGraphicsPipelineFromBinaries(GraphicsPipeline* pipe, const Binaries& b, uint8* userbufferdata = nullptr) {
+
+		auto res = reflectOnBinaries(b, 1, pipe->srcpath.getC_Str());
+		GFX::DescriptorSetLayout userlayout = createDescriptorSetLayoutForResources(res.getArray(), 1);
+		//GFX::DescriptorSet defaultdescriptorset = createResourceDescriptorSet(userlayout);
+
+		uint32 userbuffersize = getUserBufferSize(res.getArray(), USER_DESCRIPTORSET_TARGET);
+		
+		//create the user uniform buffer
+		if (pipe->userbuffer.capacity != userbuffersize) {
+			if (userbuffersize > 0) {
+				auto userbufferlocaldata = Engine::Allocator::alloc(userbuffersize);
+
+				if (pipe->userbufferlocaldata) {
+					Base::copyMemory(pipe->userbufferlocaldata, userbufferlocaldata, Base::minVal(pipe->userbuffer.capacity, (sizeptr)userbuffersize));
+				}
+
+				auto userbuffer = Engine::StaticGPUBuffer<uint8>::create({ userbufferdata ? userbufferdata : (uint8*)userbufferlocaldata, userbuffersize }, GFX::BUFFER_USAGE_UNIFORM_BUFFER_BIT | GFX::BUFFER_USAGE_TRANSFER_DST_BIT);
+
+				if (pipe->userbuffer.buffer != PH_GFX_NULL) {
+					Engine::StaticGPUBuffer<uint8>::destroy(&pipe->userbuffer);
+				}
+				
+				
+				if (pipe->userbufferlocaldata != nullptr) {
+					Engine::Allocator::dealloc(pipe->userbufferlocaldata);
+				}
+
+				pipe->userbuffer = userbuffer;
+				pipe->userbufferlocaldata = userbufferlocaldata;
+			} else {
+				pipe->userbuffer = {};
+				pipe->userbuffer.buffer = PH_GFX_NULL;
+				pipe->userbuffer.capacity = 0;
+			}
+		}
+		
+		GFX::GraphicsPipeline p = buildGraphicsPipeline(pipe->type, b, userlayout);
+
+		if (p == PH_GFX_NULL) {
+			res.destroy(&res);
+
+			Engine::WARN << "failed to create graphics pipeline " << pipe->srcpath.getC_Str() << "\n";
+			return false;
+		}
+
+		pipe->isvalid = false;
+
+		if (pipe->internalpipeline != PH_GFX_NULL) {
+			//add code to destroy old pipe;
+		}
+
+		if (pipe->userlayout != PH_GFX_NULL) {
+			GFX::destroyDescriptorSetLayouts(&pipe->userlayout, 1);
+		}
+
+		if (pipe->defaultuserdescriptorset != PH_GFX_NULL) {
+			GFX::destroyDescriptorSets(&pipe->defaultuserdescriptorset, 1);
+		}
+		
+		pipe->internalpipeline = p;
+		pipe->userlayout = userlayout;
+		pipe->defaultuserdescriptorset = PH_GFX_NULL;
+
+		if (revalidateResourcesForTargetSetBinding(res.getArray(), pipe->resources.getArray(), USER_DESCRIPTORSET_TARGET)) {
+			revalidateDescriptorSet(pipe);
+		}
+
+		Engine::ArrayList<ShaderResource>::destroy(&pipe->resources);
+		pipe->resources = res;
+
+		return true;
+	}
+
+	LabCore3D::GraphicsPipeline createGraphicsPipeline(const char* sourcepath, const char* binpath, PipelineType type) {
+
+		GraphicsPipeline pl{};
+		pl.internalpipeline = PH_GFX_NULL;
+		pl.binpath = Engine::String::create(binpath);
+		pl.srcpath = Engine::String::create(sourcepath);
+		pl.resources = Engine::ArrayList<ShaderResource>{};
+		pl.type = type;
+		pl.isvalid = false;
+
+		Binaries b;
+		if (!loadBinaries(&b, sourcepath, binpath)) {
+			Engine::WARN << "failed to load binaries for pipeline: " << sourcepath;
+		}
+
+		reloadGraphicsPipelineFromBinaries(&pl, b);
+
+		releaseBinaries(&b);
+
+		return pl;
 	}
 
 	bool32 reloadGraphicsPipelineFromGLSL(GraphicsPipeline* pipe) {
@@ -429,52 +623,123 @@ namespace PH::LabCore3D {
 			writeBinariesToDisk(b, pipe->binpath.getC_Str());
 		}
 
-
-		auto res = reflectOnBinaries(b, pipe->srcpath.getC_Str());
-		GFX::DescriptorSetLayout userlayout = createDescriptorSetLayoutForResources(res.getArray(), 1);
-		GFX::DescriptorSet defaultdescriptorset = createResourceDescriptorSet(userlayout);
-
-		GFX::GraphicsPipeline p = buildGraphicsPipeline(pipe->type, b, userlayout);
-
-		if (p == PH_GFX_NULL) {
-			res.destroy(&res);
-
-			Engine::WARN << "failed to create graphics pipeline " << pipe->srcpath.getC_Str() << "\n";
-			return false;
-		}
+		reloadGraphicsPipelineFromBinaries(pipe, b);
 
 		releaseBinaries(&b);
-		if (pipe->resources.getCapacity() != 0) {
-			pipe->resources.destroy(&pipe->resources);
-		}
+	}
 
-		if (pipe->internalpipeline != PH_GFX_NULL) {
-			//add code to destroy old pipe;
-		}
+	void deserializeGraphicsPipeline(YAML::Node n, GraphicsPipeline* pipe) {
 
-		if (pipe->userlayout != PH_GFX_NULL) {
-			GFX::destroyDescriptorSetLayouts(&pipe->userlayout, 1);
-		}
-
-		if (pipe->defaultuserdescriptorset != PH_GFX_NULL) {
-			GFX::destroyDescriptorSets(&pipe->defaultuserdescriptorset, 1);
-		}
-
-		pipe->resources = res;
-		pipe->internalpipeline = p;
-		pipe->defaultuserdescriptorset = defaultdescriptorset;
-		pipe->userlayout = userlayout;
 		pipe->isvalid = false;
+		
+		if (!n) {
+			return;
+		}
 
-		return true;
+		if (!n["type"] || !n["srcpath"] || !n["binpath"]) {
+			Engine::WARN << "failed to deserialize graphics pipeline because either type, srcpath or binpath are invalid!\n";
+			return;
+		}
+		
+		PipelineType type = (PipelineType)n["type"].as<uint32>();
+		Engine::String srcpath = n["srcpath"].as<Engine::String>();
+		Engine::String binpath = n["binpath"].as<Engine::String>();
+
+		*pipe = createGraphicsPipeline(srcpath.getC_Str(), binpath.getC_Str(), type);
+
+		Engine::ArrayList<ShaderResource> resources = Engine::ArrayList<ShaderResource>::create(1);
+
+		if (n["resources"]) {
+			for (auto res : n["resources"]) {
+				ShaderResource sr{};
+				sr.binding = res["binding"].as<uint32>();
+				sr.set = res["set"].as<uint32>();
+				sr.type = (GFX::DescriptorType)res["type"].as<uint32>();
+				if (sr.type == GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+					Engine::AssetID texid = res["texture"].as<Engine::AssetID>();
+
+					//might want to add the asset library as a parameter, on the other hand, this is all in labcore space
+					sr.texture = LabCore::getAssetLibrary()->getAssetIdentifier<LabCore3D::Texture>(texid);
+				}
+				resources.pushBack(sr);
+			}
+		}
+
+		if (n["userbuffer"]) {
+			YAML::Binary b = n["userbuffer"].as<YAML::Binary>();
+			pipe->userbuffer.uploadData((uint8*)b.data(), b.size());
+			Base::copyMemory((void*)b.data(), pipe->userbufferlocaldata, Base::minVal(pipe->userbuffer.capacity, b.size()));
+		}
+
+		//if the resources completly revalidate the descriptorset than revalidate the descriptorset
+		if (revalidateResourcesForTargetSetBinding(pipe->resources.getArray(), resources.getArray(), 1)) {
+			revalidateDescriptorSet(pipe);
+		}
+
+		//destroy create resources
+		Engine::String::destroy(&binpath);
+		Engine::String::destroy(&srcpath);
+		Engine::ArrayList<ShaderResource>::destroy(&resources);
+
 	}
 
-	void deserializeGraphicsPipeline(const char* path, GraphicsPipeline* pipe) {
+	bool32 revalidateTextures(GraphicsPipeline* pipe) {
+		return revalidateDescriptorSet(pipe);
+	}
+
+	bool32 revalidateUniformBuffers(GraphicsPipeline* pipe, Engine::DynamicGPUBuffer<uint8>* stagingbuffer) {
+
+		if (stagingbuffer) {
+			pipe->userbuffer.uploadDataAsynchronous((uint8*)pipe->userbufferlocaldata, pipe->userbuffer.capacity, stagingbuffer);
+			return true;
+		}
+
+		pipe->userbuffer.uploadDataAsynchronous((uint8*)pipe->userbufferlocaldata, pipe->userbuffer.capacity);
+	}
+
+
+	void serializeResources(YAML::Emitter& out, Base::Array<ShaderResource> resources) {
+
+		out << YAML::BeginSeq;
+
+		for (auto& res : resources) {
+			out << YAML::Value << YAML::BeginMap;
+
+			out << YAML::Key << "name" << YAML::Value << res.name.getC_Str();
+			out << YAML::Key << "binding" << YAML::Value << res.binding;
+			out << YAML::Key << "type" << YAML::Value << res.type;
+			out << YAML::Key << "set" << YAML::Value << res.set;
+
+			if (res.type == GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+				if (res.texture) {
+					out << YAML::Key << "texture" << YAML::Value << res.texture->assetid;
+				}
+				else {
+					out << YAML::Key << "texture" << YAML::Value << PH_ASSET_NULL;
+				}
+			}
+			out << YAML::EndMap;
+		}
+
+		out << YAML::EndSeq;
 
 	}
 
-	void serializeGraphicsPipeline(const char* path, GraphicsPipeline* pipe) {
+	void serializeGraphicsPipeline(YAML::Emitter& out, GraphicsPipeline* pipe) {
+		out << YAML::BeginMap;
 
+		out << YAML::Key << "type" << YAML::Value << pipe->type;
+
+		out << YAML::Key << "binpath" << pipe->binpath.getC_Str();
+		out << YAML::Key << "srcpath" << pipe->srcpath.getC_Str();
+		if (pipe->userbuffer.capacity != 0) {
+			out << YAML::Key << "userbuffer" << YAML::Value << YAML::Binary((uint8*)pipe->userbufferlocaldata, pipe->userbuffer.capacity);
+		}
+		out << YAML::Key << "resources" << YAML::Value;
+
+
+		serializeResources(out, pipe->resources.getArray());
+		out << YAML::EndMap;
 	}
 
 	Engine::AssetDescription createGraphicsPipelineDescription() {

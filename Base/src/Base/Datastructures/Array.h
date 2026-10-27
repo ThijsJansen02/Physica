@@ -339,13 +339,13 @@ namespace PH::Base {
 			 return a;
 		}
 
+		ArrayList() : m_Storage(storage::create(0)), m_End(iterator::create(nullptr)) {
+
+		}
+
 		static void destroy(ArrayList* item) {
 			item->release();
 			return;
-		}
-
-		ArrayList() {
-
 		}
 
 		template<typename allocator_ = allocator>
@@ -380,7 +380,7 @@ namespace PH::Base {
 
 			m_Storage[index] = {};
 			for (uint32 i = index; i < getCount() - 1; i++) {
-				m_Storage[index] = m_Storage[index + 1];
+				m_Storage[i] = m_Storage[i + 1];
 			}
 			--m_End;
 			return true;

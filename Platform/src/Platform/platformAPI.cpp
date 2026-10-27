@@ -2,6 +2,8 @@
 #include "Platform/platformAPI.h"
 #include <Platform/vulkan/vulkanAPI.h>
 
+#include <Platform/windows/win32_platform.h>
+
 namespace PH::Platform {
 
 
@@ -67,6 +69,19 @@ namespace PH::Platform {
 		PH_PLATFORM_API bool32 destroyFrameBuffers(GFX::Framebuffer* framebuffers, uint32 count) {
 			return Vulkan::postDestroyFrameBuffers(Vulkan::context_s, framebuffers, count);
 		}
+
+		PH_PLATFORM_API bool32 copyBufferAsynchronous(Platform::GFX::Buffer srcbuffer, Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset) {
+			return Vulkan::copyBufferAsynchronous(Vulkan::context_s, srcbuffer, dstbuffer, size, srcoffset, dstoffset);
+		}
+	}
+
+	void getCurrentDirectory(char* buffer, sizeptr maxsize) {
+		win32_getCurrentDirectory(buffer, maxsize);
+	}
+
+	bool32 setCurrentDirectory(PH::Base::SubString directory) {
+		win32_setCurrentDirectory(directory);
+		return true;
 	}
 }
 

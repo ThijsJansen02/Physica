@@ -8,7 +8,7 @@ namespace PH::LabCore3D {
 
 		Engine::AssetIdentifier* currentpipe;
 		
-
+		Engine::DynamicGPUBuffer<uint8> stagingbuffer;
 	};
 
 	LabCore::ViewDescription createMaterialViewDescription();

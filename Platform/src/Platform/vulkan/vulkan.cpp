@@ -891,6 +891,7 @@ namespace PH::Vulkan {
 	PH::bool32 destroyTexture(VulkanAppContext* context, PH::Platform::GFX::Texture texture);
 	bool32 destroyDescriptorSets(VulkanAppContext* context, Platform::GFX::DescriptorSet* desctiptorsets, uint32 count);
 	bool32 destroyDesctiptorSetLayouts(VulkanAppContext* context, Platform::GFX::DescriptorSetLayout* layouts, uint32 count);
+	bool32 destroyBuffers(VulkanAppContext* context, Platform::GFX::Buffer* buffers, uint32 count);
 
 	void cleanupDeleteQueue(VulkanAppContext* context) {
 		uint32 pc = 0;
@@ -915,6 +916,11 @@ namespace PH::Vulkan {
 					}
 					case VULKAN_DESCRIPTORSET_LAYOUT: {
 						destroyDesctiptorSetLayouts(context, &p->object, 1);
+						break;
+					}
+					case VULKAN_BUFFER: {
+						destroyBuffers(context, &p->object, 1);
+						break;
 					}
 				}
 

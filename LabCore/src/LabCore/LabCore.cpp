@@ -21,6 +21,21 @@ namespace PH::LabCore {
 		appcontext->defaultrenderpassdescription = Engine::getParentDisplay()->renderpass;
 		loadShaders();
 
+		Engine::String pythonhome = Engine::String::create("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
+		appcontext->projectpath = Engine::String::create("example_project.lcproj");
+
+		YAML::Node ini = Engine::FileIO::loadYamlfile("labcore.ini");
+		if (ini) {
+			if (ini["projectpath"]) {
+				appcontext->projectpath.set(ini["projectpath"].as<Engine::String>());
+			}
+
+			if (ini["pythonhome"]) {
+				pythonhome.set(ini["pythonhome"].as<Engine::String>());
+			}
+		}
+
+
 		Engine::Renderer2D::InitInfo rendererinit{};
 		rendererinit.currentpipeline = appcontext->defaultgraphicspipeline2D;
 		rendererinit.instancebuffersize = MEGA_BYTE * 16;
@@ -32,6 +47,7 @@ namespace PH::LabCore {
 		appcontext->views = Engine::ArrayList<ViewDescription>::create(1);
 		appcontext->viewinstances = Engine::ArrayList<ViewInstance>::create(1);
 
+		//create asset library and add font asset
 		appcontext->assets = Engine::AssetLibrary::createAssetLibrary();
 		appcontext->assets.addAssetType(Engine::createFontDescription());
 
@@ -40,7 +56,8 @@ namespace PH::LabCore {
 		auto identifier = appcontext->assets.addAsset<Engine::Font>(font, 683249087875, "defaultfont");
 		
 		//should definitly be a relative path
-		initPython("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
+		initPython(pythonhome.getC_Str());
+		Engine::String::destroy(&pythonhome);
 
 		PH::Platform::FileBuffer file;
 		if (PH::Platform::loadFile(&file, "res/labcoreinit.py")) {
@@ -51,7 +68,7 @@ namespace PH::LabCore {
 				Engine::INFO << e.what();
 			}
 		}
-				
+
 		plugininitfn plugininit_ = nullptr;
 
 		//load labcore-3D plugin
@@ -68,14 +85,11 @@ namespace PH::LabCore {
 				plugininit_("plugins/labcore-3d");
 			}
 		}
-		
-
-
 	}
 
 	void destroy() {
 
-		serializeProject("project.lcproj");
+		serializeProject(appcontext->projectpath.getC_Str());
 
 		//TODO add destruction off all the resources that were created in the application
 		PH::Engine::Allocator::dealloc(appcontext);
@@ -108,6 +122,12 @@ namespace PH::LabCore {
 
 		//end the open views sequence
 		out << YAML::EndSeq;
+
+
+		out << YAML::Key << "includedassets" << YAML::Value;
+		appcontext->assets.serializeAssetIdentifiers(out);
+
+
 		out << YAML::EndMap;
 
 		Engine::FileIO::writeYamlFile(out, filepath);
@@ -151,6 +171,32 @@ namespace PH::LabCore {
 	void drawMenuBar() {
 		if (ImGui::BeginMainMenuBar())
 		{
+			if (ImGui::BeginMenu("File")) {
+				if (ImGui::MenuItem("Open Project")) {
+
+				}
+
+				if (ImGui::MenuItem("New Project")) {
+
+					char buffer[256];
+
+					PH::Platform::OpenFileDialogInfo info;
+					info.filter = ".lcproj";
+					info.read = true;
+					info.resultbuffer = buffer;
+					info.resultbuffersize = 256;
+					info.flags = PH_DIALOG_PATHMUSTEXIST;
+
+					if (PH::Platform::openFileDialog(info)) {
+
+						Engine::INFO << "new projectfile: " << buffer << "\n";
+
+					}
+				}
+
+				ImGui::EndMenu();
+			}
+
 			if (ImGui::BeginMenu("views"))
 			{
 				for (auto& View : appcontext->views) {

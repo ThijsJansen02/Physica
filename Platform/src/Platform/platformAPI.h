@@ -115,11 +115,31 @@ namespace PH::Platform {
 		HANDLE handle;
 	};
 
+#define PH_DIALOG_READONLY                 0x00000001
+#define PH_DIALOG_OVERWRITEPROMPT          0x00000002
+#define PH_DIALOG_HIDEREADONLY             0x00000004
+#define PH_DIALOG_NOCHANGEDIR              0x00000008
+#define PH_DIALOG_SHOWHELP                 0x00000010
+#define PH_DIALOG_ENABLEHOOK               0x00000020
+#define PH_DIALOG_ENABLETEMPLATE           0x00000040
+#define PH_DIALOG_ENABLETEMPLATEHANDLE     0x00000080
+#define PH_DIALOG_NOVALIDATE               0x00000100
+#define PH_DIALOG_ALLOWMULTISELECT         0x00000200
+#define PH_DIALOG_EXTENSIONDIFFERENT       0x00000400
+#define PH_DIALOG_PATHMUSTEXIST            0x00000800
+#define PH_DIALOG_FILEMUSTEXIST            0x00001000
+#define PH_DIALOG_CREATEPROMPT             0x00002000
+#define PH_DIALOG_SHAREAWARE               0x00004000
+#define PH_DIALOG_NOREADONLYRETURN         0x00008000
+#define PH_DIALOG_NOTESTFILECREATE         0x00010000
+#define PH_DIALOG_NONETWORKBUTTON          0x00020000
+
 	struct OpenFileDialogInfo {
 		PH::sizeptr resultbuffersize;
 		char* resultbuffer;
 		const char* filter;
 		PH::bool32 read;
+		uint32 flags;
 	};
 
 	struct Context {
@@ -575,6 +595,10 @@ namespace PH::Platform {
 		extern PH_PLATFORM_API Intern::gfx_UnmapBufferFN* unmapBuffer;
 			   
 		extern PH_PLATFORM_API Intern::gfx_CreateRenderpassDescriptionFN* createRenderpassDescriptions;
+		
+		//copies the buffer asynchronous in the commandbuffer of the the current frame
+		PH_PLATFORM_API bool32 copyBufferAsynchronous(PH::Platform::GFX::Buffer srcbuffer, PH::Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset);
+
 		PH_PLATFORM_API bool32 destroyRenderpassDescriptions(GFX::RenderpassDescription* descriptions, uint32 count);
 		PH_PLATFORM_API bool32 destroyFrameBuffers(GFX::Framebuffer* framebuffers, uint32 count);
 		
@@ -604,6 +628,10 @@ namespace PH::Platform {
 		extern PH_PLATFORM_API Intern::gfx_CreateImguiImageFN* createImGuiImage;
 
 	}
+
+	PH_PLATFORM_API void getCurrentDirectory(char* buffer, sizeptr maxsize);
+	PH_PLATFORM_API bool32 setCurrentDirectory(PH::Base::SubString directory);
+
 
 	extern PH_PLATFORM_API Intern::LoadFileFN* loadFile;
 	extern PH_PLATFORM_API Intern::UnloadFileFN* unloadFile;

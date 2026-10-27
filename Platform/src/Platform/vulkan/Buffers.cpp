@@ -148,6 +148,7 @@ namespace PH::Vulkan {
 
 			//add the buffer to the data structure
 			buffers[i] = context->buffers.add(buffer);
+			//Vulkan::INFO << "created buffer: " << buffers[i] << "\n";
 
 			//if there is data in the createinfo but it is not host visible, a staging buffer is created on the fly and used to copy the data into the buffer
 			//check weather there is data and the data is not already copied
@@ -182,6 +183,17 @@ namespace PH::Vulkan {
 		return createBuffers(context_s, createinfos, buffers, count);
 	}
 
+	bool32 postDestroyBuffers(VulkanAppContext* context, Platform::GFX::Buffer* buffers, uint32 count) {
+
+
+		for (uint32 i = 0; i < count; i++) {
+			PH_DEBUG_ASSERT(buffers[i] != PH_GFX_NULL, "trying to destroy buffer that is null")
+			postObjectDeleteMessage(context, buffers[i], VULKAN_BUFFER);
+		}
+		return true;
+
+	}
+
 	bool32 destroyBuffers(VulkanAppContext* context, Platform::GFX::Buffer* buffers, uint32 count) {
 		for (uint32 i = 0; i < count; i++) {
 			Buffer buffer = context->buffers[buffers[i]];
@@ -202,7 +214,7 @@ namespace PH::Vulkan {
 	}
 
 	PH_GFX_DESTROY_BUFFERS(destroyBuffers) {
-		return destroyBuffers(context_s, buffers, count);
+		return postDestroyBuffers(context_s, buffers, count);
 	}
 
 #define MAX_BOUND_BUFFERS 16
@@ -244,6 +256,20 @@ namespace PH::Vulkan {
 		endSingleTimeCommands(context, commandbuffer);
 
 		return true;	
+	}
+
+	bool32 copyBufferAsynchronous(VulkanAppContext* context, Platform::GFX::Buffer srcbuffer, Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset) {
+
+		VkBuffer vksrcbuffer = context->buffers[srcbuffer].buffer[context->frameindex];
+		VkBuffer vkdstbuffer = context->buffers[dstbuffer].buffer[context->frameindex];
+
+		VkBufferCopy buffercopy{};
+		buffercopy.dstOffset = dstoffset;
+		buffercopy.srcOffset = srcoffset;
+		buffercopy.size = size;
+		vkCmdCopyBuffer(context->commandbuffers[context->frameindex], vksrcbuffer, vkdstbuffer, 1, &buffercopy);
+
+		return true;
 	}
 
 	PH_GFX_COPY_BUFFER(copyBuffer) {

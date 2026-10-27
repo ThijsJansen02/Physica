@@ -69,6 +69,7 @@ namespace PH::Vulkan {
 
 	bool32 destroyRenderpassDescriptions(VulkanAppContext* context, PH::Platform::GFX::RenderpassDescription* descriptions, uint32 count);
 	bool32 postDestroyFrameBuffers(VulkanAppContext* context, PH::Platform::GFX::Framebuffer* framebuffers, uint32 count);
+	bool32 copyBufferAsynchronous(VulkanAppContext* context, Platform::GFX::Buffer srcbuffer, Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset);
 
 	PH_GFX_DRAW(draw);
 	PH_GFX_SET_VIEWPORTS(setViewports);

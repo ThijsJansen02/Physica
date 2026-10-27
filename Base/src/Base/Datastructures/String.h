@@ -1,4 +1,5 @@
 #pragma once 
+#include "Base/utils.h"
 #include "Base/Memory.h"
 #include <string.h>
 #include <stdio.h>
@@ -43,7 +44,9 @@ namespace PH::Base {
 	}
 
 	inline bool32 stringCompare(const char* str1, const char* str2, sizeptr maxsize) {
-		
+		if (maxsize == 0) {
+			return false;
+		}
 		
 		while (*str1 != 0 && *str2 != 0) {
 			if (maxsize == 0)
@@ -58,7 +61,29 @@ namespace PH::Base {
 			str2++;
 			maxsize--;
 		}
-		return *str1 == *str2;
+		return *(str1 - 1) == *(str2 - 1);
+	}
+
+	
+	inline bool32 stringCompareNcharacters(const char* str1, const char* str2, sizeptr nchars) {
+		if (nchars == 0) {
+			return true;
+		}
+
+		while (*str1 != 0 && *str2 != 0) {
+			if (nchars == 0)
+			{
+				return true;
+			}
+
+			if (*str1 != *str2) {
+				return false;
+			}
+			str1++;
+			str2++;
+			nchars--;
+		}
+		return *(str1 - 1) == *(str2 - 1);
 	}
 
 	//copies string from src to dst and returns the amount of bytes copied including the nulltermination character
@@ -248,19 +273,26 @@ namespace PH::Base {
 			return SubString::create(str, (m_Str + m_Length) - str);
 		}
 
+
+
+		bool32 compare(SubString other) {
+			sizeptr maxlength = minVal(other.getLength(), this->getLength());
+			stringCompare(this->getC_Str(), other.getC_Str(), maxlength);
+		}
+
 		bool32 compare(const char* str) {
+			stringCompare(this->getC_Str(), str, this->m_Length);
+			return false;
+		}
 
-			uint32 count = 0;
-			while (*str != 0 && count < m_Length) {
-				if (*str != m_Str[count]) {
-					return false;
+		bool32 contains(const char* other) {
+			const char* ptr = this->getC_Str();
+			sizeptr cmprlength = stringLength(other);
+			while (*ptr != '\0' && (ptr - this->getC_Str()) < this->getLength()) {
+				if (stringCompareNcharacters(ptr, other, cmprlength)) {
+					return true;
 				}
-				count++;
-				str++;
-			}
-
-			if (*str == '\0' && count == m_Length) {
-				return true;
+				ptr++;
 			}
 			return false;
 		}
@@ -470,6 +502,10 @@ namespace PH::Base {
 				strptr++;
 			}
 			return false;
+		}
+		
+		bool32 contains(const char* str) {
+			return this->getSubString().contains(str);
 		}
 
 		//returns the size of the string in bytes including the null termination character

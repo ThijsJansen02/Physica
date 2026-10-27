@@ -28,12 +28,15 @@ namespace PH::LabCore3D {
 		{0, 0, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, position)},
 		{0, 1, Platform::GFX::FORMAT_R32G32_SFLOAT, offsetof(Vertex3D, texcoord)},
 		{0, 2, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, normal)},
+		{0, 3, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, tangent)},
+		{0, 4, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, bitangent)},
+
 
 		//instanceinput
-		{1, 4, Platform::GFX::FORMAT_R8G8B8A8_UINT, offsetof(MeshInstance, materialindex)},
-		{1, 5, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow0)},
-		{1, 6, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow1)},
-		{1, 7, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow2)}
+		{1, 5, Platform::GFX::FORMAT_R8G8B8A8_UINT, offsetof(MeshInstance, materialindex)},
+		{1, 6, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow0)},
+		{1, 7, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow1)},
+		{1, 8, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow2)}
 	};
 
 	struct CameraVariables {

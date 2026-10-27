@@ -5,6 +5,8 @@
 
 namespace PH::Engine {
 
+#define PH_ASSET_NULL 0
+
 	struct AssetIdentifier;
 
 	typedef UUID AssetID;

@@ -1,3 +1,4 @@
+#include <Engine/Engine.h>
 #include <LabCore/LabCoreAPI.h>
 #include <Platform/platformAPI.h>
 #include <imgui.h>
@@ -6,7 +7,6 @@
 #include "assets/Mesh.h"
 #include "DefferredRenderer.h"
 
-#include <Engine/Engine.h>
 #include "views/SceneView.h"
 #include "views/MaterialView.h"
 #include "LabCore3D.h"
@@ -42,40 +42,40 @@ extern "C" {
 		PH::Engine::UUID cubeid = 9808924416449029863;
 		PH::Engine::UUID lightingpipeid = 2983062809953302303;
 		PH::Engine::UUID albedoid = 328866994555156235;
+		PH::Engine::UUID brickid = 65465143419846515;
+		PH::Engine::UUID normalid = 64641685878151;
 
 		//graphics pipelines
 		char srcpath[256];
 		char binpath[256];
-
-		sprintf_s<256>(srcpath, "%s/res/shaders/defferedmaterial.phshadersrc", plugindir);
-		sprintf_s<256>(binpath, "%s/res/shaders/bin/defferedmaterial.phshaderbin", plugindir);
-
-		PH::LabCore3D::GraphicsPipeline* defaultpipe = PH::Engine::Allocator::push(
-			PH::LabCore3D::createGraphicsPipeline(srcpath, binpath, PH::LabCore3D::LC_PIPELINE_TYPE_3D_DEFFERED_MATERIAL)
-		);
-
-		assetlib->addAsset(defaultpipe, pipeid, "defaultmaterialpipe");
-
-		sprintf_s<256>(srcpath, "%s/res/shaders/defferedlighting.phshadersrc", plugindir);
-		sprintf_s<256>(binpath, "%s/res/shaders/bin/defferedlighting.phshaderbin", plugindir);
-
-		PH::LabCore3D::GraphicsPipeline* lightingpipe = PH::Engine::Allocator::push(
-			PH::LabCore3D::createGraphicsPipeline(srcpath, binpath, PH::LabCore3D::LC_PIPELINE_TYPE_3D_DEFFERED_LIGHTING)
-		);
-
-		assetlib->addAsset(lightingpipe, lightingpipeid, "defaultlightingpipe");
+		char assetpath[256];
 
 		//textures
 		sprintf_s<256>(srcpath, "%s/res/textures/brickmaterial/albedo.jpg", plugindir);
 		PH::LabCore3D::Texture* albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture(srcpath));
 		
-		assetlib->addAsset(albedo, albedoid, "brick_albedo");
+		assetlib->addAsset(albedo, brickid, "brick_albedo");
 
+		sprintf_s<256>(srcpath, "%s/res/textures/brickmaterial/normal_dx.jpg", plugindir);
+		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture(srcpath, PH::Platform::GFX::FORMAT_R8G8B8A8_UNORM));
 
+		assetlib->addAsset(albedo, normalid, "brick_normal");
+		
 		sprintf_s<256>(srcpath, "%s/res/textures/metal/albedo.jpg", plugindir);
 		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture(srcpath));
 
 		assetlib->addAsset(albedo, albedoid, "metal_albedo");
+
+
+
+		//default deffered material
+		sprintf_s<256>(assetpath, "%s/res/pipelines/defaultmaterialpipe.phpipe", plugindir);
+		assetlib->deserializeAsset<PH::LabCore3D::GraphicsPipeline>(assetpath);
+
+		sprintf_s<256>(assetpath, "%s/res/pipelines/defaultlightingpipe.phpipe", plugindir);
+		assetlib->deserializeAsset<PH::LabCore3D::GraphicsPipeline>(assetpath);
+
+
 
 		//meshes
 		PH::LabCore3D::Mesh* cube = PH::Engine::Allocator::push(PH::LabCore3D::createCubeMesh());

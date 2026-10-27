@@ -556,6 +556,19 @@ struct PlatformAppContext {
 	HWND windowhandle;
 } platformcontext;
 
+void win32_getCurrentDirectory(char* buffer, PH::sizeptr maxsize) {
+	GetCurrentDirectoryA(maxsize, buffer);
+}
+
+PH::bool32 win32_setCurrentDirectory(PH::Base::SubString directory) {
+	 auto str = PH::Base::String<PlatformAllocator>::create(directory);
+
+	bool r = SetCurrentDirectoryA(str.getC_Str());
+
+	PH::Base::String<PlatformAllocator>::destroy(&str);
+	return r;
+}
+
 PH_OPEN_FILE_DIALOG(win32_openFileDialog) {
 
 	OPENFILENAMEA ofn;
@@ -567,11 +580,14 @@ PH_OPEN_FILE_DIALOG(win32_openFileDialog) {
 	ofn.hwndOwner = platformcontext.windowhandle;
 	ofn.lpstrFile = szFile;
 	ofn.nMaxFile = sizeof(szFile);
+
+
+
 	/*if (GetCurrentDirectoryA(256, currentDir))
 		ofn.lpstrInitialDir = currentDir;*/
 	ofn.lpstrFilter = info.filter;
 	ofn.nFilterIndex = 1;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+	ofn.Flags = info.flags;
 
 	if (GetOpenFileNameA(&ofn)) {
 		char* str = ofn.lpstrFile;
@@ -727,10 +743,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			lastwindowheight = state.windowheight;
 		}
 
+		PH::Vulkan::startFrame(&vulkancontext);
 		
 		ImGui::NewFrame();
-
-		PH::Vulkan::startFrame(&vulkancontext);
 
 		LARGE_INTEGER currentframecount;
 		QueryPerformanceCounter(&currentframecount);

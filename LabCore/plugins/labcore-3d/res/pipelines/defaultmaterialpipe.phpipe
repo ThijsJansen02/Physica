@@ -1,0 +1,23 @@
+assetID: 16439805985763607426
+references:
+  - defaultmaterialpipe
+asset:
+  type: 0
+  binpath: plugins/labcore-3d/res/shaders/bin/defferedmaterial.phshaderbin
+  srcpath: plugins/labcore-3d/res/shaders/defferedmaterial.phshadersrc
+  userbuffer: !!binary "AACAPwAAAEABAAAA"
+  resources:
+    - name: MaterialProperties
+      binding: 0
+      type: 6
+      set: 1
+    - name: albedotexture
+      binding: 1
+      type: 1
+      set: 1
+      texture: 65465143419846515
+    - name: normaltexture
+      binding: 2
+      type: 1
+      set: 1
+      texture: 64641685878151

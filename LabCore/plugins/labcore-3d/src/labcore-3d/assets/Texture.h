@@ -17,7 +17,7 @@ namespace PH::LabCore3D {
 		Platform::GFX::Format format;
 	};
 
-
+	Texture createTexture(const char* sourcepath, Platform::GFX::Format format);
 	Texture createTexture(const char* texture);
 	Engine::AssetDescription createTextureAssetDescription();
 }
