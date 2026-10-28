@@ -18,6 +18,8 @@ namespace PH::RpGui {
 	struct PlotData {
 		glm::vec4 color;
 
+		bool showfiltered;
+
 		real32 thickness = 1.5f;
 
 		Engine::String name;

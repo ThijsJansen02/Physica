@@ -20,8 +20,11 @@ def OpenCSVandWriteToGUI(path):
     print(path)
     data_rp = np.loadtxt(path, delimiter=",", comments=["%", "#"], unpack=True)
 
+    data_rp[1] = 10 ** (data_rp[1] / 20)
+    data_rp[2] = ((2 * np.pi) / 360) * data_rp[2]
+
     #rp.removePlot("measured frequency response")
-    rp.addPlot(np.log10(data_rp[0]), data_rp[1], data_rp[2], Path(path).stem, rp.Vec4(1.0, 1.0, 0.0, 1.0))
+    rp.addPlot(data_rp[0], data_rp[1], data_rp[2], Path(path).stem, rp.Vec4(1.0, 1.0, 0.0, 1.0))
     rp.setTitle("Transfer Function Measurement")
 
 
