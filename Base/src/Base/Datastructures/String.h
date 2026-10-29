@@ -109,6 +109,17 @@ namespace PH::Base {
 		sprintf_s(buffer, size, "%d", val);
 	}
 
+	inline void stringReplace(char* str, char cmp, char replace) {
+		while (*str != '\0') {
+
+			if(*str == cmp) {
+				*str = replace;
+			}
+
+			str++;
+		}
+	}
+
 	/// <summary>
 	/// a non owning string class
 	/// </summary>

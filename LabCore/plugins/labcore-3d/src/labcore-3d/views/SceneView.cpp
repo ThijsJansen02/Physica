@@ -1,8 +1,12 @@
+#include <ImGuizmo.h>
+
 #include "SceneView.h"
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/coreassets/Font.h>
-
+#include "../assets/Scene.h"
+#include <Engine/imgui/extensions.h>
 #include "../DefferredRenderer.h"
+#include "../assets/scenecomponents/TransformComponent.h"
 
 namespace PH::LabCore3D {
 
@@ -25,16 +29,26 @@ namespace PH::LabCore3D {
 		glm::mat4 viewmatrix = calculateCameraViewMatrix(sceneview->camera);
 
 
-		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
-		auto* cubemesh = assets->getAssetByReference<Mesh>("cubemesh");
-		auto* pipe = assets->getAssetByReference<GraphicsPipeline>("defaultmaterialpipe");
-
 		renderer.beginGeometryPass();
 
 		renderer.setProjection(sceneview->camera.perspective);
 		renderer.setView(viewmatrix);
 
-		renderer.drawMesh(cubemesh, pipe);
+		auto* assets = LabCore::getAssetLibrary();
+		if (sceneview->scene) {
+			if (sceneview->scene->status != Engine::LOADED) {
+				assets->loadAsset<Scene>(sceneview->scene->assetid);
+			}
+
+			Scene* scene = (Scene*)sceneview->scene->assetdata;
+
+			for (auto& desc : Scene::scenecomponentdescriptions) {
+				if (desc.drawComponents_) {
+					desc.drawComponents_(scene, &renderer);
+				}
+			}
+		}
+
 
 		auto* lightingpipe = assets->getAssetByReference<GraphicsPipeline>("defaultlightingpipe");
 
@@ -49,6 +63,8 @@ namespace PH::LabCore3D {
 			ImGui::Text("camera direction: %f, %f, %f", sceneview->camera.direction.x, sceneview->camera.direction.y, sceneview->camera.direction.z);
 
 			ImGui::Text("FPS: %f", 1.0f / Engine::getTimeStep());
+
+			sceneview->scene = ImGuiext::assetSelecter<Scene>("scene", sceneview->scene, "select scene", assets);
 
 			if(ImGui::BeginCombo("renderer output", sourceoptions[sceneview->displaysrc])) {
 
@@ -74,6 +90,45 @@ namespace PH::LabCore3D {
 			{ 0.0f, 0.0f }, //bottom left uv
 			{ displaysize.x / sceneview->display.framebuffersize.x, displaysize.y / sceneview->display.framebuffersize.y } //top right UV
 		);
+
+		if (sceneview->scene) {
+			Scene* scene = assets->getLoadedAsset<Scene>(sceneview->scene->assetid);
+
+			if (scene->selected != entt::null) {
+				if (hasComponent<Transform>(scene, scene->selected)) {
+					ImGuizmo::SetOrthographic(false);
+					//ImGuizmo::SetDrawlist();
+
+					ImGuizmo::SetDrawlist(nullptr);
+					ImGuizmo::SetRect(0.0f, 0.0f, sceneview->display.viewport.x, sceneview->display.viewport.y);
+
+
+
+					Transform& tc = getComponent<Transform>(scene, scene->selected);
+
+					// Snapping
+					bool snap = Engine::Events::isKeyPressed(PH_CONTROL);
+					float snapValue = 0.5f; // Snap to 0.5m for translation/scale
+					// Snap to 45 degrees for rotation
+
+					//if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
+						//snapValue = 45.0f;
+
+					float snapValues[3] = { snapValue, snapValue, snapValue };
+
+					ImGuizmo::Manipulate((real32*)&viewmatrix, (real32*)&sceneview->camera.perspective,
+						ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::LOCAL, (real32*) & tc.transform,
+						nullptr, snap ? snapValues : nullptr);
+
+					if (ImGuizmo::IsUsing())
+					{
+						glm::vec3 translation, rotation, scale;
+						ImGuizmo::DecomposeMatrixToComponents((real32*)&tc.transform, (real32*)&tc.translation, (real32*)&tc.rotXYZ, (real32*)&tc.scale);
+					}
+
+				}
+			}
+		}
 
 		return true;
 	}
@@ -122,6 +177,8 @@ namespace PH::LabCore3D {
 		view->camera.direction = { 0.0f, 0.0f, -1.0f };
 		view->camera.position = { 0.0f, 0.0f, 5.0f };
 
+		view->scene = nullptr;
+
 		view->displaysrc = DefferedRenderer::OutputSource::DEFFERED_LIGHTING;
 
 		return true;
@@ -142,13 +199,17 @@ namespace PH::LabCore3D {
 		if (node["Camera"]) {
 			deserializeCamera(&data->camera, node["Camera"]);
 		}
+		data->scene = nullptr;
+		if (node["scene"]) {
+			data->scene = LabCore::getAssetLibrary()->getAssetIdentifier<Scene>(node["scene"].as<Engine::AssetID>());
+		}
 		return true;
 	}
 
 	PH::bool32 serializeSceneView(SceneView* data, YAML::Emitter& out) {
 
 		out << YAML::BeginMap;
-
+		out << YAML::Key << "scene" << YAML::Value << data->scene->assetid;
 		out << YAML::Key << "Camera" << YAML::Value;
 		
 		serializeCamera(&data->camera, out);
@@ -168,7 +229,7 @@ namespace PH::LabCore3D {
 		d.instantiate_ = (LabCore::ViewInstantiateFunction)instantiateSceneView;
 
 		d.windowpadding = { 0,0 };
-		d.windowflags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_MenuBar;
+		d.windowflags = ImGuiWindowFlags_NoScrollbar;
 
 		d.deserialize_ = (LabCore::ViewDeserializeFunction)deserializeSceneView;
 		d.serialize_ = (LabCore::ViewSerializeFunction)serializeSceneView;

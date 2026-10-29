@@ -18,7 +18,9 @@ project "Platform"
         "%{IncludeDir.base}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.imgui}",
-		"%{IncludeDir.vulkanSDK}"
+		"%{IncludeDir.vulkanSDK}",
+		"%{IncludeDir.imguizmo}"
+
 	}
 
 	libdirs
@@ -41,6 +43,7 @@ project "Platform"
 	}
 	defines 
 	{
+		"IMGUI_API=__declspec(dllexport)",
 		"PH_PLATFORM_EXPORT",
 		"PH_STATIC_BUILD"
 	}

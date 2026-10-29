@@ -9,7 +9,7 @@ asset:
   type: 0
   binpath: res/shaders/bin/defferedmaterial.phshaderbin
   srcpath: res/shaders/defferedmaterial.phshadersrc
-  userbuffer: !!binary "AACAPwAAgD8BAAAA"
+  userbuffer: !!binary "AACAPwAAAEABAAAA"
   resources:
     - name: MaterialProperties
       binding: 0

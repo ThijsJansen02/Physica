@@ -137,7 +137,11 @@ namespace PH::Platform {
 	struct OpenFileDialogInfo {
 		PH::sizeptr resultbuffersize;
 		char* resultbuffer;
+		
 		const char* filter;
+
+		//if left nullptr the filedir will start in the currentdirectory
+		const char* startingdir;
 		PH::bool32 read;
 		uint32 flags;
 	};
@@ -631,6 +635,7 @@ namespace PH::Platform {
 
 	PH_PLATFORM_API void getCurrentDirectory(char* buffer, sizeptr maxsize);
 	PH_PLATFORM_API bool32 setCurrentDirectory(PH::Base::SubString directory);
+	PH_PLATFORM_API bool32 createDirectory(PH::Base::SubString directory);
 
 
 	extern PH_PLATFORM_API Intern::LoadFileFN* loadFile;

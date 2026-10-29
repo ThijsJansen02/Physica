@@ -23,3 +23,6 @@
 [submodule "dep/pybind11"]
 	path = dep/pybind11
 	url = https://github.com/pybind/pybind11.git
+[submodule "dep/ImGuizmo_/ImGuizmo"]
+	path = dep/ImGuizmo_/ImGuizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo.git

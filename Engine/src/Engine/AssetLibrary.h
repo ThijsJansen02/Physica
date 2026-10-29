@@ -40,6 +40,13 @@ namespace PH::Engine {
 
 		Engine::String filepath;
 		AssetBase* assetdata;
+
+		const char* getName() {
+			if (references.getCount() > 0) {
+				return references[0].getC_Str();
+			}
+			return filepath.getC_Str();
+		}
 	};
 
 	//creates an asset identifier for the given asset
@@ -227,6 +234,22 @@ namespace PH::Engine {
 			return true;
 		}
 
+		//deserializes an already included asset
+		bool32 deserializeAsset(AssetPool* pool, AssetIdentifier* identifier) {
+
+			YAML::Node assetnode = Engine::FileIO::loadYamlfile(identifier->filepath.getC_Str());
+
+			if (!assetnode) {
+				return false;
+			}
+
+			if (!assetnode["asset"]) {
+				return false;
+			}
+
+			return deserializeAsset(pool, identifier, assetnode["asset"]);
+		}
+
 	public:
 
 		//serialize
@@ -340,6 +363,28 @@ namespace PH::Engine {
 			return asset;
 		}
 
+		//laod asset into memory
+		template<typename Asset>
+		bool32 loadAsset(AssetID id) {
+			AssetIdentifier* identifier = getAssetIdentifier<Asset>(id);
+
+			PH_DEBUG_ASSERT(identifier->status != LOADED, "asset is already loaded!");
+
+			AssetPool* pool = getAssetPool<Asset>();
+			return deserializeAsset(pool, identifier);
+		}
+
+		template<typename Asset>
+		Asset* getLoadedAsset(AssetID id) {
+			AssetIdentifier* identifier = getAssetIdentifier<Asset>(id);
+
+			if (identifier->status == UNLOADED) {
+				loadAsset<Asset>(id);
+			}
+
+			return (Asset*)identifier->assetdata;
+		}
+
 		template<typename Asset>
 		bool32 addReferenceToAsset(AssetID assetid, const char* reference) {
 			AssetIdentifier* identifier = getAssetIdentifier<Asset>(assetid);
@@ -384,6 +429,7 @@ namespace PH::Engine {
 			identifier.filepath = String::create(filepath);
 			identifier.flags = flags;
 			identifier.status = UNLOADED;
+			identifier.assetdescription = pool->description.id;
 
 			AssetIdentifier* result = pool->assets.add(identifier.assetid, identifier);
 
@@ -395,7 +441,7 @@ namespace PH::Engine {
 				result->assetdata->identifier = result;
 			}
 
-			addReferenceToAsset(result->assetid, name);
+			addReferenceToAsset<Asset>(result->assetid, name);
 
 			return result;
 		}
@@ -434,9 +480,9 @@ namespace PH::Engine {
 			SerializeAsset(identifier, getAssetDescription<Asset>(), path);
 		}
 
-		//deserialize asset in location of users choice
+		//deserialize asset in location of users choice and creates the identifier for the asset
 		template<typename Asset>
-		AssetIdentifier* deserializeAsset(const char* path) {
+		AssetIdentifier* deserializeAddAsset(const char* path) {
 			YAML::Node root = Engine::FileIO::loadYamlfile(path);
 
 			AssetPool* pool = getAssetPool<Asset>();

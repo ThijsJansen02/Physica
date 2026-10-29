@@ -1,0 +1,25 @@
+assetidentifier:
+  assetid: 3658502787
+  assetdescriptionid: 6544691651984941516
+  filepath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/scenes/example_scene.lcscene
+  flags: 1
+  references:
+    - example_scene
+asset:
+  entities:
+    - components:
+        Tag:
+          name: box item
+          id: 3386866062
+        Transform:
+          rotXYZ: [0, 0, 0]
+          scale: [1, 1, 1]
+          translation: [0.08, 0.31, 1.06]
+    - components:
+        Tag:
+          name: large tree
+          id: 271409149
+        Transform:
+          rotXYZ: [2.21, 29.05, 1]
+          scale: [1, 1, 1]
+          translation: [-1.32, 0.83, 0]

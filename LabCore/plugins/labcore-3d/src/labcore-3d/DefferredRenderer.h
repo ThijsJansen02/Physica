@@ -90,6 +90,7 @@ namespace PH::LabCore3D {
 		void setProjection(glm::mat4 projection);
 		void setView(glm::mat4 view);
 		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline);
+		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform);
 		void endGeometryPass();
 
 		void applyLightpass(GraphicsPipeline* pipe);

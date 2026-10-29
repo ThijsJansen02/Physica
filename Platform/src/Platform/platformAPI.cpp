@@ -59,7 +59,7 @@ namespace PH::Platform {
 
 	PH_PLATFORM_API Intern::gfx_DrawImguiWidgetsFN* GFX::drawImguiWidgets = nullptr;
 	PH_PLATFORM_API Intern::gfx_CreateImguiImageFN* GFX::createImGuiImage = nullptr;
-	
+
 	namespace GFX {
 
 		PH_PLATFORM_API bool32 destroyRenderpassDescriptions(GFX::RenderpassDescription* descriptions, uint32 count) {
@@ -82,6 +82,10 @@ namespace PH::Platform {
 	bool32 setCurrentDirectory(PH::Base::SubString directory) {
 		win32_setCurrentDirectory(directory);
 		return true;
+	}
+
+	bool32 createDirectory(PH::Base::SubString directory) {
+		return win32_createDirectory(directory);
 	}
 }
 

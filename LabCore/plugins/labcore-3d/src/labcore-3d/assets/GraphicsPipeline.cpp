@@ -183,6 +183,7 @@ namespace PH::LabCore3D {
 				writeBinariesToDisk(*b, binpath);
 			}
 		}
+		return true;
 	}
 
 	GFX::GraphicsPipeline createDefferedGeometryPipeline(const Binaries& b, GFX::DescriptorSetLayout userlayout) {
@@ -601,7 +602,7 @@ namespace PH::LabCore3D {
 		pl.isvalid = false;
 
 		Binaries b;
-		if (!loadBinaries(&b, sourcepath, binpath)) {
+		if (loadBinaries(&b, sourcepath, binpath) < 1) {
 			Engine::WARN << "failed to load binaries for pipeline: " << sourcepath;
 		}
 

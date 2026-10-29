@@ -33,6 +33,7 @@ project "LabCore-3D"
 		"%{IncludeDir.cpythonPCheaders}",
 		"%{IncludeDir.labcore}",
 		"%{IncludeDir.vulkanSDK}",
+		"%{IncludeDir.imguizmo}",
 
 		--"%{IncludeDir.imguizmo}",
 		"%{IncludeDir.stb}"

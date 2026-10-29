@@ -556,6 +556,39 @@ struct PlatformAppContext {
 	HWND windowhandle;
 } platformcontext;
 
+void win32_printLastError() {
+	DWORD error = GetLastError();
+	LPSTR message = nullptr;
+	FormatMessageA(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr,
+		error,
+		0,
+		reinterpret_cast<LPSTR>(&message),
+		0,
+		nullptr
+	);
+
+	INFO << "Error " << (PH::uint32)error << ": "
+		<< (message ? message : "Unknown error")
+		<< '\n';
+
+	if (message)
+		LocalFree(message);
+}
+
+PH::bool32 win32_createDirectory(PH::Base::SubString directory) {
+	auto str = PH::Base::String<PlatformAllocator>::create(directory);
+	bool r = CreateDirectoryA(str.getC_Str(), nullptr);
+	if (!r) {
+		win32_printLastError();
+	}
+	PH::Base::String<PlatformAllocator>::destroy(&str);
+	return r;
+}
+
 void win32_getCurrentDirectory(char* buffer, PH::sizeptr maxsize) {
 	GetCurrentDirectoryA(maxsize, buffer);
 }
@@ -565,26 +598,7 @@ PH::bool32 win32_setCurrentDirectory(PH::Base::SubString directory) {
 	str.replace('/', '\\');
 	bool r = SetCurrentDirectoryA(str.getC_Str());
 	if (!r) {
-		DWORD error = GetLastError();
-		LPSTR message = nullptr;
-		FormatMessageA(
-			FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			FORMAT_MESSAGE_FROM_SYSTEM |
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			nullptr,
-			error,
-			0,
-			reinterpret_cast<LPSTR>(&message),
-			0,
-			nullptr
-		);
-
-		INFO << "Error " << (PH::uint32)error << ": "
-			<< (message ? message : "Unknown error")
-			<< '\n';
-
-		if (message)
-			LocalFree(message);
+		win32_printLastError();
 	}
 
 	PH::Base::String<PlatformAllocator>::destroy(&str);
@@ -605,8 +619,7 @@ PH_OPEN_FILE_DIALOG(win32_openFileDialog) {
 
 
 
-	/*if (GetCurrentDirectoryA(256, currentDir))
-		ofn.lpstrInitialDir = currentDir;*/
+	ofn.lpstrInitialDir = info.startingdir;
 	ofn.lpstrFilter = info.filter;
 	ofn.nFilterIndex = 1;
 	ofn.Flags = info.flags;

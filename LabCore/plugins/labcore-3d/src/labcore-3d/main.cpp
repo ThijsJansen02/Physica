@@ -9,8 +9,13 @@
 
 #include "views/SceneView.h"
 #include "views/MaterialView.h"
+#include "views/SceneHierarchyView.h"
+#include "assets/Scene.h"
 #include "LabCore3D.h"
 #include "assets/Texture.h"
+#include "assets/Scene.h"
+#include "assets/scenecomponents/NameTag.h"
+#include "assets/scenecomponents/TransformComponent.h"
 
 namespace py = pybind11;
 using namespace PH;
@@ -26,6 +31,8 @@ extern "C" {
 		//set directory to labcore home
 		PH::Platform::setCurrentDirectory(PH::LabCore3D::home.getSubString());
 
+		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::Tag::createDescription());
+		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::Transform::createDescription());
 
 		//the global scene descriptor set layout for deffered renderer
 		PH::LabCore3D::DefferedRenderer::scenedescriptorlayout = PH::LabCore3D::DefferedRenderer::createSceneDescriptorLayout();
@@ -36,11 +43,13 @@ extern "C" {
 
 		PH::LabCore::addView(PH::LabCore3D::createSceneViewDescription());
 		PH::LabCore::addView(PH::LabCore3D::createMaterialViewDescription());
+		PH::LabCore::addView(PH::LabCore3D::createSceneHierarchyViewDescription());
 
 		PH::Engine::AssetLibrary* assetlib = PH::LabCore::getAssetLibrary();
 		assetlib->addAssetType(PH::LabCore3D::createGraphicsPipelineDescription());
 		assetlib->addAssetType(PH::LabCore3D::createMeshAssetDescription());
 		assetlib->addAssetType(PH::LabCore3D::createTextureAssetDescription());
+		assetlib->addAssetType(PH::LabCore3D::createSceneAssetDescription());
 
 		PH::Engine::UUID pipeid = 16439805985763607426;
 		PH::Engine::UUID cubeid = 9808924416449029863;
@@ -63,10 +72,10 @@ extern "C" {
 
 
 		//default deffered material
-		assetlib->deserializeAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultmaterialpipe.phpipe");
+		assetlib->deserializeAddAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultmaterialpipe.phpipe");
 
 		//default lightingpipe
-		assetlib->deserializeAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultlightingpipe.phpipe");
+		assetlib->deserializeAddAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultlightingpipe.phpipe");
 
 		//meshes
 		PH::LabCore3D::Mesh* cube = PH::Engine::Allocator::push(PH::LabCore3D::createCubeMesh());

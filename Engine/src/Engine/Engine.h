@@ -63,6 +63,7 @@ namespace PH::Engine {
 		template<typename T>
 		static T* push(const T& t) {
 			T* inst = (T*)alloc(sizeof(T));
+
 			*inst = t;
 			return inst;
 		}

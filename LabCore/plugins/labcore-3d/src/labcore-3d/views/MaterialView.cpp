@@ -3,6 +3,7 @@
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/coreassets/Font.h>
 #include <Engine/Events.h>
+#include <Engine/imgui/extensions.h>
 
 #include "../assets/Texture.h"
 #include "../DefferredRenderer.h"
@@ -10,23 +11,7 @@
 
 namespace PH::LabCore3D {
 
-	Engine::AssetIdentifier* assetSelecter(const char* label, Engine::AssetIdentifier* selected, Base::Array<Engine::AssetIdentifier*> options, const char* assetstr) {
-
-		Engine::AssetIdentifier* newselected = selected;
-		
-		if(ImGui::BeginCombo(label, selected ? selected->references[0].getC_Str() : assetstr)) {
-
-			for (auto* asset : options) {
-				if (ImGui::Selectable(asset->references[0].getC_Str(), asset == selected)) {
-					newselected = asset;
-				}
-			}
-
-			ImGui::EndCombo();
-		}
-
-		return newselected;
-	}
+	
 
 	bool32 drawUniformBufferMembers(UniformBufferResource* ubr, GraphicsPipeline* pipe) {
 		real32 dragspeed = 0.01;
@@ -63,7 +48,7 @@ namespace PH::LabCore3D {
 		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
 		Engine::ArrayList<Engine::AssetIdentifier*> pipelines = assets->getAllIdentifiersOfType<GraphicsPipeline>();
 
-		view->currentpipe = assetSelecter("graphics pipeline", view->currentpipe, pipelines.getArray(), "select pipeline");
+		view->currentpipe = ImGuiext::assetSelecter("graphics pipeline", view->currentpipe, pipelines.getArray(), "select pipeline");
 
 
 		if (view->currentpipe) {
@@ -101,7 +86,7 @@ namespace PH::LabCore3D {
 
 					if (res.type == Platform::GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
 						auto* old = res.texture;
-						res.texture = assetSelecter(res.name.getC_Str(), res.texture, textureoptions.getArray(), "select texture");
+						res.texture = ImGuiext::assetSelecter(res.name.getC_Str(), res.texture, textureoptions.getArray(), "select texture");
 						if (old != res.texture) {
 							texturesdirty = true;
 						}

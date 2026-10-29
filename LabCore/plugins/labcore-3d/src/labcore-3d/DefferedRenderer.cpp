@@ -477,8 +477,7 @@ namespace PH::LabCore3D {
 
 	}
 
-	void DefferedRenderer::drawMesh(Mesh* mesh, GraphicsPipeline* pipeline) {
-		
+	void DefferedRenderer::drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform) {
 		if (!pipeline->isvalid) {
 			return;
 		}
@@ -493,7 +492,7 @@ namespace PH::LabCore3D {
 
 		sizeptr offsets[] = { 0, 0 };
 
-		glm::mat4 tf = glm::transpose(glm::mat4(1.0f));
+		glm::mat4 tf = glm::transpose(transform);
 
 		MeshInstance* instance = &instancebuffer[instanceptr];
 		instance->materialindex = 0;
@@ -507,6 +506,10 @@ namespace PH::LabCore3D {
 		PH::Platform::GFX::drawIndexed(mesh->indexcount, 1, 0, instanceptr);
 
 		instanceptr++;
+	}
+
+	void DefferedRenderer::drawMesh(Mesh* mesh, GraphicsPipeline* pipeline) {
+		drawMesh(mesh, pipeline, glm::mat4(1.0f));
 	}
 
 

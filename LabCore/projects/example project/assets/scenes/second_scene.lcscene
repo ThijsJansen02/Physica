@@ -1,0 +1,17 @@
+assetidentifier:
+  assetid: 2019968874
+  assetdescriptionid: 6544691651984941516
+  filepath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/scenes/second_scene.lcscene
+  flags: 1
+  references:
+    - second_scene
+asset:
+  entities:
+    - components:
+        Tag:
+          name: car
+          id: 0
+        Transform:
+          rotXYZ: [0, 0, 0]
+          scale: [1, 1, 1]
+          translation: [0, 0, 0]

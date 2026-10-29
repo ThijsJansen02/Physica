@@ -13,6 +13,8 @@ namespace PH::LabCore3D {
 
 		DefferedRenderer::OutputSource displaysrc;
 
+		Engine::AssetIdentifier* scene;
+
 		Engine::ImGuiDisplay display;
 	};
 

@@ -19,9 +19,11 @@ namespace PH::LabCore {
 	void loadShaders();
 
 	void loadIni() {
+
+		//the path to the project should all be absolute
 		appcontext->pythonhome = Engine::String::create("C:\\Users\\Thijs\\OneDrive\\Documenten\\programming\\physica\\dep\\embeddedpython");
-		appcontext->projectpath = Engine::String::create("example_project.lcproj");
-		appcontext->projectdir = Engine::String::create("");
+		appcontext->projectpath = Engine::String::create(appcontext->labcorehome.getC_Str()).append("example_project.lcproj");
+		appcontext->projectdir = Engine::String::create(appcontext->labcorehome.getC_Str());
 
 		YAML::Node ini = Engine::FileIO::loadYamlfile("labcore.ini");
 		if (ini) {
@@ -43,6 +45,8 @@ namespace PH::LabCore {
 		out << YAML::Key << "pythonhome" << YAML::Value << appcontext->pythonhome.getC_Str();
 		out << YAML::Key << "projectpath" << YAML::Value << appcontext->projectpath.getC_Str();
 		out << YAML::EndMap;
+		
+		PH::Platform::setCurrentDirectory(appcontext->labcorehome.getSubString());
 		Engine::FileIO::writeYamlFile(out, "labcore.ini");
 	}
 
@@ -118,6 +122,8 @@ namespace PH::LabCore {
 		appcontext->labcorehome = Engine::String::create(buffer);
 		appcontext->labcorehome.replace('\\', '/');
 
+		ImGui::GetIO().IniFilename = nullptr;
+		ImGui::GetIO().LogFilename = nullptr;
 
 		loadShaders();
 		loadIni();
@@ -194,8 +200,10 @@ namespace PH::LabCore {
 	void deserializeProject(const char* filepath) {
 		//TODO implement deserialization of the project
 
-		//deserialize project must 
 
+
+		//deserialize project must 
+		PH::Platform::setCurrentDirectory(appcontext->labcorehome.getSubString());
 		Engine::INFO << "opening project: " << filepath << "\n";
 
 		auto project = Engine::FileIO::loadYamlfile(filepath);
@@ -203,6 +211,23 @@ namespace PH::LabCore {
 			Engine::WARN << "failed to load project file: " << filepath << "\n";
 			return;
 		}
+
+		appcontext->projectpath.set(filepath);
+		appcontext->projectpath.replace('\\', '/');
+		appcontext->projectdir.set(appcontext->projectpath.getSubString().getTillLast('/'));
+
+		PH::Platform::setCurrentDirectory(appcontext->projectdir.getSubString());
+
+		auto includedassets = project["includedassets"];
+
+		if (includedassets) {
+			appcontext->assets.deserializeAssetIdentifiers(includedassets);
+		}
+
+		ImGui::LoadIniSettingsFromDisk("imgui.ini");
+
+		//deserialize project must 
+		PH::Platform::setCurrentDirectory(appcontext->labcorehome.getSubString());
 
 		auto views = project["openviews"];
 
@@ -229,19 +254,7 @@ namespace PH::LabCore {
 			}
 		}
 
-		appcontext->projectpath.set(filepath);
-		appcontext->projectpath.replace('\\', '/');
-		appcontext->projectdir.set(appcontext->projectpath.getSubString().getTillLast('/'));
-
 		PH::Platform::setCurrentDirectory(appcontext->projectdir.getSubString());
-
-		auto includedassets = project["includedassets"];
-
-		if (includedassets) {
-			appcontext->assets.deserializeAssetIdentifiers(includedassets);
-		}
-
-		ImGui::LoadIniSettingsFromDisk("imgui.ini");
 	}
 
 	void drawMenuBar() {
@@ -249,14 +262,35 @@ namespace PH::LabCore {
 		{
 			if (ImGui::BeginMenu("File")) {
 				if (ImGui::MenuItem("Open Project")) {
+					char buffer[256];
 
+					PH::Platform::OpenFileDialogInfo info{};
+					info.filter = "*.lcproj";
+					info.read = true;
+					info.startingdir = appcontext->projectpath.getC_Str();
+					info.resultbuffer = buffer;
+					info.resultbuffersize = 256;
+					info.flags = PH_DIALOG_FILEMUSTEXIST;
+
+					if (PH::Platform::openFileDialog(info)) {
+
+						serializeProject(appcontext->projectpath.getC_Str());
+
+						destroyAllViewInstances(&appcontext->viewinstances);
+
+						//remove all assets from the previous project
+						appcontext->assets.removeAllSerializabeAssets();
+
+						Base::stringReplace(buffer, '\\', '/');
+						deserializeProject(buffer);
+					}
 				}
 
 				if (ImGui::MenuItem("New Project")) {
 
 					char buffer[256];
 
-					PH::Platform::OpenFileDialogInfo info;
+					PH::Platform::OpenFileDialogInfo info{};
 					info.filter = LabCore::projectextension;
 					info.read = true;
 					info.resultbuffer = buffer;
