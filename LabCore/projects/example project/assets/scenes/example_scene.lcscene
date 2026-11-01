@@ -12,14 +12,22 @@ asset:
           name: box item
           id: 3386866062
         Transform:
-          rotXYZ: [0, 0, 0]
-          scale: [1, 1, 1]
-          translation: [0.08, 0.31, 1.06]
+          rotXYZ: [0, -80.31365, 0]
+          scale: [1.0000001, 1, 1.0000001]
+          translation: [0.17438698, 0.52888876, -1.2955078]
     - components:
         Tag:
-          name: large tree
+          name: box 3
           id: 271409149
         Transform:
-          rotXYZ: [2.21, 29.05, 1]
-          scale: [1, 1, 1]
-          translation: [-1.32, 0.83, 0]
+          rotXYZ: [0, 47.855938, 0]
+          scale: [1.0000002, 1, 1.0000002]
+          translation: [1.1740559, 0.5264749, 0.6347949]
+    - components:
+        Tag:
+          name: box 2
+          id: 0
+        Transform:
+          rotXYZ: [0, -0, 0]
+          scale: [9.457844, 0.091457136, 9.114495]
+          translation: [0, 0, 0]

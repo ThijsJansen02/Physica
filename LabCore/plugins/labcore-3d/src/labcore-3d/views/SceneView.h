@@ -5,14 +5,19 @@
 
 #include "../Camera.h"
 
+#include "../imguizmo/imguizmoinclude.h"
+
 namespace PH::LabCore3D {
 
 	struct SceneView {
 
 		Camera camera;
 
-		DefferedRenderer::OutputSource displaysrc;
+		ImGuizmo::OPERATION operation;
 
+		Engine::DynamicGPUBuffer<uint32> pixelreadbuffer;
+
+		DefferedRenderer::OutputSource displaysrc;
 		Engine::AssetIdentifier* scene;
 
 		Engine::ImGuiDisplay display;

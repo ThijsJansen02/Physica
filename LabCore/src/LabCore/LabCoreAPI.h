@@ -25,6 +25,9 @@ namespace PH::LabCore {
 	//returns the current view size;
 	PH_LABCORE_API glm::vec2 getViewSize();
 
+	//returns the mouseposition relative to the view that is calling the function, should be called from within a viewfunction
+	PH_LABCORE_API glm::vec2 getViewMousePos();
+
 	PH_LABCORE_API Engine::Renderer2D::Wrapper* getRenderer2D();
 
 	PH_LABCORE_API Engine::AssetLibrary* getAssetLibrary();

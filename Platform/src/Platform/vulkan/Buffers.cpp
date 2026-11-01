@@ -272,6 +272,35 @@ namespace PH::Vulkan {
 		return true;
 	}
 
+	bool32 copyImageToBufferAsynchrounous(VulkanAppContext* context, const Platform::GFX::ImageToBufferCopyInfo& info) {
+
+		VkBufferImageCopy region{};
+		region.bufferOffset = 0;
+		region.bufferRowLength = 0;
+		region.bufferImageHeight = 0;
+
+		region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.imageSubresource.mipLevel = 0;
+		region.imageSubresource.baseArrayLayer = 0;
+		region.imageSubresource.layerCount = 1;
+
+		region.imageOffset = { info.imageoffset.x, info.imageoffset.y, info.imageoffset.z };
+		region.imageExtent = { info.imageextent.width, info.imageextent.height, info.imageextent.depth };
+		
+		Vulkan::TextureImage& tex = context->textureimages[info.src];
+		Vulkan::Buffer& buf = context->buffers[info.dst];
+		
+		vkCmdCopyImageToBuffer(
+			context->commandbuffers[context->frameindex],
+			tex.image,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			buf.buffer[context->frameindex],
+			1,
+			&region
+		);
+		return true;
+	}
+
 	PH_GFX_COPY_BUFFER(copyBuffer) {
 		return copyBuffer(context_s, srcbuffer, dstbuffer, size, srcoffset, dstoffset);
 	}

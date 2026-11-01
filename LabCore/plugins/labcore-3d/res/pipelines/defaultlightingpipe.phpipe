@@ -9,9 +9,9 @@ asset:
   type: 2
   binpath: res/shaders/bin/defferedlighting.phshaderbin
   srcpath: res/shaders/defferedlighting.phshadersrc
-  userbuffer: !!binary "AACAPwAAgL8AAIA/EAAAAAAAgD/veX4/WOkpPwAAAABQLSw/AACAPwAAgD89Cg9AkxikPw=="
+  userbuffer: !!binary "dZP4vwAAAEAAAABAAAAAAA=="
   resources:
-    - name: Scene
+    - name: Properties
       binding: 1
       type: 6
       set: 1

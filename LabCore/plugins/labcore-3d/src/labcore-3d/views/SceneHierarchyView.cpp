@@ -65,7 +65,7 @@ namespace PH::LabCore3D {
 					char buffer[256];
 					sprintf_s<256>(buffer, "%s###%llu", tag.name.getC_Str(), tag.id);
 
-					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
+					ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
 					if (scene->selected == ent) {
 						flags |= ImGuiTreeNodeFlags_Selected;
 					}

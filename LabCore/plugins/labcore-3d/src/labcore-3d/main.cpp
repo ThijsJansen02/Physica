@@ -17,6 +17,10 @@
 #include "assets/scenecomponents/NameTag.h"
 #include "assets/scenecomponents/TransformComponent.h"
 
+
+//include after imgui
+#include "imguizmo/imguizmoinclude.h"
+
 namespace py = pybind11;
 using namespace PH;
 
@@ -24,6 +28,8 @@ PH::Engine::String PH::LabCore3D::home = {};
 
 extern "C" {
 	_declspec(dllexport) void init(const char* plugindir) {
+
+		ImGuizmo::SetImGuiContext(ImGui::GetCurrentContext());
 		
 		//set the directory of this plugin
 		PH::LabCore3D::home = Engine::String::create(plugindir);

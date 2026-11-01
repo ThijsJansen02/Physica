@@ -11,7 +11,8 @@ namespace PH::LabCore3D {
 	PH::Platform::GFX::DescriptorSetLayout DefferedRenderer::scenedescriptorlayout = PH_GFX_NULL;
 	PH::Platform::GFX::RenderpassDescription DefferedRenderer::geometryrenderpass = PH_GFX_NULL;
 	PH::Platform::GFX::RenderpassDescription DefferedRenderer::lightingrenderpass = PH_GFX_NULL;
-
+	
+	//could also be used for the lighting scene
 	PH::Platform::GFX::DescriptorSetLayout DefferedRenderer::createSceneDescriptorLayout() {
 
 		PH::Platform::GFX::DescriptorSetLayoutCreateinfo ci;
@@ -19,7 +20,7 @@ namespace PH::LabCore3D {
 		Platform::GFX::DescriptorBinding cv;
 		cv.binding = 0;
 		cv.descriptorcount = 1;
-		cv.shaderstages = Platform::GFX::SHADER_STAGE_VERTEX_BIT;
+		cv.shaderstages = Platform::GFX::SHADER_STAGE_VERTEX_BIT | Platform::GFX::SHADER_STAGE_FRAGMENT_BIT;
 		cv.type = Platform::GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
 		ci.bindings = { &cv, 1 };
@@ -77,6 +78,44 @@ namespace PH::LabCore3D {
 		ai.height = height;
 		ai.width = width;
 		ai.usage = GFX::IMAGE_USAGE_COLOR_ATTACHMENT_BIT | GFX::IMAGE_USAGE_SAMPLED_BIT;
+
+		GFX::Texture texture;
+
+		if (!GFX::createTextures(&ai, &texture, 1)) {
+			Engine::ERR << "Failed to create Depth render target!\n";
+			return PH_GFX_NULL;
+		}
+
+		return texture;
+	}
+
+	GFX::Texture createPositionsTarget(sizeptr width, sizeptr height) {
+		PH::Platform::GFX::TextureCreateInfo ai;
+		ai.ArrayLayers = 1;
+		ai.data = nullptr;
+		ai.format = GFX::FORMAT_R16G16B16A16_SFLOAT;
+		ai.height = height;
+		ai.width = width;
+		ai.usage = GFX::IMAGE_USAGE_COLOR_ATTACHMENT_BIT | GFX::IMAGE_USAGE_SAMPLED_BIT;
+
+		GFX::Texture texture;
+
+		if (!GFX::createTextures(&ai, &texture, 1)) {
+			Engine::ERR << "Failed to create Depth render target!\n";
+			return PH_GFX_NULL;
+		}
+
+		return texture;
+	}
+
+	GFX::Texture createObjectIDstarget(sizeptr width, sizeptr height) {
+		PH::Platform::GFX::TextureCreateInfo ai;
+		ai.ArrayLayers = 1;
+		ai.data = nullptr;
+		ai.format = GFX::FORMAT_R32_UINT;
+		ai.height = height;
+		ai.width = width;
+		ai.usage = GFX::IMAGE_USAGE_COLOR_ATTACHMENT_BIT | GFX::IMAGE_USAGE_TRANSFER_SRC_BIT;
 
 		GFX::Texture texture;
 
@@ -156,6 +195,23 @@ namespace PH::LabCore3D {
 		normalsattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
 		normalsattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_STORE;
 
+		Platform::GFX::AttachmentDescription positionsattachment{};
+		positionsattachment.initiallayout = Platform::GFX::IMAGE_LAYOUT_UNDEFINED;
+		positionsattachment.finallayout = Platform::GFX::IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		positionsattachment.format = Platform::GFX::FORMAT_R16G16B16A16_SFLOAT;
+		positionsattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
+		positionsattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_STORE;
+
+		//objectids
+		Platform::GFX::AttachmentDescription objectidattachment{};
+		objectidattachment.initiallayout = Platform::GFX::IMAGE_LAYOUT_UNDEFINED;
+		objectidattachment.finallayout = Platform::GFX::IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+		objectidattachment.format = Platform::GFX::FORMAT_R32_UINT;
+		objectidattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
+		objectidattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_STORE;
+
 		//depth
 		Platform::GFX::AttachmentDescription depthattachment{};
 		depthattachment.initiallayout = GFX::IMAGE_LAYOUT_UNDEFINED;
@@ -164,7 +220,7 @@ namespace PH::LabCore3D {
 		depthattachment.loadop = GFX::ATTACHMENT_LOAD_OP_CLEAR;
 		depthattachment.storeop = GFX::ATTACHMENT_STORE_OP_DONT_CARE;
 
-		Platform::GFX::AttachmentDescription attachmentdescriptions[] = { albedoattachment, normalsattachment, depthattachment };
+		Platform::GFX::AttachmentDescription attachmentdescriptions[] = { albedoattachment, normalsattachment, positionsattachment, objectidattachment, depthattachment };
 
 		Platform::GFX::AttachmentReference albedoattachmentref{};
 		albedoattachmentref.attachmentindex = 0;
@@ -174,17 +230,25 @@ namespace PH::LabCore3D {
 		normalsattachmentref.attachmentindex = 1;
 		normalsattachmentref.layout = Platform::GFX::IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+		Platform::GFX::AttachmentReference positionsattachmentref{};
+		positionsattachmentref.attachmentindex = 2;
+		positionsattachmentref.layout = Platform::GFX::IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		Platform::GFX::AttachmentReference objectidattachmentref{};
+		objectidattachmentref.attachmentindex = 3;
+		objectidattachmentref.layout = Platform::GFX::IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 		Platform::GFX::AttachmentReference depthattachmentref{};
-		depthattachmentref.attachmentindex = 2;
+		depthattachmentref.attachmentindex = 4;
 		depthattachmentref.layout = Platform::GFX::IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		Platform::GFX::AttachmentReference gbufferattachmentrefs[] = {
-			albedoattachmentref, normalsattachmentref
+			albedoattachmentref, normalsattachmentref, positionsattachmentref, objectidattachmentref
 		};
 
 		Platform::GFX::SubPass subpass{};
 		subpass.bindpoint = Platform::GFX::PIPELINE_BIND_POINT_GRAPHICS;
-		subpass.colorattachments = { gbufferattachmentrefs, 2 };
+		subpass.colorattachments = { gbufferattachmentrefs, 4 };
 		subpass.depthstencilattachment = &depthattachmentref;
 
 		Platform::GFX::SubpassDependency dependency{};
@@ -206,10 +270,10 @@ namespace PH::LabCore3D {
 
 	}
 
-	GFX::Framebuffer createGeometryFrameBuffer(GFX::Texture albedo, GFX::Texture normals, GFX::Texture depth, sizeptr width, sizeptr height) {
+	GFX::Framebuffer createGeometryFrameBuffer(GFX::Texture albedo, GFX::Texture normals, GFX::Texture positions, GFX::Texture objectids, GFX::Texture depth, sizeptr width, sizeptr height) {
 		GFX::FramebufferCreateInfo fbi;
-		GFX::Texture attachments[] = { albedo, normals, depth };
-		fbi.attachments = { attachments, 3 };
+		GFX::Texture attachments[] = { albedo, normals, positions, objectids, depth };
+		fbi.attachments = { attachments, 5 };
 		fbi.width = width;
 		fbi.height = height;
 
@@ -232,8 +296,9 @@ namespace PH::LabCore3D {
 		g.albedo = createAlbedoTarget(width, height);
 		g.depth = createDepthTarget(width, height);
 		g.normal = createNormalsTarget(width, height);
-
-		g.fb = createGeometryFrameBuffer(g.albedo, g.normal, g.depth, width, height);
+		g.objectid = createObjectIDstarget(width, height);
+		g.position = createPositionsTarget(width, height);
+		g.fb = createGeometryFrameBuffer(g.albedo, g.normal, g.position, g.objectid, g.depth, width, height);
 
 		return g;
 	}
@@ -285,7 +350,7 @@ namespace PH::LabCore3D {
 
 		r.gbuffer = createGBuffer(dci.gbufferwidth, dci.gbufferheight);
 
-		r.cameravariables = Engine::DynamicGPUBuffer<CameraVariables>::create(1, Platform::GFX::BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+		r.scenevariables = Engine::DynamicGPUBuffer<SceneVariables>::create(1, Platform::GFX::BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 		r.instancebuffer = Engine::DynamicGPUBuffer<MeshInstance>::create(dci.maxinstancecount, Platform::GFX::BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
 		r.lightpassattachment = createLightAttachment(dci.gbufferwidth, dci.gbufferheight);
@@ -298,9 +363,9 @@ namespace PH::LabCore3D {
 		PH::Platform::GFX::createDescriptorSets(&ci, &r.scenedescriptorset, 1);
 
 		PH::Platform::GFX::DescriptorBufferInfo bi;
-		bi.buffer = r.cameravariables.buffer;
+		bi.buffer = r.scenevariables.buffer;
 		bi.offset = 0;
-		bi.range = sizeof(CameraVariables);
+		bi.range = sizeof(SceneVariables);
 
 		PH::Platform::GFX::DescriptorWrite wr;
 
@@ -337,13 +402,16 @@ namespace PH::LabCore3D {
 		renderpassbegin.renderarea = { (uint32)gbuffer.widhth, (uint32)gbuffer.height };
 
 		glm::vec4 cc = albedoclearcolor;
-		glm::vec4 ncc = { 0.0f, 0.0f, 0.0f, 1.0f };
+		glm::vec4 ncc = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-		Platform::GFX::ClearValue clearvalues[3];
+		Platform::GFX::ClearValue clearvalues[5];
 		clearvalues[0] = { cc.r, cc.g, cc.b, cc.a };
 		clearvalues[1] = { ncc.r, ncc.g, ncc.b, ncc.a };
-		clearvalues[2].depthStencil.depth = 1.0f;
-		clearvalues[2].depthStencil.stencil = 0.0f;
+		clearvalues[2] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		clearvalues[3].color.uint32[0] = 0xFFFFFFFF;
+
+		clearvalues[4].depthStencil.depth = 1.0f;
+		clearvalues[4].depthStencil.stencil = 0.0f;
 
 		renderpassbegin.clearvalues = { clearvalues, ARRAY_LENGTH(clearvalues) };
 
@@ -405,6 +473,9 @@ namespace PH::LabCore3D {
 	}
 
 	void DefferedRenderer::applyLightpass(GraphicsPipeline* pipe) {
+
+		scenevariables[0].nlights = lightinsertptr;
+
 		beginInternalRenderpass(this, lightingrenderpass, lightpassbuffer);
 
 		auto* renderer2d = LabCore::getRenderer2D();
@@ -413,9 +484,12 @@ namespace PH::LabCore3D {
 		renderer2d->pushProjection(glm::mat4(1.0f));
 		renderer2d->pushView(glm::mat4(1.0f));
 
-		renderer2d->pushGraphicsPipeline(pipe->internalpipeline, { &pipe->defaultuserdescriptorset, 1 });
+		GFX::DescriptorSet descriptorsets[] = { pipe->defaultuserdescriptorset, scenedescriptorset };
+
+		renderer2d->pushGraphicsPipeline(pipe->internalpipeline, { descriptorsets, 2 });
 		renderer2d->pushTexture(gbuffer.albedo);
 		renderer2d->pushTexture(gbuffer.normal);
+		renderer2d->pushTexture(gbuffer.position);
 
 		renderer2d->drawQuadWithID({ 0.0f, 0.0f, 0.0f }, { 2.0f, 2.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, 1);
 
@@ -450,6 +524,12 @@ namespace PH::LabCore3D {
 			srctexture = gbuffer.normal;
 		}
 
+		if (source == DEFFERED_POSITION) {
+			srctexture = gbuffer.position;
+		}
+
+		//srctexture = gbuffer.objectid;
+
 		//just renderer albedo to the display for now!
 		renderer2d->drawTexturedQuad({ 0.0f, 0.0f, 0.0f }, { 2.0f, 2.0f }, srctexture);
 
@@ -461,14 +541,19 @@ namespace PH::LabCore3D {
 	
 
 	void DefferedRenderer::setProjection(glm::mat4 projection) {
-		cameravariables[0].projection = projection;
+		scenevariables[0].projection = projection;
 	}
 
 	void DefferedRenderer::setView(glm::mat4 view) {
-		cameravariables[0].view = view;
+		scenevariables[0].view = view;
+	}
+
+	void DefferedRenderer::pushLight(const DefferedRenderer::PointLight& light) {
+		scenevariables[0].lights[lightinsertptr++] = light;
 	}
 
 	void DefferedRenderer::begin() {
+		lightinsertptr = 0;
 		instanceptr = 0;
 	}
 
@@ -477,7 +562,7 @@ namespace PH::LabCore3D {
 
 	}
 
-	void DefferedRenderer::drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform) {
+	void DefferedRenderer::drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform, uint32 objectid) {
 		if (!pipeline->isvalid) {
 			return;
 		}
@@ -495,7 +580,8 @@ namespace PH::LabCore3D {
 		glm::mat4 tf = glm::transpose(transform);
 
 		MeshInstance* instance = &instancebuffer[instanceptr];
-		instance->materialindex = 0;
+		instance->objectid = objectid;
+		instance->materialindex = objectid;
 		instance->trow0 = tf[0];
 		instance->trow1 = tf[1];
 		instance->trow2 = tf[2];
@@ -506,6 +592,10 @@ namespace PH::LabCore3D {
 		PH::Platform::GFX::drawIndexed(mesh->indexcount, 1, 0, instanceptr);
 
 		instanceptr++;
+	}
+
+	void DefferedRenderer::drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform) {
+		drawMesh(mesh, pipeline, transform, 0);
 	}
 
 	void DefferedRenderer::drawMesh(Mesh* mesh, GraphicsPipeline* pipeline) {

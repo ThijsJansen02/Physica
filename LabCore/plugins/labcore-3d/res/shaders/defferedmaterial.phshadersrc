@@ -14,15 +14,18 @@ layout(location = 4) in vec3 inBiTangent;
 
 //instancebuffer attributes
 layout(location = 5) in uint inMatindex;
-layout(location = 6) in vec4 inTransformr0;
-layout(location = 7) in vec4 inTransformr1;
-layout(location = 8) in vec4 inTransformr2;
+layout(location = 6) in uint inObjectid;
+layout(location = 7) in vec4 inTransformr0;
+layout(location = 8) in vec4 inTransformr1;
+layout(location = 9) in vec4 inTransformr2;
 
 
 layout(location = 0) out VS_OUT {
     vec3 fragpos;
     vec2 UV;
     mat3 TBN;
+    float determinant;
+    flat uint objectid;
 } vs_out;  
 
 
@@ -36,11 +39,15 @@ void main() {
     mat3 pure_transform = transpose(mat3(inTransformr0.xyz, inTransformr1.xyz, inTransformr2.xyz));
     mat4 transform = transpose(mat4(inTransformr0, inTransformr1, inTransformr2, vec4(0.0, 0.0, 0.0, 1.0)));
     
-    vec4 positionv4 = scene.projection * scene.view * transform * vec4(inPosition, 1.0f);
+    vs_out.determinant = 1.0f;//determinant(pure_transform);
 
-    gl_Position = positionv4;
+    vec4 position_worldspace = transform * vec4(inPosition, 1.0f);
+    vec4 position_viewspace = scene.view * position_worldspace;
+    vec4 position_screenspace = scene.projection * position_viewspace; 
 
-    vs_out.fragpos = positionv4.xyz;
+    gl_Position = position_screenspace;
+
+    vs_out.fragpos = vec3(position_viewspace.xy, -position_viewspace.z);
     vs_out.UV = inTexCoord;
 
     vec3 T = normalize(pure_transform * inTangent);
@@ -48,6 +55,8 @@ void main() {
     vec3 N = normalize(pure_transform * inNormal);
     
     vs_out.TBN = mat3(T, B, N);
+
+    vs_out.objectid = inObjectid;
 }
 
 >>>FRAGMENT_SHADER
@@ -58,11 +67,15 @@ layout(location = 0) in VS_OUT {
     vec3 fragpos;
     vec2 UV;
     mat3 TBN;
+    float determinant;
+    flat uint objectid;
 } fs_in;  
 
 //output to color buffer
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outNormal;
+layout(location = 2) out vec4 outPosition;
+layout(location = 3) out uint outObjectid;
 
 layout(set = 1, binding = 1) uniform sampler2D albedotexture;
 layout(set = 1, binding = 2) uniform sampler2D normaltexture;
@@ -72,10 +85,13 @@ layout(set = 1, binding = 0) uniform MaterialProperties {
     uint normalmap;
 } materialproperties;	
 
+
+
 void main() {	
 
-    vec3 albedo = texture(albedotexture, fs_in.UV * materialproperties.UVscale).xyz;
-    vec3 normaltexel = texture(normaltexture, fs_in.UV * materialproperties.UVscale).xyz;
+    vec3 albedo = texture(albedotexture, fs_in.UV * materialproperties.UVscale * fs_in.determinant).xyz;
+    vec3 normaltexel = texture(normaltexture, fs_in.UV * materialproperties.UVscale * fs_in.determinant).xyz;
+
 
     if(materialproperties.normalmap == 1) {
         normaltexel = normalize(normaltexel * 2.0 - 1.0);
@@ -83,8 +99,10 @@ void main() {
         normaltexel = vec3(0.0, 0.0, 1.0);
     }
 
+    outPosition = vec4(fs_in.fragpos, 1.0);
     outAlbedo = vec4(albedo, 1.0f);
     outNormal = vec4(normalize(fs_in.TBN * normaltexel), 1.0f);
+    outObjectid = fs_in.objectid;
 }
 
 >>>END_OF_FILE

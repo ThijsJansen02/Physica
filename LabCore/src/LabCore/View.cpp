@@ -21,6 +21,31 @@ namespace PH::LabCore {
 		openview = nullptr;
 	}
 
+	Engine::Box2D getImGuiWindowRegion() {
+		ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
+		ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
+		ImVec2 windowPos = ImGui::GetWindowPos();
+
+		ImVec2 topLeft = ImVec2(
+			windowPos.x + contentMin.x,
+			windowPos.y + contentMin.y
+		);
+
+		ImVec2 bottomRight = ImVec2(
+			windowPos.x + contentMax.x,
+			windowPos.y + contentMax.y
+		);
+
+		ImVec2 bottomLeft = ImVec2(topLeft.x, bottomRight.y);
+		ImVec2 topRight = ImVec2(bottomRight.x, topLeft.y);
+
+		Engine::Box2D windowregion;
+		windowregion.bottomleft = (glm::vec2) * (float*)&bottomLeft;
+		windowregion.topright = (glm::vec2) * (float*)&topRight;
+
+		return windowregion;
+	}
+
 	//draws all views in the application, this is called by the application in the update loop
 	void drawViews(Engine::ArrayList<ViewInstance>& views) {
 
@@ -40,23 +65,12 @@ namespace PH::LabCore {
 				bool isopen = true;
 				if (ImGui::Begin(windownamebuffer, &isopen, openview->viewdescription->windowflags)) {
 					
+					openview->region = getImGuiWindowRegion();
 					openview->isfocussed = ImGui::IsWindowFocused();
+					openview->viewdescription->draw_(viewinstance.instancedata);
 
-					//determine the window region
-					ImVec2 windowpos = ImGui::GetWindowPos();
-					ImVec2 windowsize = ImGui::GetWindowSize();
-
-					windowpos.y = framesize - windowpos.y;
-
-					Engine::Box2D windowregion;
-					windowregion.bottomleft = { windowpos.x, windowpos.y - windowsize.y };
-					windowregion.topright = { windowpos.x + windowsize.x, windowpos.y };
-					
-					openview->region = windowregion;
 
 					glm::vec2 mousepos = Engine::Events::getMousePos();
-
-					openview->viewdescription->draw_(viewinstance.instancedata);
 
 				}
 

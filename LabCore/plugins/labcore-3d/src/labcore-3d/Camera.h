@@ -8,11 +8,9 @@ namespace PH::LabCore3D {
 	struct Camera {
 		glm::vec3 position;
 		glm::vec3 direction;
-
-		glm::mat4 perspective;
 	};
 	
-	void setCameraPerspective(Camera* camera, real32 fov, real32 aspectratio, real32 nearplane, real32 farplane);
+	glm::mat4 calculateCameraPerspective(Camera* camera, real32 fov, real32 aspectratio, real32 nearplane, real32 farplane);
 	glm::mat4 calculateCameraViewMatrix(const Camera& camera);
 
 	void moveCameraRelative(Camera* camera, glm::vec3 translation);

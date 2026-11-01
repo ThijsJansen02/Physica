@@ -85,7 +85,7 @@ namespace PH::LabCore3D {
 		for (auto ent : scene->registry.view<Transform>()) {
 			auto& tf = getComponent<Transform>(scene, ent);
 
-			renderer->drawMesh(cubemesh, pipe, tf.transform);
+			renderer->drawMesh(cubemesh, pipe, tf.transform, (uint32)ent);
 
 		}
 

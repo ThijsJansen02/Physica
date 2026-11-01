@@ -41,35 +41,65 @@ layout(location = 0) in vec4 fragColor;
 layout(location = 1) in vec2 TexCoord;
 layout(location = 2) flat in uint TextureIndex;
 
-layout(set = 1, binding = 1) uniform Scene {
-	vec3 lightdir;
-	vec3 light_color;
+layout(set = 1, binding = 1) uniform Properties {
 	vec3 ambient_color;
-	float lightintensity;
 	float ambientinstensity;
-} scene;	
+} properties;	
 
 layout(location = 0) out vec4 outColor;
 
 layout(set = 0, binding = 0) uniform sampler2D texSampler[32];
 
+struct PointLight {
+	vec3 position;
+	float intensity;
+	vec3 color;
+	float attenuation;
+};
+
+layout(set = 2, binding = 0) uniform Scene {
+	mat4 projection;
+	mat4 view;
+
+	PointLight lights[16];
+	uint nlights;
+} scene;	
+
 void main() {
 	
-
-	vec3 lightdir = scene.lightdir;	
-	lightdir = normalize(lightdir);
-    
 	vec4 albedo = texture(texSampler[TextureIndex], TexCoord);
-	vec3 normal = texture(texSampler[TextureIndex + 1], TexCoord).xyz;
+	vec3 normal = normalize(texture(texSampler[TextureIndex + 1], TexCoord).xyz);
+	vec4 positiondata = texture(texSampler[TextureIndex + 2], TexCoord);
 
-    vec3 diffuse = scene.lightintensity * scene.light_color * max(dot(-lightdir, normal), 0.0);
-    vec3 ambient = scene.ambientinstensity * scene.ambient_color;
+	//if(positiondata.a == 0.0) {
+	//	discard;
+	//}
 
-	if(length(normal) == 0.0) {
-		outColor = vec4(albedo.xyz, 1.0);
-	} else {
-    	outColor = vec4((diffuse + ambient) * albedo.xyz, 1.0);
+
+	vec3 pos = positiondata.xyz;
+	vec3 viewdir = normalize(pos);
+	vec3 diffuse = vec3(0.0, 0.0, 0.0);
+	vec3 specular = vec3(0.0, 0.0, 0.0);
+
+	float specularStrength = 0.5;
+
+	for(int i = 0; i < scene.nlights; i++) {
+		vec3 lightpos = (scene.view * vec4(scene.lights[i].position, 1.0)).xyz;
+
+		vec3 lightdir = normalize(pos - lightpos);
+		vec3 lightreflect = reflect(lightdir, normal);
+
+		float spec = pow(max(dot(viewdir, lightreflect), 0.0), 32);
+		specular += specularStrength * spec * scene.lights[i].color; 
+
+    	diffuse += scene.lights[i].intensity * scene.lights[i].color * max(dot(-lightdir, normal), 0.0);
 	}
+
+    vec3 ambient = properties.ambientinstensity * properties.ambient_color;
+
+	outColor = vec4((ambient + specular + diffuse) * albedo.xyz, 1.0);
+
+
 }	
 
 >>>END_OF_FILE

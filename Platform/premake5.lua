@@ -43,7 +43,6 @@ project "Platform"
 	}
 	defines 
 	{
-		"IMGUI_API=__declspec(dllexport)",
 		"PH_PLATFORM_EXPORT",
 		"PH_STATIC_BUILD"
 	}

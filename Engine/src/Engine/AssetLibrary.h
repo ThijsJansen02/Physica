@@ -374,16 +374,31 @@ namespace PH::Engine {
 			return deserializeAsset(pool, identifier);
 		}
 
+
+		//if the identifier is found based on the assetid, loads the asset in memory if it is not yet loaded. returns nullptr if asset is not found
 		template<typename Asset>
-		Asset* getLoadedAsset(AssetID id) {
+		AssetIdentifier* getLoadedAssetIdentifier(AssetID id) {
 			AssetIdentifier* identifier = getAssetIdentifier<Asset>(id);
+
+			if (!identifier) {
+				return nullptr;
+			}
 
 			if (identifier->status == UNLOADED) {
 				loadAsset<Asset>(id);
 			}
 
+			return identifier;
+		}
+
+		//if the identifier is found based on the assetid, loads the asset in memory if it is not yet loaded. returns nullptr if asset is not found
+		template<typename Asset>
+		Asset* getLoadedAsset(AssetID id) {
+			
+			AssetIdentifier* identifier = getLoadedAssetIdentifier<Asset>(id);
 			return (Asset*)identifier->assetdata;
 		}
+
 
 		template<typename Asset>
 		bool32 addReferenceToAsset(AssetID assetid, const char* reference) {

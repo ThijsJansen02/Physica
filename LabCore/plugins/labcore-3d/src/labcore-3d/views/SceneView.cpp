@@ -1,38 +1,25 @@
-#include <ImGuizmo.h>
-
-#include "SceneView.h"
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/coreassets/Font.h>
 #include "../assets/Scene.h"
 #include <Engine/imgui/extensions.h>
 #include "../DefferredRenderer.h"
 #include "../assets/scenecomponents/TransformComponent.h"
+#include "../assets/scenecomponents/NameTag.h"
+
+#include "SceneView.h"
+#include "../imguizmo/imguizmoinclude.h"
 
 namespace PH::LabCore3D {
 
-	const char* sourceoptions[] = { "albedo", "normal", "lighting" }; 
+	const char* sourceoptions[] = { "albedo", "normal", "lighting", "position"};
 
-	PH::bool32 drawSceneView(SceneView* sceneview) {
-		
-		glm::vec2 viewsize = LabCore::getViewSize();
-
-		real32 titlebarheight = ImGui::GetFrameHeight();
-		ImVec2 displaysize = ImGui::GetContentRegionAvail();
-		sceneview->display.viewport = { displaysize.x, displaysize.y };
-
-
-		//should have more consistency between x, y and width and height. This is confusing
-		renderer.viewport.width = sceneview->display.viewport.x;
-		renderer.viewport.height = sceneview->display.viewport.y;
-
-		setCameraPerspective(&sceneview->camera, 70.0f, sceneview->display.viewport.x / sceneview->display.viewport.y, 0.1f, 100.0f);
-		glm::mat4 viewmatrix = calculateCameraViewMatrix(sceneview->camera);
-
+	bool32 geometryPass(SceneView* sceneview, const glm::mat4& projection, const glm::mat4& view) {
+	
 
 		renderer.beginGeometryPass();
 
-		renderer.setProjection(sceneview->camera.perspective);
-		renderer.setView(viewmatrix);
+		renderer.setProjection(projection);
+		renderer.setView(view);
 
 		auto* assets = LabCore::getAssetLibrary();
 		if (sceneview->scene) {
@@ -49,26 +36,75 @@ namespace PH::LabCore3D {
 			}
 		}
 
-
-		auto* lightingpipe = assets->getAssetByReference<GraphicsPipeline>("defaultlightingpipe");
-
 		renderer.endGeometryPass();
-		renderer.applyLightpass(lightingpipe);
-		renderer.output(&sceneview->display, sceneview->displaysrc);
+		return true;
+	}
 
+	void lightPass(SceneView* sceneview) {
+
+		auto* assets = LabCore::getAssetLibrary();
+		auto* lightingpipe = assets->getAssetByReference<GraphicsPipeline>("defaultlightingpipe");
+		renderer.applyLightpass(lightingpipe);
+
+	}
+
+	entt::entity aquireObjectID(SceneView* sceneview, glm::vec2 displaysize) {
+
+
+		glm::vec2 mousepos = LabCore::getViewMousePos();
+
+		mousepos.y = displaysize.y - mousepos.y;
+
+		mousepos.x = Base::clamp(mousepos.x, 0.0f, displaysize.x);
+		mousepos.y = Base::clamp(mousepos.y, 0.0f, displaysize.y);
+
+		Platform::GFX::ImageToBufferCopyInfo copyinfo;
+		copyinfo.bufferoffset = 0;
+		copyinfo.dst = sceneview->pixelreadbuffer.buffer;
+		copyinfo.src = renderer.gbuffer.objectid;
+		copyinfo.imageextent = { 1, 1, 1 };
+		copyinfo.imageoffset = { (int32)mousepos.x, (int)mousepos.y, 0 };
+
+		PH::Platform::GFX::copyImageToBufferAsynchronous(copyinfo);
+
+		return (entt::entity)*sceneview->pixelreadbuffer.map();
+	}
+
+	void drawSceneViewInfo(SceneView* sceneview) {
+
+		glm::vec2 mousepos = LabCore::getViewMousePos();
+		auto* assets = LabCore::getAssetLibrary();
 
 		//imgui draw part
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 5, 5 });
 		if (ImGui::Begin("scene info")) {
 			ImGui::Text("camera direction: %f, %f, %f", sceneview->camera.direction.x, sceneview->camera.direction.y, sceneview->camera.direction.z);
 
+			entt::entity hovered = (entt::entity)*sceneview->pixelreadbuffer.map();
+			const char* entityname = "no entity";
+
+			if (sceneview->scene) {
+				if (sceneview->scene->status != Engine::LOADED) {
+					assets->loadAsset<Scene>(sceneview->scene->assetid);
+				}
+
+				Scene* scene = (Scene*)sceneview->scene->assetdata;
+
+				if (scene->registry.valid(hovered)) {
+					if (hasComponent<Tag>(scene, hovered)) {
+						entityname = getComponent<Tag>(scene, hovered).name.getC_Str();
+					}
+				}
+			}
+
+			ImGui::Text("mousepos: %f, %f, object at position: %s, objectid: %u", mousepos.x, mousepos.y, entityname, *sceneview->pixelreadbuffer.map());
 			ImGui::Text("FPS: %f", 1.0f / Engine::getTimeStep());
 
 			sceneview->scene = ImGuiext::assetSelecter<Scene>("scene", sceneview->scene, "select scene", assets);
 
-			if(ImGui::BeginCombo("renderer output", sourceoptions[sceneview->displaysrc])) {
+			if (ImGui::BeginCombo("renderer output", sourceoptions[sceneview->displaysrc])) {
 
-				for (uint32 i = 0; i < ARRAY_LENGTH(sourceoptions); i ++) {
+				for (uint32 i = 0; i < ARRAY_LENGTH(sourceoptions); i++) {
 
 					if (ImGui::Selectable(sourceoptions[i], i == sceneview->displaysrc)) {
 						sceneview->displaysrc = (DefferedRenderer::OutputSource)i;
@@ -81,28 +117,27 @@ namespace PH::LabCore3D {
 		}
 		ImGui::PopStyleVar();
 		ImGui::End();
-		
+	}
 
-		
-		ImGui::Image(
-			sceneview->display.imguitexture,
-			displaysize,
-			{ 0.0f, 0.0f }, //bottom left uv
-			{ displaysize.x / sceneview->display.framebuffersize.x, displaysize.y / sceneview->display.framebuffersize.y } //top right UV
-		);
+	void drawImGuizmo(SceneView* sceneview, glm::vec2 displaysize, glm::mat4 projection, const glm::mat4& view) {
+		//draw the guizmo
+		ImGuizmo::BeginFrame();
+
+		auto* assets = LabCore::getAssetLibrary();
 
 		if (sceneview->scene) {
 			Scene* scene = assets->getLoadedAsset<Scene>(sceneview->scene->assetid);
 
 			if (scene->selected != entt::null) {
+				
 				if (hasComponent<Transform>(scene, scene->selected)) {
 					ImGuizmo::SetOrthographic(false);
 					//ImGuizmo::SetDrawlist();
 
-					ImGuizmo::SetDrawlist(nullptr);
-					ImGuizmo::SetRect(0.0f, 0.0f, sceneview->display.viewport.x, sceneview->display.viewport.y);
+					ImGuizmo::SetDrawlist();
+					ImGuizmo::SetRect(0.0f, 0.0f, displaysize.x, displaysize.y);
 
-
+					projection[1][1] *= -1.0f;
 
 					Transform& tc = getComponent<Transform>(scene, scene->selected);
 
@@ -111,13 +146,13 @@ namespace PH::LabCore3D {
 					float snapValue = 0.5f; // Snap to 0.5m for translation/scale
 					// Snap to 45 degrees for rotation
 
-					//if (m_GizmoType == ImGuizmo::OPERATION::ROTATE)
-						//snapValue = 45.0f;
+					if (sceneview->operation == ImGuizmo::OPERATION::ROTATE)
+						snapValue = 45.0f;
 
 					float snapValues[3] = { snapValue, snapValue, snapValue };
 
-					ImGuizmo::Manipulate((real32*)&viewmatrix, (real32*)&sceneview->camera.perspective,
-						ImGuizmo::OPERATION::TRANSLATE, ImGuizmo::LOCAL, (real32*) & tc.transform,
+					ImGuizmo::Manipulate((real32*)&view, (real32*)&projection,
+						sceneview->operation, ImGuizmo::LOCAL, (real32*)&tc.transform,
 						nullptr, snap ? snapValues : nullptr);
 
 					if (ImGuizmo::IsUsing())
@@ -129,6 +164,58 @@ namespace PH::LabCore3D {
 				}
 			}
 		}
+	}
+
+	PH::bool32 drawSceneView(SceneView* sceneview) {
+		
+		auto* assets = LabCore::getAssetLibrary();
+
+		if (!sceneview->scene) {
+			return true;
+		}
+
+		if (sceneview->scene->status != Engine::LOADED) {
+			//require the scene to be loaded
+			sceneview->scene = assets->getLoadedAssetIdentifier<Scene>(sceneview->scene->assetid);
+		}
+
+		ImVec2 displaysize = ImGui::GetContentRegionAvail();
+		sceneview->display.viewport = { displaysize.x, displaysize.y };
+
+		glm::mat4 projection = calculateCameraPerspective(&sceneview->camera, 70.0f, sceneview->display.viewport.x / sceneview->display.viewport.y, 0.1f, 100.0f);
+		glm::mat4 viewmatrix = calculateCameraViewMatrix(sceneview->camera);
+
+		//should have more consistency between x, y and width and height. This is confusing
+		renderer.viewport.width = sceneview->display.viewport.x;
+		renderer.viewport.height = sceneview->display.viewport.y;
+
+		geometryPass(sceneview, projection, viewmatrix);
+
+		DefferedRenderer::PointLight light;
+		light.position = { 0.0, 3.0f, 0.0f };
+		light.intensity = 2.0f;
+		light.color = { 1.0f, 1.0f, 1.0f };
+		light.attenuation = 1.0f;
+
+		renderer.pushLight(light);
+
+		lightPass(sceneview);
+
+		renderer.output(&sceneview->display, sceneview->displaysrc);
+
+		entt::entity hoveredentity = aquireObjectID(sceneview, {displaysize.x, displaysize.y});
+
+		drawSceneViewInfo(sceneview);
+		
+		//draw the actual rendered image to imgui
+		ImGui::Image(
+			sceneview->display.imguitexture,
+			displaysize,
+			{ 0.0f, 0.0f }, //bottom left uv
+			{ displaysize.x / sceneview->display.framebuffersize.x, displaysize.y / sceneview->display.framebuffersize.y } //top right UV
+		);
+
+		drawImGuizmo(sceneview, { displaysize.x, displaysize.y }, projection, viewmatrix);
 
 		return true;
 	}
@@ -164,6 +251,8 @@ namespace PH::LabCore3D {
 			if (Engine::Events::isMouseButtonPressed(PH_RMBUTTON)) {
 				rotateCameraPitch(&view->camera, dmp.y);
 				rotateCameraYaw(&view->camera, dmp.x);
+
+				view->camera.direction = glm::normalize(view->camera.direction);
 			}
 		}
 
@@ -174,9 +263,12 @@ namespace PH::LabCore3D {
 		view->display = Engine::createImGuiDisplay(1920, 1080);
 		view->display.clearcolor = { 0.0f, 0.0f, 0.0f, 1.0f };
 
+		view->pixelreadbuffer = Engine::DynamicGPUBuffer<uint32>::create(1, Platform::GFX::BUFFER_USAGE_TRANSFER_DST_BIT);
+
 		view->camera.direction = { 0.0f, 0.0f, -1.0f };
 		view->camera.position = { 0.0f, 0.0f, 5.0f };
 
+		view->operation = ImGuizmo::OPERATION::TRANSLATE;
 		view->scene = nullptr;
 
 		view->displaysrc = DefferedRenderer::OutputSource::DEFFERED_LIGHTING;
@@ -191,6 +283,30 @@ namespace PH::LabCore3D {
 	}
 
 	PH::bool32 SceneViewOnEvent(SceneView* data, const PH::Platform::Event& e) {
+		if (e.type == PH_EVENT_TYPE_KEY_PRESSED) {
+			if (e.lparam == PH_KEY_R) {
+				data->operation = ImGuizmo::ROTATE;
+			}
+
+			if (e.lparam == PH_KEY_T) {
+				data->operation = ImGuizmo::SCALE;
+			}
+
+			if (e.lparam == PH_KEY_G) {
+				data->operation = ImGuizmo::TRANSLATE;
+			}
+		}
+
+		if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
+			if (e.lparam == PH_LMBUTTON) {
+				if (data->scene) {
+					Scene* scene = LabCore::getAssetLibrary()->getLoadedAsset<Scene>(data->scene->assetid);
+					scene->selected = (entt::entity)*data->pixelreadbuffer.map();
+				}
+			}
+
+		}
+
 		return true;
 	}
 
@@ -201,7 +317,7 @@ namespace PH::LabCore3D {
 		}
 		data->scene = nullptr;
 		if (node["scene"]) {
-			data->scene = LabCore::getAssetLibrary()->getAssetIdentifier<Scene>(node["scene"].as<Engine::AssetID>());
+			data->scene = LabCore::getAssetLibrary()->getLoadedAssetIdentifier<Scene>(node["scene"].as<Engine::AssetID>());
 		}
 		return true;
 	}

@@ -9,6 +9,8 @@ namespace PH::Platform {
 
 	/// <summary>
 	/// all the platform functions are defined here as opposed to platformapi where they are declared.
+	/// 
+	/// old style API is being replaced by new style
 	/// </summary>
 	PH_PLATFORM_API Intern::ConsoleWriteFN* consoleWrite = nullptr;
 	PH_PLATFORM_API Intern::LoadFileFN* loadFile = nullptr;
@@ -72,6 +74,10 @@ namespace PH::Platform {
 
 		PH_PLATFORM_API bool32 copyBufferAsynchronous(Platform::GFX::Buffer srcbuffer, Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset) {
 			return Vulkan::copyBufferAsynchronous(Vulkan::context_s, srcbuffer, dstbuffer, size, srcoffset, dstoffset);
+		}
+
+		PH_PLATFORM_API bool32 copyImageToBufferAsynchronous(const ImageToBufferCopyInfo& info) {
+			return Vulkan::copyImageToBufferAsynchrounous(Vulkan::context_s, info);
 		}
 	}
 

@@ -9,6 +9,7 @@ namespace PH::LabCore3D {
 
 	struct MeshInstance {
 		uint32 materialindex;
+		uint32 objectid;
 		glm::vec4 trow0;
 		glm::vec4 trow1;
 		glm::vec4 trow2;
@@ -31,18 +32,15 @@ namespace PH::LabCore3D {
 		{0, 3, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, tangent)},
 		{0, 4, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, bitangent)},
 
-
+		//might want to pack materialindex and objectid into one uint32
 		//instanceinput
-		{1, 5, Platform::GFX::FORMAT_R8G8B8A8_UINT, offsetof(MeshInstance, materialindex)},
-		{1, 6, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow0)},
-		{1, 7, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow1)},
-		{1, 8, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow2)}
+		{1, 5, Platform::GFX::FORMAT_R32_UINT, offsetof(MeshInstance, materialindex)},
+		{1, 6, Platform::GFX::FORMAT_R32_UINT, offsetof(MeshInstance, objectid)},
+		{1, 7, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow0)},
+		{1, 8, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow1)},
+		{1, 9, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow2)}
 	};
 
-	struct CameraVariables {
-		glm::mat4 projection;
-		glm::mat4 view;
-	};
 
 	struct GBuffer {
 		sizeptr widhth;
@@ -52,6 +50,9 @@ namespace PH::LabCore3D {
 		PH::Platform::GFX::Texture albedo;
 		PH::Platform::GFX::Texture normal;
 		PH::Platform::GFX::Texture depth;
+		PH::Platform::GFX::Texture position;
+
+		PH::Platform::GFX::Texture objectid;
 	};
 
 	struct DefferedRendererCreateInfo {
@@ -68,10 +69,27 @@ namespace PH::LabCore3D {
 
 	struct DefferedRenderer {
 
+		struct PointLight {
+			glm::vec3 position;
+			real32 intensity;
+			glm::vec3 color;
+			real32 attenuation;
+		};
+
+		struct SceneVariables {
+			glm::mat4 projection;
+			glm::mat4 view;
+
+			//lights
+			PointLight lights[16];
+			uint32 nlights;
+		};
+
 		enum OutputSource {
 			DEFFERED_ALBEDO = 0,
 			DEFFERED_NORMAL,
-			DEFFERED_LIGHTING
+			DEFFERED_LIGHTING,
+			DEFFERED_POSITION
 		};
 
 		static DefferedRenderer create();
@@ -89,8 +107,11 @@ namespace PH::LabCore3D {
 		void beginGeometryPass();
 		void setProjection(glm::mat4 projection);
 		void setView(glm::mat4 view);
+		void pushLight(const DefferedRenderer::PointLight& light);
+
 		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline);
 		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform);
+		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform, uint32 objectid);
 		void endGeometryPass();
 
 		void applyLightpass(GraphicsPipeline* pipe);
@@ -107,8 +128,9 @@ namespace PH::LabCore3D {
 		Platform::GFX::Texture lightpassattachment;
 
 		Engine::DynamicGPUBuffer<MeshInstance> instancebuffer;
-		Engine::DynamicGPUBuffer<CameraVariables> cameravariables;
+		Engine::DynamicGPUBuffer<DefferedRenderer::SceneVariables> scenevariables;
 
+		sizeptr lightinsertptr;
 		sizeptr instanceptr;
 
 		PH::Platform::GFX::DescriptorSet scenedescriptorset;

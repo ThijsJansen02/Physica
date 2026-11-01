@@ -14,6 +14,13 @@ namespace PH::LabCore {
 		return { region.right - region.left, region.top - region.bottom };
 	}
 
+	glm::vec2 getViewMousePos() {
+		Engine::Box2D region = LabCore::openview->region;
+		glm::vec2 mp = Engine::Events::getMousePos();
+
+		return mp - region.bottomleft;
+	}
+
 	Engine::Renderer2D::Wrapper* getRenderer2D() {
 		return &appcontext->renderer2D;
 	}

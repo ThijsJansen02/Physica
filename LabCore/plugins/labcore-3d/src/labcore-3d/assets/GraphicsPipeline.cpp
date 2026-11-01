@@ -203,7 +203,9 @@ namespace PH::LabCore3D {
 	GFX::GraphicsPipeline createDefferedLightingPipeline(const Binaries& b, GFX::DescriptorSetLayout userlayout) {
 
 		//the lighting pipe is made out of a renderer2d graphicspipe with a custom renderpass
-		GFX::GraphicsPipeline p = Engine::Renderer2D::createGraphicsPipelineFromBinaries(DefferedRenderer::lightingrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), { &userlayout, 1 });
+
+		GFX::DescriptorSetLayout layouts[2] = { userlayout, DefferedRenderer::scenedescriptorlayout };
+		GFX::GraphicsPipeline p = Engine::Renderer2D::createGraphicsPipelineFromBinaries(DefferedRenderer::lightingrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), {	layouts, 2 });
 
 		if (p == PH_GFX_NULL) {
 			return {};

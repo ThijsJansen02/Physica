@@ -408,6 +408,14 @@ namespace PH::Platform {
 			PH::Platform::GFX::ImageUsageFlags usage;
 			PH::Platform::GFX::Format format;
 		};
+
+		struct Extent {
+			uint32 width, height, depth;
+		};
+
+		struct Offset {
+			int32 x, y, z;
+		};
 	}
 
 #define PH_GFX_NULL 0
@@ -602,6 +610,17 @@ namespace PH::Platform {
 		
 		//copies the buffer asynchronous in the commandbuffer of the the current frame
 		PH_PLATFORM_API bool32 copyBufferAsynchronous(PH::Platform::GFX::Buffer srcbuffer, PH::Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset);
+		
+		struct ImageToBufferCopyInfo {
+			GFX::Texture src;
+			GFX::Buffer dst;
+
+			sizeptr bufferoffset;
+			GFX::Offset imageoffset;
+			GFX::Extent imageextent;
+		};
+
+		PH_PLATFORM_API bool32 copyImageToBufferAsynchronous(const ImageToBufferCopyInfo& info);
 
 		PH_PLATFORM_API bool32 destroyRenderpassDescriptions(GFX::RenderpassDescription* descriptions, uint32 count);
 		PH_PLATFORM_API bool32 destroyFrameBuffers(GFX::Framebuffer* framebuffers, uint32 count);

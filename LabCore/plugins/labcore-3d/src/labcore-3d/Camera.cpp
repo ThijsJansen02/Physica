@@ -9,10 +9,10 @@
 
 namespace PH::LabCore3D {
 
-	void setCameraPerspective(Camera* camera, real32 fov, real32 aspectratio, real32 nearplane, real32 farplane) {
+	glm::mat4 calculateCameraPerspective(Camera* camera, real32 fov, real32 aspectratio, real32 nearplane, real32 farplane) {
 		glm::mat4 invert_y = glm::mat4({ 1.0f, 0.0f, 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f });
 
-		camera->perspective = invert_y * glm::perspectiveLH(glm::radians(fov), aspectratio, nearplane, farplane);
+		return invert_y * glm::perspectiveLH(glm::radians(fov), aspectratio, nearplane, farplane);
 	}
 
 	glm::mat4 calculateCameraViewMatrix(const Camera& camera) {
