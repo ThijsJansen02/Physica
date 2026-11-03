@@ -1,7 +1,7 @@
 assetidentifier:
   assetid: 3658502787
   assetdescriptionid: 6544691651984941516
-  filepath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/scenes/example_scene.lcscene
+  filepath: C:/Users/Tjansen/RpFilterStudio/Physica/LabCore/projects/example project/assets/scenes/example_scene.lcscene
   flags: 1
   references:
     - example_scene
@@ -14,9 +14,9 @@ asset:
         Transform:
           rotXYZ: [0, -0, 0]
           scale: [1, 1, 1]
-          translation: [0.08711889, 2.6428282, -1.1805891]
+          translation: [0.84852225, 2.6428282, -2.0951855]
         Point Light:
-          postion: [0.08711889, 2.6428282, -1.1805891]
+          postion: [0.84852225, 2.6428282, -2.0951855]
           intensity: 0.94
           color: [1, 1, 1]
     - components:
@@ -33,16 +33,16 @@ asset:
           color: [1, 0, 0]
     - components:
         Tag:
-          name: blue light
+          name: sunlight
           id: 2180830774
         Transform:
           rotXYZ: [0, -0, 0]
           scale: [1, 1, 1]
-          translation: [-1.9628772, 3.655656, 0.12109256]
+          translation: [0, 5.614959, 0]
         Point Light:
-          postion: [-1.9628772, 3.655656, 0.12109256]
-          intensity: 1.59
-          color: [1, 0.9227034, 0.8141593]
+          postion: [0, 5.614959, 0]
+          intensity: 20
+          color: [1, 1, 1]
     - components:
         Tag:
           name: box 2
@@ -50,7 +50,7 @@ asset:
         Transform:
           rotXYZ: [0, 32.745617, 0]
           scale: [1.0000001, 1, 1.0000001]
-          translation: [-1.7061756, 2.3448148, -0.66075027]
+          translation: [0.2019948, 2.344815, -1.0034422]
         Mesh:
           mesh: 9808924416449029863
           material: 3991480754
@@ -59,9 +59,9 @@ asset:
           name: box 1
           id: 271409149
         Transform:
-          rotXYZ: [0, -35.7026, 0]
-          scale: [1.0000001, 1, 1.0000001]
-          translation: [0.6903735, 2.394369, 0.721895]
+          rotXYZ: [0, -36.147396, 0]
+          scale: [3.0900002, 3.09, 3.0900002]
+          translation: [2.1914456, 3.3625925, 2.687857]
         Mesh:
           mesh: 9808924416449029863
           material: 1877075475
@@ -70,20 +70,20 @@ asset:
           name: floor
           id: 0
         Transform:
-          rotXYZ: [0, -0, 0]
-          scale: [9.457844, 0.091457136, 9.114495]
-          translation: [0.08485532, 1.8563749, 0.40643916]
+          rotXYZ: [0, -32.563198, 0]
+          scale: [9.457852, 0.091457166, 9.114482]
+          translation: [-0.60547847, 1.8563749, 1.4441978]
         Mesh:
           mesh: 9808924416449029863
-          material: 1877075475
+          material: 3991480754
     - components:
         Tag:
           name: box 3
           id: 4047677183
         Transform:
-          rotXYZ: [-8.196928e-12, 31.29862, -4.258294e-12]
-          scale: [1.0000001, 0.99999994, 1.0000001]
-          translation: [-1.3240021, 2.4030273, 1.5780463]
+          rotXYZ: [8.297847e-06, -38.151234, -4.695053e-06]
+          scale: [1.0000004, 0.99999994, 1.0000004]
+          translation: [-2.8473313, 2.4455178, 0.7737127]
         Mesh:
           mesh: 9808924416449029863
           material: 3991480754

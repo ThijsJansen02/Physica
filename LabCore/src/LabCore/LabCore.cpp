@@ -287,6 +287,23 @@ namespace PH::LabCore {
 		}
 	}
 
+	void onIncludeAsset() {
+		char buffer[256];
+
+		PH::Platform::OpenFileDialogInfo info{};
+		//might add a filter for all the file types that can be imported, for now just allow all files
+		info.filter = "";
+		info.read = true;
+		info.startingdir = appcontext->projectpath.getC_Str();
+		info.resultbuffer = buffer;
+		info.resultbuffersize = 256;
+		info.flags = PH_DIALOG_FILEMUSTEXIST;
+
+		if (PH::Platform::openFileDialog(info)) {
+			appcontext->assets.includeAsset(buffer);
+		}
+	}
+
 	void drawMenuBar() {
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -349,6 +366,10 @@ namespace PH::LabCore {
 
 				if (ImGui::MenuItem("import asset")) {
 					onImport();
+				}
+
+				if (ImGui::MenuItem("include existing asset")) {
+					onIncludeAsset();
 				}
 
 

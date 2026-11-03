@@ -147,6 +147,46 @@ namespace PH::Engine {
 			out << YAML::EndMap;
 		}
 
+		AssetIdentifier* deserializeAssetIdentifier(YAML::Node in, const char* filepath = nullptr) {
+			AssetIdentifier id{};
+			id.assetdata = nullptr;
+
+			if (in["assetdescriptionid"]) {
+				id.assetdescription = in["assetdescriptionid"].as<AssetDescriptionID>();	
+			}
+
+			AssetPool* pool = getAssetPool(id.assetdescription);
+			if(!pool) {
+				Engine::WARN << "including an unknown asset type" << "/n";
+				return nullptr;
+			}
+
+			id.assetid = in["assetid"].as<AssetID>();
+			id.flags = in["flags"].as<AssetFlags>();
+
+			if (filepath) {
+				id.filepath = Engine::String::create(filepath);
+			} else {
+				if (in["filepath"]) {
+					id.filepath = in["filepath"].as<Engine::String>();
+				}
+			}
+
+
+			id.status = UNLOADED;
+			
+			if (pool->assets.contains_key(id.assetid)) {
+				Engine::WARN << "deserializing an identifier that already exists in the project, possible conflict: " << pool->assets.get_last(id.assetid)->getName() << "\n";
+				return nullptr;
+			}
+
+			auto* result = pool->assets.add(id.assetid, id);
+
+			result->references = deserializeReferences(in["references"], pool, result);
+
+			return result;
+		}
+
 		//deserializes asset identifier and adds it to the pool
 		AssetIdentifier* deserializeAssetIdentifier(YAML::Node in, AssetPool* pool) {
 			
@@ -250,6 +290,18 @@ namespace PH::Engine {
 		}
 
 	public:
+
+		//includes an asset from a file that is not yet included
+		void includeAsset(const char* filepath) {
+			YAML::Node n = Engine::FileIO::loadYamlfile(filepath);
+
+			if (!n["assetidentifier"]) {
+				Engine::WARN << "asset does not have an identifier! might not be an asset\n";
+				return;
+			}
+
+			deserializeAssetIdentifier(n["assetidentifier"], filepath);
+		}
 
 		//serialize
 		void serializeAssetIdentifiers(YAML::Emitter& out) {
@@ -465,7 +517,13 @@ namespace PH::Engine {
 		template<typename Asset>
 		AssetIdentifier* addPersistentAsset(Asset* asset, AssetID id) {
 			//asset should be derived from AssetBase, so we can cast it to AssetBase
-			auto* pool = getAssetPool<Asset>();
+			AssetPool* pool = getAssetPool<Asset>();
+
+			if (pool->assets.contains_key(id)) {
+				Engine::WARN << "adding asset that already exists, remove asset before including new asset!\n";
+				return nullptr;
+			}
+ 
 			AssetIdentifier* identifier = pool->assets.add(id, createAssetIdentifier((AssetBase*)asset, id, &pool->description));
 
 			//asset is loaded and not serializable

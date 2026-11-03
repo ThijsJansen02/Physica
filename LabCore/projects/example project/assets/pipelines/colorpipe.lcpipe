@@ -1,15 +1,15 @@
 assetidentifier:
   assetid: 1877075475
   assetdescriptionid: 983741375477342588
-  filepath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/pipelines/colorpipe.lcpipe
+  filepath: C:/Users/Tjansen/RpFilterStudio/Physica/LabCore/projects/example project/assets/pipelines/colorpipe.lcpipe
   flags: 1
   references:
     - colorpipe
 asset:
   type: 0
-  binpath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/pipelines/shaders/bin/color.phshaderbin
-  srcpath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/pipelines/shaders/color.phshadersrc
-  userbuffer: !!binary "AACAPwAAgD8AAIA/9P2UPg=="
+  binpath: assets/pipelines/shaders/bin/color.phshaderbin
+  srcpath: assets/pipelines/shaders/color.phshadersrc
+  userbuffer: !!binary "MBs0PzAbND8wGzQ/9P2UPg=="
   resources:
     - name: ColorData
       binding: 0

@@ -1,13 +1,13 @@
 assetidentifier:
   assetid: 2781615859
   assetdescriptionid: 983741375477342588
-  filepath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/pipelines/lightbox.lcpipe
+  filepath: C:/Users/Tjansen/RpFilterStudio/Physica/LabCore/projects/example project/assets/pipelines/lightbox.lcpipe
   flags: 1
   references:
     - lightbox
 asset:
   type: 0
-  binpath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/pipelines/shaders/bin/lightbox.phshaderbin
-  srcpath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/pipelines/shaders/lightbox.phshadersrc
+  binpath: assets/pipelines/shaders/bin/lightbox.phshaderbin
+  srcpath: assets/pipelines/shaders/lightbox.phshadersrc
   resources:
     []

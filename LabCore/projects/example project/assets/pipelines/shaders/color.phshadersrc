@@ -116,12 +116,21 @@ layout(set = 1, binding = 0) uniform ColorData {
     float specular;
 } colordata;	
 
+vec3 srgbToLinear(vec3 srgb)
+{
+    return mix(
+        srgb / 12.92,
+        pow((srgb + 0.055) / 1.055, vec3(2.4)),
+        greaterThan(srgb, vec3(0.04045))
+    );
+}
+
 void main() {	
 
     outPosition.rgb = fs_in.fragpos;
     outPosition.a = 1.0;
 
-    outAlbedo.rgb = colordata.albedo_color;
+    outAlbedo.rgb = srgbToLinear(colordata.albedo_color);
     outAlbedo.a = colordata.specular;
 
     vec3 normaltexel = vec3(0.0, 0.0, 1.0);
