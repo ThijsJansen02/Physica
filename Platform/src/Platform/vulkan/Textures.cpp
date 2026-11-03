@@ -228,7 +228,8 @@ namespace PH::Vulkan {
 
 		case VK_FORMAT_D32_SFLOAT_S8_UINT:
 			return 5;
-
+		case VK_FORMAT_R16G16B16_SFLOAT:
+			return 6;
 		case VK_FORMAT_R16G16B16A16_SFLOAT:
 		case VK_FORMAT_R32G32_SFLOAT:
 			return 8;

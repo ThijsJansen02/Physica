@@ -46,51 +46,53 @@ namespace PH::LabCore3D {
 		return true;
 	}
 
-
-
-	bool32 drawTransformUI(entt::entity entity, Scene* scene) {
+	bool32 drawPointLightUI(entt::entity entity, Scene* scene) {
 		PointLight& pl = getComponent<PointLight>(scene, entity);
 		bool dirty = false;
 
 		//dirty |= ImGui::DragFloat3("position", (float*)&pl.light.position, 0.01);
-		dirty |= ImGui::DragFloat3("color", (float*)&pl.light.color, 0.01);
-		dirty |= ImGui::DragFloat3("intensity", (float*)&pl.light.intensity, 0.01);
+		dirty |= ImGui::ColorEdit3("color", (float*)&pl.light.color, 0.01);
+		dirty |= ImGui::DragFloat("intensity", (float*)&pl.light.intensity, 0.01);
 
 		return true;
 	}
 
-	bool32 hasTransform(entt::entity entity, Scene* scene) {
+	bool32 hasPointLight(entt::entity entity, Scene* scene) {
 		return scene->registry.all_of<PointLight>(entity);
 	}
 
-	bool32 drawComponents(Scene* scene, DefferedRenderer* renderer) {
+	bool32 drawPointLights(Scene* scene, DefferedRenderer* renderer) {
 
 		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
 		auto* cubemesh = assets->getAssetByReference<Mesh>("cubemesh");
-		auto* pipe = assets->getAssetByReference<GraphicsPipeline>("defaultmaterialpipe");
-
+		auto* pipe = assets->getLoadedAssetByReference<GraphicsPipeline>("lightbox");
+		
 		auto view = scene->registry.view<Transform, PointLight>();
 
 		for (auto ent : view) {
-			auto& tf = getComponent<Transform>(scene, ent);
+			
+			auto [pl, tf] = view.get<PointLight, Transform>(ent);
+			pl.light.position = glm::vec3(tf.transform[3]);
 
-			renderer->drawMesh(cubemesh, pipe, tf.transform, (uint32)ent);
+			glm::mat4 transform = glm::translate(glm::mat4(1.0f), pl.light.position) * glm::scale(glm::mat4(1.0f), { 0.1f, 0.1f, 0.1f });
 
+			renderer->pushLight(pl.light);
+			renderer->drawMesh(cubemesh, pipe, transform, entt::to_integral(ent));
 		}
 
 		return true;
 	}
 
-	SceneComponentDescription Transform::createDescription() {
+	SceneComponentDescription PointLight::createDescription() {
 
 
 		SceneComponentDescription desc{};
-		desc.hasComponent_ = hasTransform;
-		desc.deserializeComponent_ = deserializeTransform;
-		desc.serializeComponent_ = serializeTransform;
-		desc.drawComponents_ = drawComponents;
-		desc.addComponent = addTransform;
-		desc.drawUI_ = drawTransformUI;
+		desc.hasComponent_ = hasPointLight;
+		desc.deserializeComponent_ = deserializePointlight;
+		desc.serializeComponent_ = serializePointlight;
+		desc.drawComponents_ = drawPointLights;
+		desc.addComponent = addPointLight;
+		desc.drawUI_ = drawPointLightUI;
 		desc.name = Engine::String::create(getComponentName());
 		return desc;
 	}

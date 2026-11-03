@@ -56,7 +56,7 @@ namespace PH::LabCore3D {
 			if (ImGui::TreeNodeEx(view->scene->getName(), ImGuiTreeNodeFlags_DefaultOpen)) {
 				if (ImGui::Button("add entity")) {
 					entt::entity newentity = createEntity(scene);
-					addComponent<Tag>(scene, newentity, { Engine::String::create("New Entity") });
+					addComponent<Tag>(scene, newentity, { Engine::String::create("New Entity"), Engine::createRandomUUID() });
 				}
 
 				for (entt::entity ent : scene->registry.view<Tag>()) {

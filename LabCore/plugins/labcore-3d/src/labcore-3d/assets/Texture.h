@@ -14,10 +14,15 @@ namespace PH::LabCore3D {
 		Platform::GFX::Texture texture;
 		sizeptr width, height;
 
+		Engine::String source;
+
 		Platform::GFX::Format format;
 	};
 
 	Texture createTexture(const char* sourcepath, Platform::GFX::Format format);
 	Texture createTexture(const char* texture);
 	Engine::AssetDescription createTextureAssetDescription();
+
+	PH::bool32 importTextureCallback(Engine::AssetLibrary* assets,  const char* sourcepath);
+	PH::bool32 onRenderTextureImportOptions(Engine::AssetLibrary* assets);
 }

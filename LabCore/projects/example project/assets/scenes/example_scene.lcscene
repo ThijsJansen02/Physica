@@ -9,25 +9,81 @@ asset:
   entities:
     - components:
         Tag:
-          name: box item
-          id: 3386866062
+          name: green light
+          id: 1330464736
         Transform:
-          rotXYZ: [0, -80.31365, 0]
-          scale: [1.0000001, 1, 1.0000001]
-          translation: [0.17438698, 0.52888876, -1.2955078]
+          rotXYZ: [0, -0, 0]
+          scale: [1, 1, 1]
+          translation: [0.08711889, 2.6428282, -1.1805891]
+        Point Light:
+          postion: [0.08711889, 2.6428282, -1.1805891]
+          intensity: 0.94
+          color: [1, 1, 1]
     - components:
         Tag:
-          name: box 3
-          id: 271409149
+          name: red light
+          id: 3560254280
         Transform:
-          rotXYZ: [0, 47.855938, 0]
-          scale: [1.0000002, 1, 1.0000002]
-          translation: [1.1740559, 0.5264749, 0.6347949]
+          rotXYZ: [0, -0, 0]
+          scale: [1, 1, 1]
+          translation: [-0.04647599, 2.3355608, 1.5095618]
+        Point Light:
+          postion: [-0.04647599, 2.3355608, 1.5095618]
+          intensity: 1.74
+          color: [1, 0, 0]
+    - components:
+        Tag:
+          name: blue light
+          id: 2180830774
+        Transform:
+          rotXYZ: [0, -0, 0]
+          scale: [1, 1, 1]
+          translation: [-1.9628772, 3.655656, 0.12109256]
+        Point Light:
+          postion: [-1.9628772, 3.655656, 0.12109256]
+          intensity: 1.59
+          color: [1, 0.9227034, 0.8141593]
     - components:
         Tag:
           name: box 2
+          id: 3386866062
+        Transform:
+          rotXYZ: [0, 32.745617, 0]
+          scale: [1.0000001, 1, 1.0000001]
+          translation: [-1.7061756, 2.3448148, -0.66075027]
+        Mesh:
+          mesh: 9808924416449029863
+          material: 3991480754
+    - components:
+        Tag:
+          name: box 1
+          id: 271409149
+        Transform:
+          rotXYZ: [0, -35.7026, 0]
+          scale: [1.0000001, 1, 1.0000001]
+          translation: [0.6903735, 2.394369, 0.721895]
+        Mesh:
+          mesh: 9808924416449029863
+          material: 1877075475
+    - components:
+        Tag:
+          name: floor
           id: 0
         Transform:
           rotXYZ: [0, -0, 0]
           scale: [9.457844, 0.091457136, 9.114495]
-          translation: [0, 0, 0]
+          translation: [0.08485532, 1.8563749, 0.40643916]
+        Mesh:
+          mesh: 9808924416449029863
+          material: 1877075475
+    - components:
+        Tag:
+          name: box 3
+          id: 4047677183
+        Transform:
+          rotXYZ: [-8.196928e-12, 31.29862, -4.258294e-12]
+          scale: [1.0000001, 0.99999994, 1.0000001]
+          translation: [-1.3240021, 2.4030273, 1.5780463]
+        Mesh:
+          mesh: 9808924416449029863
+          material: 3991480754

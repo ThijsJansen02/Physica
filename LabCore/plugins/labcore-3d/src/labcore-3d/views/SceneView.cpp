@@ -3,7 +3,7 @@
 #include "../assets/Scene.h"
 #include <Engine/imgui/extensions.h>
 #include "../DefferredRenderer.h"
-#include "../assets/scenecomponents/TransformComponent.h"
+#include "../assets/scenecomponents/Transform.h"
 #include "../assets/scenecomponents/NameTag.h"
 
 #include "SceneView.h"
@@ -43,8 +43,9 @@ namespace PH::LabCore3D {
 	void lightPass(SceneView* sceneview) {
 
 		auto* assets = LabCore::getAssetLibrary();
-		auto* lightingpipe = assets->getAssetByReference<GraphicsPipeline>("defaultlightingpipe");
-		renderer.applyLightpass(lightingpipe);
+		if (sceneview->lightingpipe) {
+			renderer.applyLightpass(sceneview->lightingpipe);
+		}
 
 	}
 
@@ -114,6 +115,9 @@ namespace PH::LabCore3D {
 
 				ImGui::EndCombo();
 			}
+
+			sceneview->tonemappipe = ImGuiext::assetSelecter<GraphicsPipeline>("tonemap pipeline", sceneview->tonemappipe, "select tonemap pipeline", assets);
+			sceneview->lightingpipe = ImGuiext::assetSelecter<GraphicsPipeline>("lighting pipeline", sceneview->lightingpipe, "select lighting pipeline", assets);
 		}
 		ImGui::PopStyleVar();
 		ImGui::End();
@@ -154,13 +158,12 @@ namespace PH::LabCore3D {
 					ImGuizmo::Manipulate((real32*)&view, (real32*)&projection,
 						sceneview->operation, ImGuizmo::LOCAL, (real32*)&tc.transform,
 						nullptr, snap ? snapValues : nullptr);
-
+					
 					if (ImGuizmo::IsUsing())
 					{
 						glm::vec3 translation, rotation, scale;
 						ImGuizmo::DecomposeMatrixToComponents((real32*)&tc.transform, (real32*)&tc.translation, (real32*)&tc.rotXYZ, (real32*)&tc.scale);
 					}
-
 				}
 			}
 		}
@@ -170,11 +173,14 @@ namespace PH::LabCore3D {
 		
 		auto* assets = LabCore::getAssetLibrary();
 
+		drawSceneViewInfo(sceneview);
+
 		if (!sceneview->scene) {
 			return true;
 		}
 
 		if (sceneview->scene->status != Engine::LOADED) {
+			Platform::setCurrentDirectory(LabCore::getCurrentProjectDir().getC_Str());
 			//require the scene to be loaded
 			sceneview->scene = assets->getLoadedAssetIdentifier<Scene>(sceneview->scene->assetid);
 		}
@@ -191,21 +197,13 @@ namespace PH::LabCore3D {
 
 		geometryPass(sceneview, projection, viewmatrix);
 
-		DefferedRenderer::PointLight light;
-		light.position = { 0.0, 3.0f, 0.0f };
-		light.intensity = 2.0f;
-		light.color = { 1.0f, 1.0f, 1.0f };
-		light.attenuation = 1.0f;
-
-		renderer.pushLight(light);
-
 		lightPass(sceneview);
 
-		renderer.output(&sceneview->display, sceneview->displaysrc);
+		if (sceneview->tonemappipe) {
+			renderer.output(&sceneview->display, sceneview->tonemappipe, sceneview->displaysrc);
+		}
 
 		entt::entity hoveredentity = aquireObjectID(sceneview, {displaysize.x, displaysize.y});
-
-		drawSceneViewInfo(sceneview);
 		
 		//draw the actual rendered image to imgui
 		ImGui::Image(
@@ -216,6 +214,15 @@ namespace PH::LabCore3D {
 		);
 
 		drawImGuizmo(sceneview, { displaysize.x, displaysize.y }, projection, viewmatrix);
+
+		if (!ImGuizmo::IsUsing()) {
+			if (sceneview->pickmouseobject) {
+				Scene* scene = LabCore::getAssetLibrary()->getLoadedAsset<Scene>(sceneview->scene->assetid);
+				scene->selected = (entt::entity)*sceneview->pixelreadbuffer.map();
+			}
+		}
+
+		sceneview->pickmouseobject = false;
 
 		return true;
 	}
@@ -268,6 +275,9 @@ namespace PH::LabCore3D {
 		view->camera.direction = { 0.0f, 0.0f, -1.0f };
 		view->camera.position = { 0.0f, 0.0f, 5.0f };
 
+		view->tonemappipe = nullptr;
+		view->lightingpipe = nullptr;
+
 		view->operation = ImGuizmo::OPERATION::TRANSLATE;
 		view->scene = nullptr;
 
@@ -299,10 +309,7 @@ namespace PH::LabCore3D {
 
 		if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
 			if (e.lparam == PH_LMBUTTON) {
-				if (data->scene) {
-					Scene* scene = LabCore::getAssetLibrary()->getLoadedAsset<Scene>(data->scene->assetid);
-					scene->selected = (entt::entity)*data->pixelreadbuffer.map();
-				}
+				data->pickmouseobject = true;
 			}
 
 		}
@@ -319,16 +326,38 @@ namespace PH::LabCore3D {
 		if (node["scene"]) {
 			data->scene = LabCore::getAssetLibrary()->getLoadedAssetIdentifier<Scene>(node["scene"].as<Engine::AssetID>());
 		}
+
+		auto* assets = LabCore::getAssetLibrary();
+
+		if (node["lightpipe"]) {
+			data->lightingpipe = assets->getLoadedAsset<GraphicsPipeline>(node["lightpipe"].as<Engine::AssetID>());
+		}
+
+		if (node["tonemappipe"]) {
+			data->tonemappipe = assets->getLoadedAsset<GraphicsPipeline>(node["tonemappipe"].as<Engine::AssetID>());
+		}
+
 		return true;
 	}
 
 	PH::bool32 serializeSceneView(SceneView* data, YAML::Emitter& out) {
 
 		out << YAML::BeginMap;
-		out << YAML::Key << "scene" << YAML::Value << data->scene->assetid;
+		if (data->scene) {
+			out << YAML::Key << "scene" << YAML::Value << data->scene->assetid;
+		}
+
 		out << YAML::Key << "Camera" << YAML::Value;
-		
 		serializeCamera(&data->camera, out);
+		
+		if (data->lightingpipe) {
+			out << YAML::Key << "lightpipe" << YAML::Value << data->lightingpipe->id;
+		}
+
+		if (data->tonemappipe) {
+			out << YAML::Key << "tonemappipe" << YAML::Value << data->tonemappipe->id;
+		}
+
 
 		out << YAML::EndMap;
 

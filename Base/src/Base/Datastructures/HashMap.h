@@ -3,7 +3,7 @@
 #include "Array.h"
 #include "LinkedList.h"
 #include "Base/random.h"
-
+#include <Base/Datastructures/String.h>
 
 namespace PH::Base {
 
@@ -16,6 +16,10 @@ namespace PH::Base {
 			hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
 
 		return hash;
+	}
+
+	inline uint64 stringHash(const Base::SubString& string) {
+		return Base::stringHash(string.getC_Str());
 	}
 
 	inline uint64 uint32Hash(const uint32& v) {
@@ -75,7 +79,7 @@ namespace PH::Base {
 		/// <summary>
 		/// resizes the hashmap to another size. Note the bigger the hashmap the lower the chance of a collision making the map faster. the map also dynamically scales up when inserting new elements.
 		/// 
-		/// TODO resize copies all the nodes into new memory at every resize, nodes should be recycled to avoid memory fragmentation
+		/// TODO resize copies all the nodes into new memory at every resize, nodes should be recycled to avoid memory fragmentation, and make memory persistent in locality.
 		/// </summary>
 		/// <param name="newsize">the new size of the hashtable</param>
 		inline void resize(sizeptr newsize) {
@@ -83,8 +87,9 @@ namespace PH::Base {
 			ChainedHashMap newmap = create(newsize);
 
 			for (Chain& chain : table) {
-				for (auto& [key, value] : chain) {
-					newmap.add(key, value);
+				while (chain.firstnode) {
+					Chain:: template Node* node = chain.extract(chain.firstnode);
+					newmap.add(node);
 				}
 			}
 
@@ -220,6 +225,17 @@ namespace PH::Base {
 			count++;
 
 			return &chain->firstnode->element.value;
+		}
+
+		inline void add(Chain::Node* node) {
+			if (count >= (real32)table.getCapacity() * 0.75f) {
+				resize(count * 3);
+			}
+			uint64 hash_ = hash(node->element.key);
+			hash_ = hash_ % table.getCapacity();
+			Chain* chain = &table[hash_];
+			chain->pushFront(node);
+			count++;
 		}
 
 		inline void forEach(void (*method)(Value&, const Key&, void*), void* userdata) {

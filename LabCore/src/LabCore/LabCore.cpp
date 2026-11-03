@@ -125,6 +125,9 @@ namespace PH::LabCore {
 		ImGui::GetIO().IniFilename = nullptr;
 		ImGui::GetIO().LogFilename = nullptr;
 
+		appcontext->importcallbacks = Base::ChainedHashMap<Base::SubString, importAssetCallback, Base::stringHash, Base::stringCompare, Engine::Allocator>::create(3);
+		appcontext->onrendercallbacks = Engine::ArrayList<onRenderCallback>::create(3);
+
 		loadShaders();
 		loadIni();
 		initRenderer();
@@ -198,7 +201,6 @@ namespace PH::LabCore {
 	}
 
 	void deserializeProject(const char* filepath) {
-		//TODO implement deserialization of the project
 
 
 
@@ -227,7 +229,7 @@ namespace PH::LabCore {
 		ImGui::LoadIniSettingsFromDisk("imgui.ini");
 
 		//deserialize project must 
-		PH::Platform::setCurrentDirectory(appcontext->labcorehome.getSubString());
+		PH::Platform::setCurrentDirectory(appcontext->projectdir.getSubString());
 
 		auto views = project["openviews"];
 
@@ -255,6 +257,34 @@ namespace PH::LabCore {
 		}
 
 		PH::Platform::setCurrentDirectory(appcontext->projectdir.getSubString());
+	}
+
+	void onImport() {
+		char buffer[256];
+
+		PH::Platform::OpenFileDialogInfo info{};
+		//might add a filter for all the file types that can be imported, for now just allow all files
+		info.filter = "";
+		info.read = true;
+		info.startingdir = appcontext->projectpath.getC_Str();
+		info.resultbuffer = buffer;
+		info.resultbuffersize = 256;
+		info.flags = PH_DIALOG_FILEMUSTEXIST;
+
+		if (PH::Platform::openFileDialog(info)) {
+
+			Base::SubString extension = Base::getExtension(Base::SubString::create(buffer));
+
+			importAssetCallback callback_ = *appcontext->importcallbacks.get_last(extension);
+
+			if (callback_) {
+				callback_(&appcontext->assets, buffer);
+			}
+			else {
+				Engine::WARN << "application has no import callback for filetype: " << extension << "\n";
+			}
+			
+		}
 	}
 
 	void drawMenuBar() {
@@ -317,6 +347,11 @@ namespace PH::LabCore {
 					}
 				}
 
+				if (ImGui::MenuItem("import asset")) {
+					onImport();
+				}
+
+
 				ImGui::EndMenu();
 			}
 
@@ -346,6 +381,10 @@ namespace PH::LabCore {
 		drawMenuBar();
 
 		drawViews(appcontext->viewinstances);
+
+		for (auto callback : appcontext->onrendercallbacks) {
+			callback(&appcontext->assets);
+		}
 
 		//end the frame
 		Engine::Renderer2D::endFrame(appcontext->renderer2D.getContext());

@@ -79,6 +79,7 @@ namespace PH::LabCore3D {
 		struct SceneVariables {
 			glm::mat4 projection;
 			glm::mat4 view;
+			glm::mat4 normalmatrix;
 
 			//lights
 			PointLight lights[16];
@@ -117,7 +118,8 @@ namespace PH::LabCore3D {
 		void applyLightpass(GraphicsPipeline* pipe);
 		void applyPostProcess();
 
-		void output(Engine::Display* target, OutputSource source);
+		//outputs the given source to the given display target using the given tonemapping pipeline
+		void output(Engine::Display* target, GraphicsPipeline* tonemap, OutputSource source);
 
 		PH::Platform::GFX::Viewport viewport;
 		glm::vec4 albedoclearcolor;

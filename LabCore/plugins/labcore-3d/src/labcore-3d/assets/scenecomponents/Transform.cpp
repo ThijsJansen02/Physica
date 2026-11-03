@@ -1,4 +1,4 @@
-#include "TransformComponent.h"
+#include "Transform.h"
 #include <Engine/imgui/extensions.h>
 #include "../../DefferredRenderer.h"
 #include <LabCore/LabCoreAPI.h>
@@ -21,10 +21,10 @@ namespace PH::LabCore3D {
 	glm::mat4 calcTransform(const glm::vec3& translation, const glm::vec3& rotation, const glm::vec3& scale) {
 
 		return glm::translate(glm::mat4(1.0f), translation)
-			* glm::scale(glm::mat4(1.0f), scale)
 			* glm::rotate(glm::mat4(1.0f), glm::radians(rotation.z), { 0.0f, 0.0f, 1.0f })
 			* glm::rotate(glm::mat4(1.0f), glm::radians(rotation.y), { 0.0f, 1.0f, 0.0f })
-			* glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), { 1.0f, 0.0f, 0.0f });
+			* glm::rotate(glm::mat4(1.0f), glm::radians(rotation.x), { 1.0f, 0.0f, 0.0f })
+			* glm::scale(glm::mat4(1.0f), scale);
 
 	}
 
@@ -76,19 +76,7 @@ namespace PH::LabCore3D {
 		return scene->registry.all_of<Transform>(entity);
 	}
 
-	bool32 drawComponents(Scene* scene, DefferedRenderer* renderer) {
-
-		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
-		auto* cubemesh = assets->getAssetByReference<Mesh>("cubemesh");
-		auto* pipe = assets->getAssetByReference<GraphicsPipeline>("defaultmaterialpipe");
-
-		for (auto ent : scene->registry.view<Transform>()) {
-			auto& tf = getComponent<Transform>(scene, ent);
-
-			renderer->drawMesh(cubemesh, pipe, tf.transform, (uint32)ent);
-
-		}
-
+	bool32 drawTransform(Scene* scene, DefferedRenderer* renderer) {
 		return true;
 	}
 
@@ -99,7 +87,7 @@ namespace PH::LabCore3D {
 		desc.hasComponent_ = hasTransform;
 		desc.deserializeComponent_ = deserializeTransform;
 		desc.serializeComponent_ = serializeTransform;
-		desc.drawComponents_ = drawComponents;
+		desc.drawComponents_ = nullptr;
 		desc.addComponent = addTransform;
 		desc.drawUI_ = drawTransformUI;
 		desc.name = Engine::String::create(getComponentName()); 

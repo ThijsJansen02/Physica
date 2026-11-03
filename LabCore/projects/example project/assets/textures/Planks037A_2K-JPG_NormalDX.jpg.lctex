@@ -1,0 +1,12 @@
+assetidentifier:
+  assetid: 3808292401
+  assetdescriptionid: 15876590110196968583
+  filepath: assets/textures/Planks037A_2K-JPG_NormalDX.jpg.lctex
+  flags: 1
+  references:
+    - Planks037A_2K-JPG_NormalDX.jpg
+asset:
+  width: 2048
+  height: 2048
+  format: 37
+  source: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/textures/sources/Planks037A_2K-JPG/Planks037A_2K-JPG_NormalDX.jpg

@@ -232,7 +232,7 @@ namespace PH::Vulkan {
 
 			for (uint32 i = 0; i < rp.subpasses[targetsubpass].colorattachmentcount; i++) {
 				VkPipelineColorBlendAttachmentState colorblendattachment{};
-				colorblendattachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT;// | VK_COLOR_COMPONENT_A_BIT;
+				colorblendattachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 				colorblendattachment.blendEnable = createinfo.blend ? VK_TRUE : VK_FALSE;
 				colorblendattachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 				colorblendattachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;

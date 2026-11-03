@@ -16,6 +16,9 @@
 #endif
 
 namespace PH::LabCore {
+
+	typedef bool32(*importAssetCallback)(Engine::AssetLibrary* lib, const char* filepath);
+	typedef bool32(*onRenderCallback)(Engine::AssetLibrary* lib);
 	
 	PH_LABCORE_API void addView(const ViewDescription& view);
 
@@ -38,6 +41,9 @@ namespace PH::LabCore {
 	PH_LABCORE_API PH::Platform::GFX::GraphicsPipeline getDefault2DGraphicsPipeline();
 	PH_LABCORE_API PH::Platform::GFX::GraphicsPipeline getDefault2DFontPipeline();
 
+	//adds a callback for importing assets with a specific extension. the extension has to be persistent in memory
+	PH_LABCORE_API void addImportAssetCallback(const char* extension, importAssetCallback callback);
+	PH_LABCORE_API void addOnRenderCallback(onRenderCallback callback);
 
 	PH_LABCORE_API PyObject* createPythonModule(const char* name);
 }

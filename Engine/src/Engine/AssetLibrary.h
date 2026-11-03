@@ -5,13 +5,7 @@
 
 namespace PH::Engine {
 
-	inline uint64 stringHash(const Base::SubString& string) {
-		return Base::stringHash(string.getC_Str());
-	}
-
-	inline bool32 stringCompare(const Base::SubString& left, const Base::SubString& right) {
-		return Base::stringCompare(left.getC_Str(), right.getC_Str());
-	}
+	
 
 	typedef enum AssetFlagsBits {
 		PH_ASSET_SERIALIZABLE = 1
@@ -57,7 +51,7 @@ namespace PH::Engine {
 		AssetDescription description;
 
 		Base::ChainedHashMap<AssetID, AssetIdentifier, Base::uint64Hash, Base::uint64Compare, Engine::Allocator> assets;
-		Base::ChainedHashMap<Base::SubString, AssetIdentifier*, stringHash, stringCompare, Engine::Allocator> assetreferences;
+		Base::ChainedHashMap<Base::SubString, AssetIdentifier*, Base::stringHash, Base::stringCompare, Engine::Allocator> assetreferences;
 	};
 
 	class PH_ENGINE_API AssetLibrary {
@@ -226,9 +220,14 @@ namespace PH::Engine {
 				identifier->assetdata = (AssetBase*)Engine::Allocator::alloc(pool->description.localdatasize);
 				pool->description.deserialize_(asset, identifier->assetdata);
 				identifier->status = LOADED;
+
+				//set identifier
+				identifier->assetdata->identifier = identifier;
+				identifier->assetdata->id = identifier->assetid;
+				
 			}
 			else {
-				Engine::WARN << "failed to load asset";
+				Engine::WARN << "the deserializer for asset " << identifier->getName() << " does not exist!\n";
 				return false;
 			}
 			return true;
@@ -530,16 +529,39 @@ namespace PH::Engine {
 			return pool->assets.getAll<Engine::Allocator>();
 		}
 		
+		//retrieves an assetidentifier of type Asset based on the given reference, returns nullptr if the asset is not found
+		template<typename Asset>
+		AssetIdentifier* getAssetIdentifierByReference(const char* reference) {
+			auto* pool = getAssetPool<Asset>();
+			AssetIdentifier* asset = *pool->assetreferences.get_last(Base::SubString(reference));
+			return asset;
+		}
+		
 
-		//gets asset by reference, does not guarantee that the asset is of correct type, use with caution
+		//gets asset by reference, returns nullptr if the asset is not found or if the asset is not yet loaded
 		template<typename Asset>
 		Asset* getAssetByReference(const char* reference) {
 
-			auto* pool = getAssetPool<Asset>();
-
-			AssetIdentifier* identifier = *pool->assetreferences.get_last(Base::SubString(reference));
+			AssetIdentifier* identifier = getAssetIdentifierByReference<Asset>(reference);
 			if(!identifier) {
 				return nullptr;
+			}
+
+			return (Asset*)identifier->assetdata;
+		}
+
+		template<typename Asset> 
+		Asset* getLoadedAssetByReference(const char* reference) {
+			
+			AssetIdentifier* identifier = getAssetIdentifierByReference<Asset>(reference);
+			if (!identifier) {
+				return nullptr;
+			}
+
+			if (identifier->status == UNLOADED) {
+				if (!loadAsset<Asset>(identifier->assetid)) {
+					return nullptr;
+				}
 			}
 
 			return (Asset*)identifier->assetdata;

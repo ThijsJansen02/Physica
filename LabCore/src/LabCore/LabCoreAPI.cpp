@@ -45,6 +45,14 @@ namespace PH::LabCore {
 		return appcontext->projectdir.getSubString();
 	}
 
+	void addImportAssetCallback(const char* extension, importAssetCallback callback) {
+		appcontext->importcallbacks.add(extension, callback);
+	}
+
+	void addOnRenderCallback(onRenderCallback callback) {
+		appcontext->onrendercallbacks.pushBack(callback);
+	}
+
 	namespace py = pybind11;
 
 	PyObject* createPythonModule(const char* name)

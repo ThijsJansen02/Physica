@@ -15,7 +15,9 @@
 #include "assets/Texture.h"
 #include "assets/Scene.h"
 #include "assets/scenecomponents/NameTag.h"
-#include "assets/scenecomponents/TransformComponent.h"
+#include "assets/scenecomponents/Transform.h"
+#include "assets/scenecomponents/PointLight.h"
+#include "assets/scenecomponents/MeshRender.h"
 
 
 //include after imgui
@@ -37,8 +39,14 @@ extern "C" {
 		//set directory to labcore home
 		PH::Platform::setCurrentDirectory(PH::LabCore3D::home.getSubString());
 
+		PH::LabCore::addImportAssetCallback(".jpg", PH::LabCore3D::importTextureCallback);
+		PH::LabCore::addOnRenderCallback(PH::LabCore3D::onRenderTextureImportOptions);
+
+		//add all scene component types
 		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::Tag::createDescription());
 		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::Transform::createDescription());
+		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::MeshRender::createDescription());
+		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::PointLight::createDescription());
 
 		//the global scene descriptor set layout for deffered renderer
 		PH::LabCore3D::DefferedRenderer::scenedescriptorlayout = PH::LabCore3D::DefferedRenderer::createSceneDescriptorLayout();
@@ -63,19 +71,6 @@ extern "C" {
 		PH::Engine::UUID albedoid = 328866994555156235;
 		PH::Engine::UUID brickid = 65465143419846515;
 		PH::Engine::UUID normalid = 64641685878151;
-
-
-		//textures
-		PH::LabCore3D::Texture* albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture("res/textures/brickmaterial/albedo.jpg"));
-		assetlib->addPersistentAsset(albedo, brickid, "brick_albedo");
-
-		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture("res/textures/brickmaterial/normal_dx.jpg", PH::Platform::GFX::FORMAT_R8G8B8A8_UNORM));
-		assetlib->addPersistentAsset(albedo, normalid, "brick_normal");
-
-		albedo = PH::Engine::Allocator::push(PH::LabCore3D::createTexture("res/textures/metal/albedo.jpg"));
-		assetlib->addPersistentAsset(albedo, albedoid, "metal_albedo");
-
-
 
 		//default deffered material
 		assetlib->deserializeAddAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultmaterialpipe.phpipe");

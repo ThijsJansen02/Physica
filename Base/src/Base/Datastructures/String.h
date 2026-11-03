@@ -241,6 +241,7 @@ namespace PH::Base {
 
 		/// <summary>
 		/// returns the substring from the last found char c, if no such character is found the return is an empty substring
+		/// returns from the last found character to the end of the string including the last found character
 		/// </summary>
 		/// <param name="c"></param>
 		/// <returns></returns>
@@ -353,6 +354,10 @@ namespace PH::Base {
 
 	inline sizeptr minSizeptr(sizeptr l, sizeptr r) {
 		return (l < r) ? l : r;
+	}
+
+	inline bool32 stringCompare(const Base::SubString& left, const Base::SubString& right) {
+		return Base::stringCompare(left.getC_Str(), right.getC_Str());
 	}
 
 	inline bool32 subStringCopy(const SubString& substring, char* dst, sizeptr maxsize) {
@@ -606,6 +611,11 @@ namespace PH::Base {
 		return str[1] == ':';
 	}
 
+	//returns the extension of the substring, including the dot
+	inline SubString getExtension(Base::SubString str) {
+		return str.getFromLast('.');
+	}
+
 	template<typename allocator>
 	void setExtension(String<allocator>* str, const char* extension) {
 		str->replace('\\', '/');
@@ -621,7 +631,7 @@ namespace PH::Base {
 
 	//returns the filename of the substring, requires all backward slashes to be replaced by forward slashes
 	inline SubString getFileName(SubString filepath) {
-		return filepath.getFromLast('/');
+		return filepath.getFromLast('/').moveHead(1);
 	}
 
 	//returns the filename of the substring, requires all backward slashes to be replaced by forward slashes

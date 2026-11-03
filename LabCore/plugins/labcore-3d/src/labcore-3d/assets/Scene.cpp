@@ -75,10 +75,11 @@ namespace PH::LabCore3D {
 
 	Engine::AssetDescription createSceneAssetDescription() {
 
-		Engine::AssetDescription d;
+		Engine::AssetDescription d{};
 		d.localdatasize = sizeof(Scene);
 		d.deserialize_ = (Engine::deserializeAsset)deserializeScene;
 		d.serialize_ = (Engine::SerializeAsset)serializeScene;
+		d.destroy_ = nullptr;
 		d.extension = ".lcscene";
 		d.id = Scene::getAssetDescriptionID();
 		return d;

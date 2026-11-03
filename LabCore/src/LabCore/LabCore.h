@@ -8,6 +8,9 @@
 
 namespace PH::LabCore {
 
+typedef bool32(*importAssetCallback)(Engine::AssetLibrary* lib, const char* filepath);
+typedef bool32(*onRenderCallback)(Engine::AssetLibrary* lib);
+
 static const char* projectextension = ".lcproj";
 
 	struct AppContext {
@@ -31,6 +34,12 @@ static const char* projectextension = ".lcproj";
 
 		Engine::String labcorehome;
 		Engine::String pythonhome;
+
+		//callback functions for importing assets, these are registered by the application and can be used to import assets from files
+		Base::ChainedHashMap<Base::SubString, importAssetCallback, Base::stringHash, Base::stringCompare, Engine::Allocator> importcallbacks;
+
+		//functions that plugins need to have called everu frame, these are registered by the application and can be used to update the state of the application
+		Engine::ArrayList<onRenderCallback> onrendercallbacks;
 	};
 
 	extern AppContext* appcontext;

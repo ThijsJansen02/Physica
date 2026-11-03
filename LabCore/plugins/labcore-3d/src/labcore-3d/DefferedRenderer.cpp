@@ -136,7 +136,7 @@ namespace PH::LabCore3D {
 		lightcolorattachment.initiallayout = Platform::GFX::IMAGE_LAYOUT_UNDEFINED;
 		lightcolorattachment.finallayout = Platform::GFX::IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		lightcolorattachment.format = Platform::GFX::FORMAT_R8G8B8A8_UNORM;
+		lightcolorattachment.format = Platform::GFX::FORMAT_R16G16B16A16_SFLOAT;
 		lightcolorattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
 		lightcolorattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_STORE;
 
@@ -212,13 +212,13 @@ namespace PH::LabCore3D {
 		objectidattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
 		objectidattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_STORE;
 
-		//depth
+		//we store the depth attachment to use it in the forward rendering pass
 		Platform::GFX::AttachmentDescription depthattachment{};
 		depthattachment.initiallayout = GFX::IMAGE_LAYOUT_UNDEFINED;
 		depthattachment.finallayout = GFX::IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		depthattachment.format = GFX::FORMAT_D24_UNORM_S8_UINT;
 		depthattachment.loadop = GFX::ATTACHMENT_LOAD_OP_CLEAR;
-		depthattachment.storeop = GFX::ATTACHMENT_STORE_OP_DONT_CARE;
+		depthattachment.storeop = GFX::ATTACHMENT_STORE_OP_STORE;
 
 		Platform::GFX::AttachmentDescription attachmentdescriptions[] = { albedoattachment, normalsattachment, positionsattachment, objectidattachment, depthattachment };
 
@@ -307,7 +307,7 @@ namespace PH::LabCore3D {
 
 		PH::Platform::GFX::TextureCreateInfo ai{};
 		ai.data = nullptr;
-		ai.format = GFX::FORMAT_R8G8B8A8_UNORM;
+		ai.format = GFX::FORMAT_R16G16B16A16_SFLOAT;
 		ai.height = height;
 		ai.width = width;
 		ai.usage = GFX::IMAGE_USAGE_SAMPLED_BIT | GFX::IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -430,6 +430,7 @@ namespace PH::LabCore3D {
 	}
 
 	void DefferedRenderer::endGeometryPass() {
+
 		Platform::GFX::endRenderpass();
 	}
 
@@ -501,7 +502,7 @@ namespace PH::LabCore3D {
 	}
 
 
-	void DefferedRenderer::output(Engine::Display* target, OutputSource source) {
+	void DefferedRenderer::output(Engine::Display* target, GraphicsPipeline* tonemap, OutputSource source) {
 		auto* renderer2d = LabCore::getRenderer2D();
 
 		beginInternalRenderpass(this, target->renderpass, target->fb);
@@ -510,10 +511,6 @@ namespace PH::LabCore3D {
 
 		auto default2dpipe = LabCore::getDefault2DGraphicsPipeline();
 
-		renderer2d->pushGraphicsPipeline(default2dpipe);
-
-		renderer2d->pushProjection(glm::mat4(1.0f));
-		renderer2d->pushView(glm::mat4(1.0f));
 
 		GFX::Texture srctexture = lightpassattachment;
 		if (source == DEFFERED_ALBEDO) {
@@ -528,6 +525,15 @@ namespace PH::LabCore3D {
 			srctexture = gbuffer.position;
 		}
 
+		if (source == DEFFERED_LIGHTING) {
+			renderer2d->pushGraphicsPipeline(tonemap->internalpipeline, { &tonemap->defaultuserdescriptorset, 1});
+		}
+		else {
+			renderer2d->pushGraphicsPipeline(default2dpipe);
+		}
+
+		renderer2d->pushProjection(glm::mat4(1.0f));
+		renderer2d->pushView(glm::mat4(1.0f));
 		//srctexture = gbuffer.objectid;
 
 		//just renderer albedo to the display for now!

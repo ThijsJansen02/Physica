@@ -364,6 +364,7 @@ namespace PH::Engine {
 			pipelinecreate.vertexbindingdescriptions = { quadvertexbindingdescription, ARRAY_LENGTH(quadvertexbindingdescription) };
 			pipelinecreate.vertexattributedescriptions = { quadvertexinputattributes, ARRAY_LENGTH(quadvertexinputattributes) };
 			pipelinecreate.depthtest = false;
+			pipelinecreate.blend = false;
 
 			Platform::GFX::GraphicsPipeline pipeline;
 

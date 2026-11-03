@@ -19,9 +19,14 @@ asset:
       binding: 1
       type: 1
       set: 1
-      texture: 65465143419846515
+      texture: 2817014827
     - name: normaltexture
       binding: 2
       type: 1
       set: 1
-      texture: 64641685878151
+      texture: 0
+    - name: speculartexture
+      binding: 3
+      type: 1
+      set: 1
+      texture: 0

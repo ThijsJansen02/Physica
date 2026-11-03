@@ -217,6 +217,14 @@ namespace PH::LabCore3D {
 		//GFX::GraphicsPipeline p = create3DGraphicsPipelineFromBinaries(DefferedRenderer::lightingrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), );
 	}
 
+	GFX::GraphicsPipeline createToneMappingPipeline(const Binaries& b, GFX::DescriptorSetLayout userlayout) {
+		GFX::DescriptorSetLayout layouts[1] = { userlayout };
+		GFX::GraphicsPipeline p = Engine::Renderer2D::createGraphicsPipelineFromBinaries(Engine::Display::defaultrenderpassdescription, b.vertsrc.getArray(), b.fragsrc.getArray(), { layouts, 1 });
+		if (p == PH_GFX_NULL) {
+			return PH_GFX_NULL;
+		}
+		return p;
+	}
 
 	//builds the graphics pipeline based on the type and the binaries
 	GFX::GraphicsPipeline buildGraphicsPipeline(PipelineType type, const Binaries& binaries, GFX::DescriptorSetLayout userlayout) {
@@ -225,7 +233,12 @@ namespace PH::LabCore3D {
 			return createDefferedGeometryPipeline(binaries, userlayout);
 		case LC_PIPELINE_TYPE_3D_DEFFERED_LIGHTING:
 			return createDefferedLightingPipeline(binaries, userlayout);
+		case LC_PIPELINE_TYPE_TONE_MAPPING:
+			return createToneMappingPipeline(binaries, userlayout);
 		}
+		
+		Engine::WARN << "pipeline type not supported for building graphics pipeline yet!\n";
+		return PH_GFX_NULL;
 	}
 
 	void releaseBinaries(Binaries* b) {
@@ -422,8 +435,17 @@ namespace PH::LabCore3D {
 						result = false;
 						continue;
 					}
+
+					if (res.texture->status != Engine::LOADED) {
+						result = false;
+						continue;
+					}
 					
 					Texture* tex = (Texture*)res.texture->assetdata;
+					if (tex->texture == PH_GFX_NULL) {
+						result = false;
+						continue;
+					}
 
 					GFX::DescriptorImageInfo im;
 					im.texture = tex->texture;
@@ -606,11 +628,24 @@ namespace PH::LabCore3D {
 		Binaries b;
 		if (loadBinaries(&b, sourcepath, binpath) < 1) {
 			Engine::WARN << "failed to load binaries for pipeline: " << sourcepath;
+			return pl;
 		}
 
 		reloadGraphicsPipelineFromBinaries(&pl, b);
 
 		releaseBinaries(&b);
+
+		return pl;
+	}
+
+	LabCore3D::GraphicsPipeline createEmptyGraphicsPipeline(PipelineType type) {
+		GraphicsPipeline pl{};
+		pl.internalpipeline = PH_GFX_NULL;
+		pl.binpath = Engine::String::create("");
+		pl.srcpath = Engine::String::create("");
+		pl.resources = Engine::ArrayList<ShaderResource>{};
+		pl.type = type;
+		pl.isvalid = false;
 
 		return pl;
 	}
@@ -650,6 +685,11 @@ namespace PH::LabCore3D {
 
 		*pipe = createGraphicsPipeline(srcpath.getC_Str(), binpath.getC_Str(), type);
 
+		if (pipe->internalpipeline == PH_GFX_NULL) {
+			Engine::WARN << "deserialized pipeline doesnt have valid binaries or glsl code!\n";
+			return;
+		}
+
 		Engine::ArrayList<ShaderResource> resources = Engine::ArrayList<ShaderResource>::create(1);
 
 		if (n["resources"]) {
@@ -662,7 +702,18 @@ namespace PH::LabCore3D {
 					Engine::AssetID texid = res["texture"].as<Engine::AssetID>();
 
 					//might want to add the asset library as a parameter, on the other hand, this is all in labcore space
-					sr.texture = LabCore::getAssetLibrary()->getAssetIdentifier<LabCore3D::Texture>(texid);
+					sr.texture = LabCore::getAssetLibrary()->getLoadedAssetIdentifier<LabCore3D::Texture>(texid);
+					if (sr.texture) {
+						if (sr.texture->status != Engine::LOADED) {
+							Engine::WARN << "deserialized a texture that cant be loaded yet!\n";
+							continue;
+						}
+					}
+					else {
+						Engine::WARN << "failed to find texture with id: " << texid << " for graphics pipeline resource!\n";
+						continue;
+					}
+
 				}
 				resources.pushBack(sr);
 			}

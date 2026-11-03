@@ -14,7 +14,7 @@ namespace PH::Engine {
 		AssetPool pool{};
 
 		pool.assets = Base::ChainedHashMap<AssetID, AssetIdentifier, Base::uint64Hash, Base::uint64Compare, Engine::Allocator>::create(4);
-		pool.assetreferences = Base::ChainedHashMap<Base::SubString, AssetIdentifier*, stringHash, stringCompare, Engine::Allocator>::create(4);
+		pool.assetreferences = Base::ChainedHashMap<Base::SubString, AssetIdentifier*, Base::stringHash, Base::stringCompare, Engine::Allocator>::create(4);
 
 		pool.description = description;
 

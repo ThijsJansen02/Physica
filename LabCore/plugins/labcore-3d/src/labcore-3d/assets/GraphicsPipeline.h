@@ -6,11 +6,22 @@ namespace PH::LabCore3D {
 
 #define PH_ASSET_GRAPHICS_PIPELINE 983741375477342588
 
+	static const char* pipelinetypenames[] = {
+		"3D Deffered Material", //depth buffer, gbuffer and objectid buffer
+		"3D Forward Material", //depth buffer, colorbuffer and objectid buffer
+		"3D Deffered Lighting",
+		"2D Batched Material",
+		"HDR Post Process",
+		"Tone Mapping"
+	};
+
 	enum PipelineType {
-		LC_PIPELINE_TYPE_3D_DEFFERED_MATERIAL,
+		LC_PIPELINE_TYPE_3D_DEFFERED_MATERIAL = 0,
 		LC_PIPELINE_TYPE_3D_FORWARD_MATERIAL,
 		LC_PIPELINE_TYPE_3D_DEFFERED_LIGHTING,
-		LC_PIPELINE_TYPE_2D_BATCHED_MATERIAL
+		LC_PIPELINE_TYPE_2D_BATCHED_MATERIAL,
+		LC_PIPELINE_TYPE_HDR_POST_PROCESS,
+		LC_PIPELINE_TYPE_TONE_MAPPING
 	};
 
 	enum BufferMemberBaseType {
@@ -60,6 +71,10 @@ namespace PH::LabCore3D {
 			return PH_ASSET_GRAPHICS_PIPELINE;
 		}
 
+		static const char* getExtension() {
+			return ".lcpipe";
+		}
+
 		//what kind of graphics pipeline this is
 		PipelineType type;
 
@@ -86,6 +101,8 @@ namespace PH::LabCore3D {
 	};
 
 	GraphicsPipeline createGraphicsPipeline(const char* sourcepath, const char* binpath, PipelineType type);
+	GraphicsPipeline createEmptyGraphicsPipeline(PipelineType type);
+
 
 	bool32 reloadGraphicsPipelineFromGLSL(GraphicsPipeline* pipe);
 

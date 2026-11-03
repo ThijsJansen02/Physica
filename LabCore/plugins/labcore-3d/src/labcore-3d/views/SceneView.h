@@ -15,7 +15,11 @@ namespace PH::LabCore3D {
 
 		ImGuizmo::OPERATION operation;
 
+		bool32 pickmouseobject;
 		Engine::DynamicGPUBuffer<uint32> pixelreadbuffer;
+
+		GraphicsPipeline* tonemappipe;
+		GraphicsPipeline* lightingpipe;
 
 		DefferedRenderer::OutputSource displaysrc;
 		Engine::AssetIdentifier* scene;

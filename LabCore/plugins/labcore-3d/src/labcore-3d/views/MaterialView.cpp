@@ -50,25 +50,60 @@ namespace PH::LabCore3D {
 
 		view->currentpipe = ImGuiext::assetSelecter("graphics pipeline", view->currentpipe, pipelines.getArray(), "select pipeline");
 
+		ImGui::SameLine();
+		if(ImGui::Button("Create new")) {
+			char buffer[256];
+
+			PH::Platform::OpenFileDialogInfo info{};
+			info.filter = "*.lcpipe";
+			info.flags = PH_DIALOG_PATHMUSTEXIST;
+			info.resultbuffer = buffer;
+			info.resultbuffersize = 256;
+			info.startingdir = LabCore::getCurrentProjectDir().getC_Str();
+			
+			if (PH::Platform::openFileDialog(info)) {
+				Engine::String filepath = Engine::String::create(buffer);
+				Base::setExtension(&filepath, GraphicsPipeline::getExtension());
+
+				Engine::String filename = Engine::String::create(filepath.getSubString().getFromLast('/').getTillLastExcluding('.').moveHead(1));
+
+				GraphicsPipeline* pipe = (GraphicsPipeline*)Engine::Allocator::push(createEmptyGraphicsPipeline(LC_PIPELINE_TYPE_3D_DEFFERED_MATERIAL));
+				assets->addAsset<GraphicsPipeline>(pipe, filepath.getC_Str(), filename.getC_Str(), Engine::PH_ASSET_SERIALIZABLE);
+			}
+		}
+
 
 		if (view->currentpipe) {
 
 			//set current directory to home or projectdir depending on the asset
-			if (view->currentpipe->flags & Engine::PH_ASSET_SERIALIZABLE) {
-				PH::Platform::setCurrentDirectory(LabCore::getCurrentProjectDir());
-			}
-			else {
-				PH::Platform::setCurrentDirectory(LabCore3D::home.getSubString());
+			Platform::setCurrentDirectory(LabCore::getCurrentProjectDir().getC_Str());
+
+			if (!(view->currentpipe->status == Engine::LOADED)) {
+				assets->loadAsset<GraphicsPipeline>(view->currentpipe->assetid);
 			}
 
 			if(view->currentpipe->status == Engine::LOADED) {
 				GraphicsPipeline* p = (GraphicsPipeline*)view->currentpipe->assetdata;
 
+				if (ImGuiext::FilePath("source", &p->srcpath, "*.phshadersrc", LabCore::getCurrentProjectDir().getC_Str(), PH_DIALOG_FILEMUSTEXIST)) {
+					Base::setExtension(&p->srcpath, ".phshadersrc");
+				}
+
+				if (ImGuiext::FilePath("binpath", &p->binpath, "*.phshaderbin", LabCore::getCurrentProjectDir().getC_Str(), PH_DIALOG_PATHMUSTEXIST)) {
+					Base::setExtension(&p->binpath, ".phshaderbin");
+				}
+
+				if (ImGui::BeginCombo("pipeline type", pipelinetypenames[p->type])) {
+					for (uint32 i = 0; i < ARRAY_LENGTH(pipelinetypenames); i++) {
+						if (ImGui::Selectable(pipelinetypenames[i], p->type == i, 0)) {
+							p->type = (PipelineType)i;
+						}
+					}
+					ImGui::EndCombo();
+				}
+
 				if (ImGui::Button("reload")) {
 					reloadGraphicsPipelineFromGLSL(p);
-
-
-					LabCore::getAssetLibrary()->SerializeAsset<PH::LabCore3D::GraphicsPipeline>(view->currentpipe, view->currentpipe->filepath.getC_Str());
 				}
 
 				Engine::ArrayList<Engine::AssetIdentifier*> textureoptions = assets->getAllIdentifiersOfType<Texture>();
@@ -88,6 +123,9 @@ namespace PH::LabCore3D {
 						auto* old = res.texture;
 						res.texture = ImGuiext::assetSelecter(res.name.getC_Str(), res.texture, textureoptions.getArray(), "select texture");
 						if (old != res.texture) {
+							if (res.texture->status != Engine::LOADED) {
+								assets->loadAsset<Texture>(res.texture->assetid);
+							}
 							texturesdirty = true;
 						}
 					}
