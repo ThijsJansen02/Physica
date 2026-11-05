@@ -68,9 +68,7 @@ extern "C" {
 		PH::Engine::UUID pipeid = 16439805985763607426;
 		PH::Engine::UUID cubeid = 9808924416449029863;
 		PH::Engine::UUID lightingpipeid = 2983062809953302303;
-		PH::Engine::UUID albedoid = 328866994555156235;
-		PH::Engine::UUID brickid = 65465143419846515;
-		PH::Engine::UUID normalid = 64641685878151;
+		PH::Engine::UUID sphereid = 328866994555156235;
 
 		//default deffered material
 		assetlib->deserializeAddAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultmaterialpipe.phpipe");
@@ -80,7 +78,10 @@ extern "C" {
 
 		//meshes
 		PH::LabCore3D::Mesh* cube = PH::Engine::Allocator::push(PH::LabCore3D::createCubeMesh());
-		assetlib->addPersistentAsset(cube, cubeid, "cubemesh");
+		assetlib->addPersistentAsset(cube, cubeid, "cube mesh");
+
+		PH::LabCore3D::Mesh* sphere = PH::Engine::Allocator::push(PH::LabCore3D::generateSphereMesh(0.5f));
+		assetlib->addPersistentAsset(sphere, sphereid, "sphere mesh");
 
 		//python module test
 		PyObject* raw = PH::LabCore::createPythonModule("LabCore3D");

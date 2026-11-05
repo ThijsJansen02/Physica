@@ -1,7 +1,7 @@
 assetidentifier:
   assetid: 2761470797
   assetdescriptionid: 15876590110196968583
-  filepath: C:/Users/Tjansen/RpFilterStudio/Physica/LabCore/projects/example project/assets/textures/Planks037A_2K-JPG_Roughness.jpg.lctex
+  filepath: assets/textures/Planks037A_2K-JPG_Roughness.jpg.lctex
   flags: 1
   references:
     - Planks037A_2K-JPG_Roughness.jpg

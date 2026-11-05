@@ -113,10 +113,11 @@ layout(location = 3) out uint outObjectid;
 
 layout(set = 1, binding = 1) uniform sampler2D albedotexture;
 layout(set = 1, binding = 2) uniform sampler2D normaltexture;
-layout(set = 1, binding = 3) uniform sampler2D speculartexture;
+layout(set = 1, binding = 3) uniform sampler2D roughtnesstexture;
 
 layout(set = 1, binding = 0) uniform MaterialProperties {
 	vec2 UVscale;
+    float roughness;
     uint normalmap;
 } materialproperties;	
 
@@ -126,7 +127,7 @@ void main() {
 
     vec3 albedo = texture(albedotexture, fs_in.UV * materialproperties.UVscale * fs_in.determinant).rgb;
     vec3 normaltexel = texture(normaltexture, fs_in.UV * materialproperties.UVscale * fs_in.determinant).rgb;
-    vec3 specular = texture(speculartexture, fs_in.UV * materialproperties.UVscale * fs_in.determinant).rgb;
+    vec3 roughness = texture(roughtnesstexture, fs_in.UV * materialproperties.UVscale * fs_in.determinant).rgb;
 
 
     if(materialproperties.normalmap == 1) {
@@ -139,7 +140,7 @@ void main() {
     outPosition.a = 1.0;
 
     outAlbedo.rgb = albedo;
-    outAlbedo.a = 1.0 - specular.r;
+    outAlbedo.a = roughness.r * materialproperties.roughness;
 
     outNormal.rgb = normalize(fs_in.TBN * normaltexel);
     outNormal.a = 1.0;

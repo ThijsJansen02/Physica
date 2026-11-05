@@ -1,7 +1,7 @@
 assetidentifier:
   assetid: 3658502787
   assetdescriptionid: 6544691651984941516
-  filepath: C:/Users/Tjansen/RpFilterStudio/Physica/LabCore/projects/example project/assets/scenes/example_scene.lcscene
+  filepath: assets/scenes/example_scene.lcscene
   flags: 1
   references:
     - example_scene
@@ -26,9 +26,9 @@ asset:
         Transform:
           rotXYZ: [0, -0, 0]
           scale: [1, 1, 1]
-          translation: [-0.04647599, 2.3355608, 1.5095618]
+          translation: [-1.4485247, 2.7189848, 1.1101213]
         Point Light:
-          postion: [-0.04647599, 2.3355608, 1.5095618]
+          postion: [-1.4485247, 2.7189848, 1.1101213]
           intensity: 1.74
           color: [1, 0, 0]
     - components:
@@ -38,32 +38,32 @@ asset:
         Transform:
           rotXYZ: [0, -0, 0]
           scale: [1, 1, 1]
-          translation: [0, 5.614959, 0]
+          translation: [-3.440455, 6.2316875, 1.4011955]
         Point Light:
-          postion: [0, 5.614959, 0]
-          intensity: 20
+          postion: [-3.440455, 6.2316875, 1.4011955]
+          intensity: 300
           color: [1, 1, 1]
     - components:
         Tag:
           name: box 2
           id: 3386866062
         Transform:
-          rotXYZ: [0, 32.745617, 0]
-          scale: [1.0000001, 1, 1.0000001]
-          translation: [0.2019948, 2.344815, -1.0034422]
+          rotXYZ: [0, -59.456398, 0]
+          scale: [1.818336, 1.8183359, 1.818336]
+          translation: [-1.2427865, 3.7704165, -0.508483]
         Mesh:
-          mesh: 9808924416449029863
+          mesh: 328866994555156235
           material: 3991480754
     - components:
         Tag:
           name: box 1
           id: 271409149
         Transform:
-          rotXYZ: [0, -36.147396, 0]
-          scale: [3.0900002, 3.09, 3.0900002]
-          translation: [2.1914456, 3.3625925, 2.687857]
+          rotXYZ: [0, -78.08085, 0]
+          scale: [0.35999998, 0.36, 0.35999998]
+          translation: [0.014504672, 2.7483613, 2.2085845]
         Mesh:
-          mesh: 9808924416449029863
+          mesh: 328866994555156235
           material: 1877075475
     - components:
         Tag:
@@ -83,7 +83,7 @@ asset:
         Transform:
           rotXYZ: [8.297847e-06, -38.151234, -4.695053e-06]
           scale: [1.0000004, 0.99999994, 1.0000004]
-          translation: [-2.8473313, 2.4455178, 0.7737127]
+          translation: [-2.9756744, 3.306305, 3.5723567]
         Mesh:
           mesh: 9808924416449029863
           material: 3991480754

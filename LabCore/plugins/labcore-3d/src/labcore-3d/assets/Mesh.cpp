@@ -52,6 +52,82 @@ namespace PH::LabCore3D {
 		20, 21, 22,    22, 23, 20     // Left face
 	};
 
+	Mesh generateSphereMesh(
+		float radius,
+		uint32_t longitudeSegments,
+		uint32_t latitudeSegments)
+	{
+		Engine::ArrayList<Vertex3D> vertices = Engine::ArrayList<Vertex3D>::create();
+		Engine::ArrayList<uint32> indices = Engine::ArrayList<uint32>::create();
+
+		if (longitudeSegments < 3 || latitudeSegments < 2 || radius <= 0.0f)
+			return {};
+
+		constexpr float PI = glm::pi<float>();
+
+		for (uint32_t y = 0; y <= latitudeSegments; ++y)
+		{
+			float v = static_cast<float>(y) / latitudeSegments;
+			float theta = v * PI;
+
+			for (uint32_t x = 0; x <= longitudeSegments; ++x)
+			{
+				float u = static_cast<float>(x) / longitudeSegments;
+				float phi = u * 2.0f * PI;
+
+				float sinTheta = sin(theta);
+				float cosTheta = cos(theta);
+
+				float sinPhi = sin(phi);
+				float cosPhi = cos(phi);
+
+				glm::vec3 normal(
+					sinTheta * cosPhi,
+					cosTheta,
+					sinTheta * sinPhi
+				);
+
+				glm::vec3 tangent(
+					-sinPhi,
+					0.0f,
+					cosPhi
+				);
+
+				glm::vec3 bitangent = glm::cross(normal, tangent);
+
+				Vertex3D vertex;
+				vertex.position = normal * radius;
+				vertex.normal = normal;
+				vertex.texcoord = glm::vec2(u, v);
+				vertex.tangent = tangent;
+				vertex.bitangent = bitangent;
+
+				vertices.pushBack(vertex);
+			}
+		}
+
+		for (uint32_t y = 0; y < latitudeSegments; ++y)
+		{
+			for (uint32_t x = 0; x < longitudeSegments; ++x)
+			{
+				uint32_t current =
+					y * (longitudeSegments + 1) + x;
+
+				uint32_t next = current + longitudeSegments + 1;
+
+				indices.pushBack(current);
+				indices.pushBack(next);
+				indices.pushBack(current + 1);
+
+				indices.pushBack(current + 1);
+				indices.pushBack(next);
+				indices.pushBack(next + 1);
+			}
+		}
+
+		return createMesh(vertices.getArray(), indices.getArray());
+	}
+
 	
 	void serializeMesh(YAML::Emitter& out, Mesh* mesh) {
 

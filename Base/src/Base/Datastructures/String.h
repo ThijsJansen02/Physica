@@ -629,6 +629,25 @@ namespace PH::Base {
 		}
 	}
 
+	template<typename allocator>
+	bool32 MakeRelative(String<allocator>* absolutepath, SubString homedir) {
+		
+		SubString homedirstr = homedir;
+		SubString relpath = absolutepath->getSubString();
+		
+		while (relpath.getLength() > 0 && homedirstr.getLength() > 0 && relpath[0] == homedirstr[0]) {
+			relpath = relpath.moveHead(1);
+			homedirstr = homedirstr.moveHead(1);
+		}
+
+		if (homedirstr.getLength() > 0) {
+			//homedir is not a prefix of the absolutepath
+			return false;
+		}
+
+		absolutepath->set(relpath);
+	}
+
 	//returns the filename of the substring, requires all backward slashes to be replaced by forward slashes
 	inline SubString getFileName(SubString filepath) {
 		return filepath.getFromLast('/').moveHead(1);

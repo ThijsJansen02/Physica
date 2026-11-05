@@ -113,7 +113,7 @@ layout(location = 3) out uint outObjectid;
 
 layout(set = 1, binding = 0) uniform ColorData {
 	vec3 albedo_color;
-    float specular;
+    float roughness;
 } colordata;	
 
 vec3 srgbToLinear(vec3 srgb)
@@ -131,7 +131,7 @@ void main() {
     outPosition.a = 1.0;
 
     outAlbedo.rgb = srgbToLinear(colordata.albedo_color);
-    outAlbedo.a = colordata.specular;
+    outAlbedo.a = colordata.roughness;
 
     vec3 normaltexel = vec3(0.0, 0.0, 1.0);
 

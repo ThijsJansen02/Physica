@@ -1,7 +1,7 @@
 assetidentifier:
   assetid: 2930578386
   assetdescriptionid: 983741375477342588
-  filepath: C:/Users/Tjansen/RpFilterStudio/Physica/LabCore/projects/example project/assets/pipelines/tonemap.lcpipe
+  filepath: assets/pipelines/tonemap.lcpipe
   flags: 1
   references:
     - tonemap
@@ -9,7 +9,7 @@ asset:
   type: 5
   binpath: assets/pipelines/shaders/bin/tonemap.phshaderbin
   srcpath: assets/pipelines/shaders/tonemap.phshadersrc
-  userbuffer: !!binary "fT9tQA=="
+  userbuffer: !!binary "AACAPw=="
   resources:
     - name: Properties
       binding: 1

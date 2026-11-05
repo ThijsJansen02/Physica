@@ -64,7 +64,7 @@ namespace PH::LabCore3D {
 	bool32 drawPointLights(Scene* scene, DefferedRenderer* renderer) {
 
 		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
-		auto* cubemesh = assets->getAssetByReference<Mesh>("cubemesh");
+		auto* cubemesh = assets->getAssetByReference<Mesh>("sphere mesh");
 		auto* pipe = assets->getLoadedAssetByReference<GraphicsPipeline>("lightbox");
 		
 		auto view = scene->registry.view<Transform, PointLight>();

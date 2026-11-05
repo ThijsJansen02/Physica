@@ -19,7 +19,7 @@ namespace PH::LabCore3D {
 		Platform::GFX::Buffer vertexbuffer;
 	};
 
-
+	Mesh generateSphereMesh(float radius, uint32 longitudeSegments = 32, uint32 latitudeSegments = 16);
 	Mesh createCubeMesh();
 	Mesh createMesh(Base::Array<Vertex3D> vertices, Base::Array<uint32> indices);
 	Engine::AssetDescription createMeshAssetDescription();

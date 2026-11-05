@@ -1,7 +1,7 @@
 assetidentifier:
   assetid: 2781615859
   assetdescriptionid: 983741375477342588
-  filepath: C:/Users/Tjansen/RpFilterStudio/Physica/LabCore/projects/example project/assets/pipelines/lightbox.lcpipe
+  filepath: assets/pipelines/lightbox.lcpipe
   flags: 1
   references:
     - lightbox

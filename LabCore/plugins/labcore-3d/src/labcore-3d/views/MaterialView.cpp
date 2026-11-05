@@ -63,6 +63,9 @@ namespace PH::LabCore3D {
 			
 			if (PH::Platform::openFileDialog(info)) {
 				Engine::String filepath = Engine::String::create(buffer);
+
+				Base::MakeRelative(&filepath, LabCore::getCurrentProjectDir());
+
 				Base::setExtension(&filepath, GraphicsPipeline::getExtension());
 
 				Engine::String filename = Engine::String::create(filepath.getSubString().getFromLast('/').getTillLastExcluding('.').moveHead(1));

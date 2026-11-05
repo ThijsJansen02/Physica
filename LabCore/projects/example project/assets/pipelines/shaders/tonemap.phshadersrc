@@ -53,7 +53,7 @@ void main() {
 	
 	vec3 hdrcolor = texture(texSampler[TextureIndex], TexCoord).rgb;
 	vec3 mapped = vec3(1.0) - exp(-hdrcolor * properties.exposure);
-	
+	//vec3 mapped = hdrcolor / (hdrcolor + vec3(1.0));
 	outColor = vec4(mapped, 1.0);
 }	
 

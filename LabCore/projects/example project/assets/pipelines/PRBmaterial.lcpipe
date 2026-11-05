@@ -1,7 +1,7 @@
 assetidentifier:
   assetid: 3991480754
   assetdescriptionid: 983741375477342588
-  filepath: C:/Users/Tjansen/RpFilterStudio/Physica/LabCore/projects/example project/assets/pipelines/PRBmaterial.lcpipe
+  filepath: assets/pipelines/PRBmaterial.lcpipe
   flags: 1
   references:
     - PRBmaterial
@@ -9,7 +9,7 @@ asset:
   type: 0
   binpath: assets/pipelines/shaders/bin/PBRmaterial.phshaderbin
   srcpath: assets/pipelines/shaders/PBRmaterial.phshadersrc
-  userbuffer: !!binary "AACAPwAAAEABAAAA"
+  userbuffer: !!binary "AAAAQAAAAEAAAIA/AQAAAA=="
   resources:
     - name: MaterialProperties
       binding: 0
@@ -25,7 +25,7 @@ asset:
       type: 1
       set: 1
       texture: 3808292401
-    - name: speculartexture
+    - name: roughtnesstexture
       binding: 3
       type: 1
       set: 1

@@ -85,15 +85,13 @@ namespace PH::LabCore3D {
 			const char* entityname = "no entity";
 
 			if (sceneview->scene) {
-				if (sceneview->scene->status != Engine::LOADED) {
-					assets->loadAsset<Scene>(sceneview->scene->assetid);
-				}
+				if (sceneview->scene->status == Engine::LOADED) {
+					Scene* scene = (Scene*)sceneview->scene->assetdata;
 
-				Scene* scene = (Scene*)sceneview->scene->assetdata;
-
-				if (scene->registry.valid(hovered)) {
-					if (hasComponent<Tag>(scene, hovered)) {
-						entityname = getComponent<Tag>(scene, hovered).name.getC_Str();
+					if (scene->registry.valid(hovered)) {
+						if (hasComponent<Tag>(scene, hovered)) {
+							entityname = getComponent<Tag>(scene, hovered).name.getC_Str();
+						}
 					}
 				}
 			}
