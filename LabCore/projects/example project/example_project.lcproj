@@ -4,7 +4,7 @@ openviews:
     viewdata:
       scene: 3658502787
       Camera:
-        direction: [-0.8468305, -0.5180278, -0.12052185]
+        direction: [-0.88110983, -0.4725515, -0.018456561]
         position: [6.0220184, 6.29951, 2.1040478]
       lightpipe: 2511035463
       tonemappipe: 2930578386

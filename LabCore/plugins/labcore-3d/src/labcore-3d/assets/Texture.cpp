@@ -233,7 +233,8 @@ namespace PH::LabCore3D {
 	}
 
 	Engine::AssetDescription createTextureAssetDescription() {
-		Engine::AssetDescription d;
+		Engine::AssetDescription d{};
+		d.destroy_ = nullptr;
 		d.id = PH_ASSET_TEXTURE;
 		d.extension = ".lctex";
 		d.localdatasize = sizeof(Texture);

@@ -1,0 +1,26 @@
+openviews:
+  - viewname: Python Shell
+    instanceid: 2956151467
+    viewdata:
+      shellbgcolor: [0.3, 0, 0.4, 1]
+      messages:
+        - message: lc.setShellClearColor(lc.Vec4(1.0, 0.0, 0.4, 1.0))
+          source: 0
+        - message: lc.setShellClearColor(lc.Vec4(0.3, 0.0, 0.4, 1.0))
+          source: 0
+includedassets:
+  - descriptionid: 8122762271555803
+    includedassets:
+      []
+  - descriptionid: 2064075887894144755
+    includedassets:
+      []
+  - descriptionid: 6544691651984941516
+    includedassets:
+      []
+  - descriptionid: 983741375477342588
+    includedassets:
+      []
+  - descriptionid: 15876590110196968583
+    includedassets:
+      []

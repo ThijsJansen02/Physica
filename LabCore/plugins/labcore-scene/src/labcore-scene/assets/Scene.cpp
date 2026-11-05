@@ -67,6 +67,10 @@ namespace PH::LabCore {
 		}
 	}
 
+	void destroyScene(Scene* scene) {
+		scene->registry.~basic_registry();
+	}
+
 	Scene createScene() {
 		Scene scene;
 		scene.registry = entt::registry();
@@ -85,7 +89,7 @@ namespace PH::LabCore {
 		d.localdatasize = sizeof(Scene);
 		d.deserialize_ = (Engine::deserializeAsset)deserializeScene;
 		d.serialize_ = (Engine::SerializeAsset)serializeScene;
-		d.destroy_ = nullptr;
+		d.destroy_ = (Engine::destroyAsset)destroyScene;
 		d.extension = ".lcscene";
 		d.id = Scene::getAssetDescriptionID();
 		return d;
