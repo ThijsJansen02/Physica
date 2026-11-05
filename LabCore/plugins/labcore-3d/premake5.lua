@@ -34,6 +34,8 @@ project "LabCore-3D"
 		"%{IncludeDir.labcore}",
 		"%{IncludeDir.vulkanSDK}",
 		"%{IncludeDir.imguizmo}",
+		"%{IncludeDir.labcore_scene}",
+
 
 		--"%{IncludeDir.imguizmo}",
 		"%{IncludeDir.stb}"
@@ -46,7 +48,8 @@ project "LabCore-3D"
 		"PH_ENGINE_IMPORT", 
 		"PH_LABCORE_IMPORT",
 		"PH_PLATFORM_IMPORT",
-		"YAML_CPP_STATIC_DEFINE"
+		"YAML_CPP_STATIC_DEFINE",
+		"LC_PLUGIN_PYTHON"
 	}
 
 	links
@@ -54,6 +57,7 @@ project "LabCore-3D"
 		"yaml-cpp",
 		"assimp",
 		"LabCore",
+		"LabCore-scene",
 		"%{Library.platform}"
 	}
 

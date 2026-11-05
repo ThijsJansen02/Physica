@@ -1,6 +1,6 @@
 #include "NameTag.h"
 #include <Engine/imgui/extensions.h>
-namespace PH::LabCore3D {
+namespace PH::LabCore {
 
 	bool32 serializeTag(YAML::Emitter& out, entt::entity entity, Scene* scene) {
 		

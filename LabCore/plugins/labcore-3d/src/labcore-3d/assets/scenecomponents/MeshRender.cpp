@@ -1,10 +1,13 @@
-#include "Transform.h"
-#include "MeshRender.h"
+#include "MeshRender.h" 
+#include <LabCore-scene/assets/scenecomponents/NameTag.h>
+#include <LabCore-scene/assets/scenecomponents/Transform.h>
 #include <Engine/imgui/extensions.h>
 #include "../../DefferredRenderer.h"
 #include <LabCore/LabCoreAPI.h>
 
 namespace PH::LabCore3D {
+
+	using namespace PH::LabCore;
 
 	bool32 serializeMeshRender(YAML::Emitter& out, entt::entity entity, Scene* scene) {
 
@@ -60,9 +63,11 @@ namespace PH::LabCore3D {
 		return scene->registry.all_of<MeshRender>(entity);
 	}
 
-	bool32 drawMeshRender(Scene* scene, DefferedRenderer* renderer) {
+	//supposes that there is a deffered renderer!
+	bool32 drawMeshRender(Scene* scene) {
 
 		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
+		LabCore3D::DefferedRenderer* renderer = &LabCore3D::renderer;
 
 		for (auto ent : scene->registry.view<Transform, MeshRender>()) {
 

@@ -1,10 +1,11 @@
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/coreassets/Font.h>
-#include "../assets/Scene.h"
 #include <Engine/imgui/extensions.h>
 #include "../DefferredRenderer.h"
-#include "../assets/scenecomponents/Transform.h"
-#include "../assets/scenecomponents/NameTag.h"
+
+#include <LabCore-scene/assets/Scene.h>
+#include <labcore-scene/assets/scenecomponents/Transform.h>
+#include <labcore-scene/assets/scenecomponents/NameTag.h>
 
 #include "SceneView.h"
 #include "../imguizmo/imguizmoinclude.h"
@@ -12,6 +13,8 @@
 namespace PH::LabCore3D {
 
 	const char* sourceoptions[] = { "albedo", "normal", "lighting", "position"};
+
+	using namespace PH::LabCore;
 
 	bool32 geometryPass(SceneView* sceneview, const glm::mat4& projection, const glm::mat4& view) {
 	
@@ -31,7 +34,7 @@ namespace PH::LabCore3D {
 
 			for (auto& desc : Scene::scenecomponentdescriptions) {
 				if (desc.drawComponents_) {
-					desc.drawComponents_(scene, &renderer);
+					desc.drawComponents_(scene);
 				}
 			}
 		}

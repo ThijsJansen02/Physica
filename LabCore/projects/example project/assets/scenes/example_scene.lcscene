@@ -9,28 +9,48 @@ asset:
   entities:
     - components:
         Tag:
-          name: green light
-          id: 1330464736
+          name: box 3
+          id: 4047677183
         Transform:
-          rotXYZ: [0, -0, 0]
-          scale: [1, 1, 1]
-          translation: [0.84852225, 2.6428282, -2.0951855]
-        Point Light:
-          postion: [0.84852225, 2.6428282, -2.0951855]
-          intensity: 0.94
-          color: [1, 1, 1]
+          rotXYZ: [2.45582e-05, -74.590965, -2.3244453e-05]
+          scale: [1, 0.99999994, 1]
+          translation: [-4.5789256, 3.306305, 1.3433611]
+        Mesh:
+          mesh: 9808924416449029863
+          material: 3991480754
     - components:
         Tag:
-          name: red light
-          id: 3560254280
+          name: floor
+          id: 0
         Transform:
-          rotXYZ: [0, -0, 0]
-          scale: [1, 1, 1]
-          translation: [-1.4485247, 2.7189848, 1.1101213]
-        Point Light:
-          postion: [-1.4485247, 2.7189848, 1.1101213]
-          intensity: 1.74
-          color: [1, 0, 0]
+          rotXYZ: [0, -32.563183, 0]
+          scale: [14.0922, 0.13627118, 13.580578]
+          translation: [-0.60547847, 1.8563749, 1.4441978]
+        Mesh:
+          mesh: 9808924416449029863
+          material: 3991480754
+    - components:
+        Tag:
+          name: box 1
+          id: 271409149
+        Transform:
+          rotXYZ: [0, -78.08085, 0]
+          scale: [0.35999998, 0.36, 0.35999998]
+          translation: [-1.2592754, 2.7483618, 3.6066175]
+        Mesh:
+          mesh: 328866994555156235
+          material: 1877075475
+    - components:
+        Tag:
+          name: box 2
+          id: 3386866062
+        Transform:
+          rotXYZ: [0, -59.456398, 0]
+          scale: [1.818336, 1.8183359, 1.818336]
+          translation: [-1.2427865, 3.7704165, -0.508483]
+        Mesh:
+          mesh: 328866994555156235
+          material: 3991480754
     - components:
         Tag:
           name: sunlight
@@ -45,45 +65,25 @@ asset:
           color: [1, 1, 1]
     - components:
         Tag:
-          name: box 2
-          id: 3386866062
+          name: red light
+          id: 3560254280
         Transform:
-          rotXYZ: [0, -59.456398, 0]
-          scale: [1.818336, 1.8183359, 1.818336]
-          translation: [-1.2427865, 3.7704165, -0.508483]
-        Mesh:
-          mesh: 328866994555156235
-          material: 3991480754
+          rotXYZ: [0, -0, 0]
+          scale: [1, 1, 1]
+          translation: [-1.8559883, 2.718985, 2.211338]
+        Point Light:
+          postion: [-1.8559883, 2.718985, 2.211338]
+          intensity: 1.74
+          color: [1, 0, 0]
     - components:
         Tag:
-          name: box 1
-          id: 271409149
+          name: green light
+          id: 1330464736
         Transform:
-          rotXYZ: [0, -78.08085, 0]
-          scale: [0.35999998, 0.36, 0.35999998]
-          translation: [0.014504672, 2.7483613, 2.2085845]
-        Mesh:
-          mesh: 328866994555156235
-          material: 1877075475
-    - components:
-        Tag:
-          name: floor
-          id: 0
-        Transform:
-          rotXYZ: [0, -32.563198, 0]
-          scale: [9.457852, 0.091457166, 9.114482]
-          translation: [-0.60547847, 1.8563749, 1.4441978]
-        Mesh:
-          mesh: 9808924416449029863
-          material: 3991480754
-    - components:
-        Tag:
-          name: box 3
-          id: 4047677183
-        Transform:
-          rotXYZ: [8.297847e-06, -38.151234, -4.695053e-06]
-          scale: [1.0000004, 0.99999994, 1.0000004]
-          translation: [-2.9756744, 3.306305, 3.5723567]
-        Mesh:
-          mesh: 9808924416449029863
-          material: 3991480754
+          rotXYZ: [0, -0, 0]
+          scale: [1, 1, 1]
+          translation: [0.84852225, 2.6428282, -2.0951855]
+        Point Light:
+          postion: [0.84852225, 2.6428282, -2.0951855]
+          intensity: 0.94
+          color: [1, 1, 1]

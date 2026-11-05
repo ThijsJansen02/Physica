@@ -1,5 +1,7 @@
-#include <Engine/Engine.h>
+#include <pybind11/pybind11.h>
+
 #include <LabCore/LabCoreAPI.h>
+#include <Engine/Engine.h>
 #include <Platform/platformAPI.h>
 #include <imgui.h>
 
@@ -9,13 +11,11 @@
 
 #include "views/SceneView.h"
 #include "views/MaterialView.h"
-#include "views/SceneHierarchyView.h"
-#include "assets/Scene.h"
 #include "LabCore3D.h"
+
+#include <labcore-scene/assets/Scene.h>
+
 #include "assets/Texture.h"
-#include "assets/Scene.h"
-#include "assets/scenecomponents/NameTag.h"
-#include "assets/scenecomponents/Transform.h"
 #include "assets/scenecomponents/PointLight.h"
 #include "assets/scenecomponents/MeshRender.h"
 
@@ -43,10 +43,8 @@ extern "C" {
 		PH::LabCore::addOnRenderCallback(PH::LabCore3D::onRenderTextureImportOptions);
 
 		//add all scene component types
-		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::Tag::createDescription());
-		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::Transform::createDescription());
-		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::MeshRender::createDescription());
-		PH::LabCore3D::Scene::scenecomponentdescriptions.pushBack(LabCore3D::PointLight::createDescription());
+		PH::LabCore::Scene::addComponentDescription(LabCore3D::MeshRender::createDescription());
+		PH::LabCore::Scene::addComponentDescription(LabCore3D::PointLight::createDescription());
 
 		//the global scene descriptor set layout for deffered renderer
 		PH::LabCore3D::DefferedRenderer::scenedescriptorlayout = PH::LabCore3D::DefferedRenderer::createSceneDescriptorLayout();
@@ -57,13 +55,11 @@ extern "C" {
 
 		PH::LabCore::addView(PH::LabCore3D::createSceneViewDescription());
 		PH::LabCore::addView(PH::LabCore3D::createMaterialViewDescription());
-		PH::LabCore::addView(PH::LabCore3D::createSceneHierarchyViewDescription());
 
 		PH::Engine::AssetLibrary* assetlib = PH::LabCore::getAssetLibrary();
 		assetlib->addAssetType(PH::LabCore3D::createGraphicsPipelineDescription());
 		assetlib->addAssetType(PH::LabCore3D::createMeshAssetDescription());
 		assetlib->addAssetType(PH::LabCore3D::createTextureAssetDescription());
-		assetlib->addAssetType(PH::LabCore3D::createSceneAssetDescription());
 
 		PH::Engine::UUID pipeid = 16439805985763607426;
 		PH::Engine::UUID cubeid = 9808924416449029863;

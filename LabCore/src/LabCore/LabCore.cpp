@@ -91,11 +91,30 @@ namespace PH::LabCore {
 	void initPlugins() {
 
 		plugininitfn plugininit_ = nullptr;
-
+		HMODULE applicationlib = NULL;
 		//load labcore-3D plugin
-		HMODULE applicationlib = LoadLibraryA("LabCore-3D.dll");
+		applicationlib = LoadLibraryA("LabCore-scene.dll");
 		if (applicationlib == nullptr) {
 			Engine::ERR << "failed to load application\n";
+			PH_DEBUG_BREAK();
+		}
+		else {
+			plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
+			if (!plugininit_) {
+				Engine::ERR << "failed to load plugin init\n";
+			}
+			else {
+				Engine::String pluginhome = Engine::String::create(appcontext->labcorehome.getC_Str());
+				pluginhome.append("/plugins/labcore-scene/");
+				plugininit_(pluginhome.getC_Str());
+				Engine::String::destroy(&pluginhome);
+			}
+		}
+
+		//load labcore-3D plugin
+		applicationlib = LoadLibraryA("LabCore-3D.dll");
+		if (applicationlib == nullptr) {
+			Engine::ERR << "failed to load plugin init\n";
 			PH_DEBUG_BREAK();
 		}
 		else {

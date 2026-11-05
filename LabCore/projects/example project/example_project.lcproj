@@ -1,22 +1,18 @@
 openviews:
   - viewname: Scene View
-    instanceid: 3489188420
+    instanceid: 3784489942
     viewdata:
       scene: 3658502787
       Camera:
-        direction: [0.67965555, -0.37306833, 0.6315761]
-        position: [-4.4394884, 3.9567292, -0.8317721]
+        direction: [-0.8468305, -0.5180278, -0.12052185]
+        position: [6.0220184, 6.29951, 2.1040478]
       lightpipe: 2511035463
       tonemappipe: 2930578386
-  - viewname: Material View
-    instanceid: 1502001312
-    viewdata:
-      selected: 2930578386
-  - viewname: Scene Hierarchy View
-    instanceid: 2927657238
-    viewdata: 3658502787
 includedassets:
   - descriptionid: 8122762271555803
+    includedassets:
+      []
+  - descriptionid: 2064075887894144755
     includedassets:
       []
   - descriptionid: 6544691651984941516
@@ -27,9 +23,6 @@ includedassets:
         flags: 1
         references:
           - example_scene
-  - descriptionid: 2064075887894144755
-    includedassets:
-      []
   - descriptionid: 983741375477342588
     includedassets:
       - assetid: 2511035463
@@ -44,18 +37,18 @@ includedassets:
         flags: 1
         references:
           - PRBmaterial
-      - assetid: 2930578386
-        assetdescriptionid: 983741375477342588
-        filepath: assets/pipelines/tonemap.lcpipe
-        flags: 1
-        references:
-          - tonemap
       - assetid: 1877075475
         assetdescriptionid: 983741375477342588
         filepath: assets/pipelines/colorpipe.lcpipe
         flags: 1
         references:
           - colorpipe
+      - assetid: 2930578386
+        assetdescriptionid: 983741375477342588
+        filepath: assets/pipelines/tonemap.lcpipe
+        flags: 1
+        references:
+          - tonemap
       - assetid: 2781615859
         assetdescriptionid: 983741375477342588
         filepath: assets/pipelines/lightbox.lcpipe
@@ -70,15 +63,15 @@ includedassets:
         flags: 1
         references:
           - Planks037A_2K-JPG_Color.jpg
-      - assetid: 2761470797
-        assetdescriptionid: 15876590110196968583
-        filepath: assets/textures/Planks037A_2K-JPG_Roughness.jpg.lctex
-        flags: 1
-        references:
-          - Planks037A_2K-JPG_Roughness.jpg
       - assetid: 3808292401
         assetdescriptionid: 15876590110196968583
         filepath: assets/textures/Planks037A_2K-JPG_NormalDX.jpg.lctex
         flags: 1
         references:
           - Planks037A_2K-JPG_NormalDX.jpg
+      - assetid: 2761470797
+        assetdescriptionid: 15876590110196968583
+        filepath: assets/textures/Planks037A_2K-JPG_Roughness.jpg.lctex
+        flags: 1
+        references:
+          - Planks037A_2K-JPG_Roughness.jpg

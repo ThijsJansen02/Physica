@@ -1,9 +1,8 @@
 #include "Transform.h"
 #include <Engine/imgui/extensions.h>
-#include "../../DefferredRenderer.h"
 #include <LabCore/LabCoreAPI.h>
 
-namespace PH::LabCore3D {
+namespace PH::LabCore {
 
 	bool32 serializeTransform(YAML::Emitter& out, entt::entity entity, Scene* scene) {
 		
@@ -76,7 +75,7 @@ namespace PH::LabCore3D {
 		return scene->registry.all_of<Transform>(entity);
 	}
 
-	bool32 drawTransform(Scene* scene, DefferedRenderer* renderer) {
+	bool32 drawTransform(Scene* scene) {
 		return true;
 	}
 

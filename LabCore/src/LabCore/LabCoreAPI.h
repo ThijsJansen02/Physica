@@ -1,9 +1,12 @@
 #pragma once
 #include "View.h"
 
-#include <pybind11/pybind11.h>
 #include <Engine/AssetLibrary.h>
 #include <Engine/cppAPI/Rendering.hpp>
+
+#ifdef LC_PLUGIN_PYTHON
+#include <pybind11/pybind11.h>
+#endif
 
 #ifdef PH_LABCORE_EXPORT
 	#define PH_LABCORE_API __declspec(dllexport)
@@ -45,5 +48,7 @@ namespace PH::LabCore {
 	PH_LABCORE_API void addImportAssetCallback(const char* extension, importAssetCallback callback);
 	PH_LABCORE_API void addOnRenderCallback(onRenderCallback callback);
 
+#ifdef LC_PLUGIN_PYTHON
 	PH_LABCORE_API PyObject* createPythonModule(const char* name);
+#endif
 }

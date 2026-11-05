@@ -1,9 +1,12 @@
 #include "PointLight.h"
 #include <Engine/imgui/extensions.h>
 #include <LabCore/LabCoreAPI.h>
-#include "Transform.h"
+
+#include <labcore-scene/assets/scenecomponents/Transform.h>
 
 namespace PH::LabCore3D {
+
+	using namespace PH::LabCore;
 
 	bool32 serializePointlight(YAML::Emitter& out, entt::entity entity, Scene* scene) {
 
@@ -61,13 +64,15 @@ namespace PH::LabCore3D {
 		return scene->registry.all_of<PointLight>(entity);
 	}
 
-	bool32 drawPointLights(Scene* scene, DefferedRenderer* renderer) {
+	bool32 drawPointLights(Scene* scene) {
 
 		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
 		auto* cubemesh = assets->getAssetByReference<Mesh>("sphere mesh");
 		auto* pipe = assets->getLoadedAssetByReference<GraphicsPipeline>("lightbox");
 		
 		auto view = scene->registry.view<Transform, PointLight>();
+
+		DefferedRenderer* renderer = &LabCore3D::renderer;
 
 		for (auto ent : view) {
 			
@@ -83,7 +88,7 @@ namespace PH::LabCore3D {
 		return true;
 	}
 
-	SceneComponentDescription PointLight::createDescription() {
+	LabCore::SceneComponentDescription PointLight::createDescription() {
 
 
 		SceneComponentDescription desc{};

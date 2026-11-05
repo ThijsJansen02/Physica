@@ -3,7 +3,7 @@
 #include <Engine/Engine.h>
 #include "../Scene.h"
 
-namespace PH::LabCore3D {
+namespace PH::LabCore {
 
 	struct Transform {
 		

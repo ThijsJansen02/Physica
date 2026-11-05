@@ -164,7 +164,6 @@ namespace PH::Vulkan {
 		return createDescriptorSets(context_s, createinfos, descriptorsets, count);
 	}
 
-	//todo(Thijs) : add functionallity for when you want to update a set just for that frame.
 	bool32 updateDescriptorSets(
 		VulkanAppContext* context,
 		PH::Platform::GFX::DescriptorWrite* writes,

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../../DefferredRenderer.h"
-#include "../Scene.h"
+#include <LabCore-scene/assets/Scene.h>
 
 namespace PH::LabCore3D {
 	
@@ -11,7 +11,7 @@ namespace PH::LabCore3D {
 			return "Point Light";
 		}
 
-		static SceneComponentDescription createDescription();
+		static LabCore::SceneComponentDescription createDescription();
 
 		DefferedRenderer::PointLight light;
 	};

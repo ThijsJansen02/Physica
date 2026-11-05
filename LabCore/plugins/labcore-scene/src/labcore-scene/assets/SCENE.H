@@ -1,10 +1,14 @@
 #pragma once
+#ifdef LC_SCENE_EXPORT
+#define LC_SCENE_API  __declspec(dllexport)
+#else
+#define LC_SCENE_API __declspec(dllimport)
+#endif
 #include <Engine/AssetDescription.h>
 #include <entt/entt.hpp>
-#include "../DefferredRenderer.h"
 
 
-namespace PH::LabCore3D {
+namespace PH::LabCore {
 
 #define PH_ASSET_SCENE 6544691651984941516
 
@@ -12,13 +16,13 @@ namespace PH::LabCore3D {
 
 	typedef bool32(EntityHasComponentFN)(entt::entity entity, Scene* reg);
 	typedef bool32(DrawComponentUIFN)(entt::entity entity, Scene* reg);
-	
+
 	typedef bool32(AddComponentFN)(entt::entity entity, Scene* reg);
 	typedef bool32(RemoveComponentFN)(entt::entity entity, Scene* reg);
 
 	//these functions should act on all the components
 	typedef bool32(UpdateComponentsFN)(Scene* reg);
-	typedef bool32(DrawComponentsFN)(Scene* reg, DefferedRenderer* renderer);
+	typedef bool32(DrawComponentsFN)(Scene* reg);
 
 	typedef bool32(serializeComponentFN)(YAML::Emitter& out, entt::entity entity, Scene* reg);
 	typedef bool32(deserializeComponentFN)(YAML::Node in, entt::entity entity, Scene* reg);
@@ -41,7 +45,7 @@ namespace PH::LabCore3D {
 		sizeptr localdatasize;
 	};
 
-	struct Scene : Engine::AssetBase {
+	struct LC_SCENE_API Scene : Engine::AssetBase {
 
 		static Engine::AssetDescriptionID getAssetDescriptionID() {
 			return PH_ASSET_SCENE;
@@ -51,12 +55,14 @@ namespace PH::LabCore3D {
 			return ".lcscene";
 		}
 
+		static void addComponentDescription(const SceneComponentDescription& desc);
+
 		//the currently selected entity for this scene
 		entt::entity selected;
 		entt::registry registry;
 		static Engine::ArrayList<SceneComponentDescription> scenecomponentdescriptions;
 	};
-	
+
 	Engine::AssetDescription createSceneAssetDescription();
 	Scene createScene();
 	void initScene(Scene* scene);

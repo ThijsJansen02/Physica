@@ -7,8 +7,8 @@ assetidentifier:
     - PBRlighting
 asset:
   type: 2
-  binpath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/pipelines/shaders/bin/PBRlighting.phshaderbin
-  srcpath: C:/Users/Thijs/OneDrive/Documenten/programming/physica/LabCore/projects/example project/assets/pipelines/shaders/PBRlighting.phshadersrc
+  binpath: assets/pipelines/shaders/bin/PBRlighting.phshaderbin
+  srcpath: assets/pipelines/shaders/PBRlighting.phshadersrc
   userbuffer: !!binary "AACAPwAAgD8AAIA/j8L1PA=="
   resources:
     - name: Properties

@@ -1,12 +1,18 @@
 #include "Scene.h"
 
-namespace PH::LabCore3D {
+namespace PH::LabCore {
+
+	LC_SCENE_API Engine::ArrayList<SceneComponentDescription> Scene::scenecomponentdescriptions = {};
+
+	void Scene::addComponentDescription(const SceneComponentDescription& desc) {
+		Scene::scenecomponentdescriptions.pushBack(desc);
+	}
 
 	void serializeScene(YAML::Emitter& out, Scene* scene) {
 		out << YAML::BeginMap;
 		out << YAML::Key << "entities" << YAML::Value << YAML::BeginSeq;
 		for (entt::entity ent : scene->registry.view<entt::entity>()) {
-			
+
 			//entity map
 			out << YAML::BeginMap;
 			out << YAML::Key << "components" << YAML::Value << YAML::BeginMap;
@@ -38,14 +44,14 @@ namespace PH::LabCore3D {
 
 	void deserializeScene(YAML::Node node, Scene* scene) {
 		initScene(scene);
-		
+
 		if (!node["entities"]) {
 			return;
 		}
 
 		for (YAML::Node entitynode : node["entities"]) {
 			entt::entity entity = createEntity(scene);
-			
+
 			if (!entitynode["components"]) {
 				continue;
 			}

@@ -3,11 +3,8 @@
 #include <Engine/coreassets/Font.h>
 #include <Engine/imgui/extensions.h>
 #include "../assets/scenecomponents/NameTag.h"
-#include "../DefferredRenderer.h"
 
-namespace PH::LabCore3D {
-
-	Engine::ArrayList<SceneComponentDescription> Scene::scenecomponentdescriptions = Engine::ArrayList<SceneComponentDescription>::create(0);
+namespace PH::LabCore {
 
 	PH::bool32 drawSceneHierarchyView(SceneHierarchyView* view) {
 
