@@ -9,7 +9,7 @@ asset:
   type: 0
   binpath: assets/pipelines/shaders/bin/color.phshaderbin
   srcpath: assets/pipelines/shaders/color.phshadersrc
-  userbuffer: !!binary "xoOzPZ1mmD7cDwk/iUEAPw=="
+  userbuffer: !!binary "xoOzPZ1mmD7cDwk/QmAlPw=="
   resources:
     - name: ColorData
       binding: 0

@@ -1,13 +1,17 @@
 openviews:
   - viewname: Scene View
-    instanceid: 3784489942
+    instanceid: 159279234
     viewdata:
       scene: 3658502787
       Camera:
-        direction: [-0.88110983, -0.4725515, -0.018456561]
-        position: [6.0220184, 6.29951, 2.1040478]
+        direction: [-0.8442746, -0.5358379, 0.0088368105]
+        position: [2.0194504, 7.465763, 5.6790566]
       lightpipe: 2511035463
       tonemappipe: 2930578386
+  - viewname: Material View
+    instanceid: 421479791
+    viewdata:
+      selected: 1877075475
 includedassets:
   - descriptionid: 8122762271555803
     includedassets:

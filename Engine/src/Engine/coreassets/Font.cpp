@@ -1,7 +1,8 @@
+#include "Font.h"
+
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_/stb/stb_truetype.h>
 
-#include "Font.h"
 #include <Engine/Rendering.h>
 
 namespace PH::Engine {

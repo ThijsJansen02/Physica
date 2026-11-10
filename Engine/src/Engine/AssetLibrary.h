@@ -109,11 +109,14 @@ namespace PH::Engine {
 				Engine::String::destroy(&ref);
 			}
 
+			Engine::ArrayList<Engine::String>::destroy(&id->references);
 			Engine::String::destroy(&id->filepath);
 
 			AssetDescription* desc = &pool->description;
-
 			unloadAsset(id, pool);
+
+			//remove the actual asset
+			pool->assets.remove(id->assetid);
 		}
 
 		void serializeReferences(YAML::Emitter& out, Base::Array<Engine::String> references) {

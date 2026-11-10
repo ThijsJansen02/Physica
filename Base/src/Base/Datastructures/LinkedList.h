@@ -61,20 +61,13 @@ namespace PH::Base {
 			Node* ptr = firstnode;
 
 			while (i < index) {
+				PH_DEBUG_ASSERT(ptr != nullptr, "index is higher than the length of the chain")
+
 				ptr = ptr->next;
 				i++;
 			}
 
-			Node* next = ptr->next;
-			Node* prev = ptr->prev;
-			if (prev) {
-				prev->next = next;
-			}
-			if (next) {
-				next->prev = prev;
-			}
-
-			allocator::dealloc(ptr);
+			removeNode(ptr);
 		}
 
 		void add(const T& elem) {
