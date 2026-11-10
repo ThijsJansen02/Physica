@@ -656,6 +656,8 @@ namespace PH::Platform {
 	PH_PLATFORM_API bool32 setCurrentDirectory(PH::Base::SubString directory);
 	PH_PLATFORM_API bool32 createDirectory(PH::Base::SubString directory);
 
+	PH_PLATFORM_API bool32 setWindowTitle(PH::Base::SubString title);
+
 
 	extern PH_PLATFORM_API Intern::LoadFileFN* loadFile;
 	extern PH_PLATFORM_API Intern::UnloadFileFN* unloadFile;

@@ -5,3 +5,4 @@
 void win32_getCurrentDirectory(char* buffer, PH::sizeptr maxsize);
 PH::bool32 win32_setCurrentDirectory(PH::Base::SubString directory);
 PH::bool32 win32_createDirectory(PH::Base::SubString directory);
+PH::bool32 win32_setWindowTitle(PH::Base::SubString title);

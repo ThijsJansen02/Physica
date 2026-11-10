@@ -1,0 +1,9 @@
+assetidentifier:
+  assetid: 3722639813
+  assetdescriptionid: 6498485161872
+  filepath: assets/SSH/rp-f06de2.local.lcssh
+  flags: 1
+  references:
+    - rp-f06de2.local
+asset:
+  remoteIP: rp-f06d2e.local

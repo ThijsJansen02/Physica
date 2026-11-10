@@ -254,7 +254,7 @@ bool win32_initializeConsole() {
 /// <returns></returns>
 bool win32_initializeWindow(HWND* hwnd, HINSTANCE hInstance, int nCmdShow, void* userptr) {
 
-	const wchar_t CLASS_NAME[] = L"Main Window Class";
+	const wchar_t* CLASS_NAME = L"Main Window Class";
 
 	WNDCLASS wc = { };
 
@@ -264,7 +264,7 @@ bool win32_initializeWindow(HWND* hwnd, HINSTANCE hInstance, int nCmdShow, void*
 
 	RegisterClass(&wc);
 	*hwnd = CreateWindowEx(
-		0,                              // Optional window styles.
+		0,
 		CLASS_NAME,                     // Window class
 		L"Unnamed Application",			// Window text
 		WS_OVERLAPPEDWINDOW,            // Window style
@@ -579,6 +579,13 @@ void win32_printLastError() {
 		LocalFree(message);
 }
 
+PH::bool32 win32_setWindowTitle(PH::Base::SubString title) {
+	auto titlestr = PH::Base::String<PlatformAllocator>::create(title);
+	bool r = SetWindowTextA(platformcontext.windowhandle, titlestr.getC_Str());
+	PH::Base::String<PlatformAllocator>::destroy(&titlestr);
+	return r;
+}
+
 PH::bool32 win32_createDirectory(PH::Base::SubString directory) {
 	auto str = PH::Base::String<PlatformAllocator>::create(directory);
 	bool r = CreateDirectoryA(str.getC_Str(), nullptr);
@@ -667,6 +674,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	if (!win32_initializeWindow(&windowhandle, hInstance, nCmdShow, &state)) {
 		return 1;
 	}
+
+	platformcontext.windowhandle = windowhandle;
 
 	RECT windowrect;
 	GetClientRect(

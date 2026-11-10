@@ -1,7 +1,6 @@
 #pragma once
 #include "AssetDescription.h"
 #include <Base/Datastructures/HashMap.h>
-#include <Engine/coreassets/Font.h>
 
 namespace PH::Engine {
 

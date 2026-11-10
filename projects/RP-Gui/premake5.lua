@@ -48,11 +48,16 @@ project "RP-GUI"
 	}
 
 	libdirs {
-		"%{LibraryDir.cpython}"
+		"%{LibraryDir.cpython}",
+		"%{LibraryDir.openssl}",
+		"%{LibraryDir.libssh}"
 	}
 
 	links
 	{
+		"Ws2_32.lib",
+		"Iphlpapi.lib",
+		"Crypt32.lib",
 		"base",
 		"Engine"
 	}
@@ -81,7 +86,11 @@ project "RP-GUI"
 
 		links 
 		{
-			"%{Library.cpython_debug}"
+			"%{Library.cpython_debug}",
+			"%{Library.openssl_debug}",
+			"%{Library.libssh_debug}",
+			"%{Library.libcrypto_debug}",
+			"%{Library.zlib_debug}"
 		}
 
 	filter "configurations:Release"
@@ -91,7 +100,11 @@ project "RP-GUI"
 
 		links 
 		{
-			"%{Library.cpython}"
+			"%{Library.cpython}",
+			"%{Library.openssl}",
+			"%{Library.libssh}",
+			"%{Library.libcrypto}",
+			"%{Library.zlib}"
 		}
 
 	filter "configurations:Dist"
@@ -101,7 +114,11 @@ project "RP-GUI"
 
 		links 
 		{
-			"%{Library.cpython}"
+			"%{Library.cpython}",
+			"%{Library.openssl}",
+			"%{Library.libssh}",
+			"%{Library.libcrypto}",
+			"%{Library.zlib}"
 		}
 
     

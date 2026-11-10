@@ -4,14 +4,14 @@ openviews:
     viewdata:
       scene: 3658502787
       Camera:
-        direction: [-0.8442746, -0.5358379, 0.0088368105]
-        position: [2.0194504, 7.465763, 5.6790566]
+        direction: [-0.3070417, -0.49547043, 0.8125481]
+        position: [-0.45529798, 5.9040947, -2.8996747]
       lightpipe: 2511035463
       tonemappipe: 2930578386
   - viewname: Material View
     instanceid: 421479791
     viewdata:
-      selected: 1877075475
+      selected: 3991480754
 includedassets:
   - descriptionid: 8122762271555803
     includedassets:
@@ -41,18 +41,18 @@ includedassets:
         flags: 1
         references:
           - PRBmaterial
-      - assetid: 1877075475
-        assetdescriptionid: 983741375477342588
-        filepath: assets/pipelines/colorpipe.lcpipe
-        flags: 1
-        references:
-          - colorpipe
       - assetid: 2930578386
         assetdescriptionid: 983741375477342588
         filepath: assets/pipelines/tonemap.lcpipe
         flags: 1
         references:
           - tonemap
+      - assetid: 1877075475
+        assetdescriptionid: 983741375477342588
+        filepath: assets/pipelines/colorpipe.lcpipe
+        flags: 1
+        references:
+          - colorpipe
       - assetid: 2781615859
         assetdescriptionid: 983741375477342588
         filepath: assets/pipelines/lightbox.lcpipe
@@ -67,15 +67,15 @@ includedassets:
         flags: 1
         references:
           - Planks037A_2K-JPG_Color.jpg
-      - assetid: 3808292401
-        assetdescriptionid: 15876590110196968583
-        filepath: assets/textures/Planks037A_2K-JPG_NormalDX.jpg.lctex
-        flags: 1
-        references:
-          - Planks037A_2K-JPG_NormalDX.jpg
       - assetid: 2761470797
         assetdescriptionid: 15876590110196968583
         filepath: assets/textures/Planks037A_2K-JPG_Roughness.jpg.lctex
         flags: 1
         references:
           - Planks037A_2K-JPG_Roughness.jpg
+      - assetid: 3808292401
+        assetdescriptionid: 15876590110196968583
+        filepath: assets/textures/Planks037A_2K-JPG_NormalDX.jpg.lctex
+        flags: 1
+        references:
+          - Planks037A_2K-JPG_NormalDX.jpg

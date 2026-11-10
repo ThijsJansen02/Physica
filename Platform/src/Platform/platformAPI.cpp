@@ -93,6 +93,10 @@ namespace PH::Platform {
 	bool32 createDirectory(PH::Base::SubString directory) {
 		return win32_createDirectory(directory);
 	}
+
+	bool32 setWindowTitle(PH::Base::SubString title) {
+		return win32_setWindowTitle(title);
+	}
 }
 
 bool loadPlatformAPI(PH::Platform::Intern::PlatformAPI* platform) {

@@ -39,7 +39,9 @@ project "Platform"
 	dependson {
 		'RP-GUI',
 		'LabCore',
-		'LabCore-3D'
+		'LabCore-3D',
+		'LabCore-scene',
+		'LabCore-ssh'
 	}
 	defines 
 	{

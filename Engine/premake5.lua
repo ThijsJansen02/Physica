@@ -27,17 +27,13 @@ project "Engine"
 		"%{prj.location}/dep/include",
 		"%{IncludeDir.vulkanSDK}",
 		"%{IncludeDir.imguizmo}",
-		"%{IncludeDir.engine}",
-		"%{IncludeDir.openssl}",
-		"%{IncludeDir.libssh}"
+		"%{IncludeDir.engine}"
 	}
 
 	
 	libdirs
 	{
-		"%{LibraryDir.vulkanSDK}",
-		"%{LibraryDir.openssl}",
-		"%{LibraryDir.libssh}"
+		"%{LibraryDir.vulkanSDK}"
 	}
 
 
@@ -46,9 +42,6 @@ project "Engine"
 		"Base",
 		"Imgui",
 		"yaml-cpp",
-		"Ws2_32.lib",
-		"Iphlpapi.lib",
-		"Crypt32.lib",
 		"%{Library.platform}"
 	}
 
@@ -80,11 +73,7 @@ project "Engine"
 		links {
 			"%{Library.shaderC_Debug}",
 			"%{Library.SPIRV_Cross_Debug}",
-			"%{Library.SPIRV_Tools_Debug}",
-			"%{Library.openssl_debug}",
-			"%{Library.libssh_debug}",
-			"%{Library.libcrypto_debug}",
-			"%{Library.zlib_debug}"
+			"%{Library.SPIRV_Tools_Debug}"
 		}
 
 	filter "configurations:Release"
@@ -95,11 +84,7 @@ project "Engine"
 		links {
 			"%{Library.shaderC_Release}",
 			"%{Library.SPIRV_Cross_Release}",
-			"%{Library.SPIRV_Tools_Release}",
-			"%{Library.openssl}",
-			"%{Library.libssh}",
-			"%{Library.libcrypto}",
-			"%{Library.zlib}"
+			"%{Library.SPIRV_Tools_Release}"
 		}
 
 	filter "configurations:Dist"
@@ -110,11 +95,7 @@ project "Engine"
 		links {
 			"%{Library.shaderC_Release}",
 			"%{Library.SPIRV_Cross_Release}",
-			"%{Library.SPIRV_Tools_Release}",
-			"%{Library.libssh}",
-			"%{Library.openssl}",
-			"%{Library.libcrypto_debug}",
-			"%{Library.zlib}"
+			"%{Library.SPIRV_Tools_Release}"
 		}
 
     
