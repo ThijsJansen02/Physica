@@ -131,6 +131,27 @@ namespace PH::LabCore {
 			}
 		}
 
+		//load RpFilterStudio plugin
+		applicationlib = LoadLibraryA("RpFilterStudio.dll");
+		if (applicationlib == nullptr) {
+			Engine::ERR << "failed to load plugin\n";
+			PH_DEBUG_BREAK();
+		}
+		else {
+			plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
+			if (!plugininit_) {
+				Engine::ERR << "failed to load plugin init\n";
+			}
+			else {
+				Engine::String pluginhome = Engine::String::create(appcontext->labcorehome.getC_Str());
+				pluginhome.append("");
+				plugininit_(pluginhome.getC_Str());
+				Engine::String::destroy(&pluginhome);
+			}
+		}
+
+		//no need for labcore 3d in rpfilterstudio
+		/*
 		//load labcore-3D plugin
 		applicationlib = LoadLibraryA("LabCore-3D.dll");
 		if (applicationlib == nullptr) {
@@ -149,6 +170,7 @@ namespace PH::LabCore {
 				Engine::String::destroy(&pluginhome);
 			}
 		}
+		*/
 
 		//set the working directoy back to labcore home
 		Platform::setCurrentDirectory(appcontext->labcorehome.getSubString());

@@ -31,6 +31,7 @@ group ""
 
 group "projects"
     include "projects/RP-Gui"
+    include "projects/RpfilterStudio"
 group ""
 
 group "dependencies"

@@ -30,8 +30,10 @@ project "LabCore-ssh"
 		"%{IncludeDir.cpython}",
 		"%{IncludeDir.cpythonPCheaders}",
 		"%{IncludeDir.labcore}", 
-		"%{IncludeDir.libssh}",
-		"%{IncludeDir.imgui}"
+		"%{IncludeDir.imgui}",
+		"%{IncludeDir.labcore_ssh}",
+		"%{IncludeDir.libssh}"
+
 	}
 
 	defines 
