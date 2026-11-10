@@ -67,8 +67,11 @@ RpGui::TransferFunction createExampleTransferFunction() {
 
 	examplefunction.currentcommand = Engine::String::create("");
 	examplefunction.name = Engine::String::create("Example Function");
+
+	//set remote IP
 	examplefunction.connection.remoteip = Engine::String::create("root@rp-f083c2.local");
 	examplefunction.filters = Engine::ArrayList<Filter>::create(3);
+	examplefunction.remotebitfile = Engine::String::create("");
 
 	Filter filter;
 	filter.type = LOWPASS;
@@ -80,12 +83,16 @@ RpGui::TransferFunction createExampleTransferFunction() {
 	examplefunction.filters.pushBack(filter);
 	filter.cutoffFrequency = 10000.0f;
 	examplefunction.filters.pushBack(filter);
+	filter.cutoffFrequency = 14000.0f;
+	examplefunction.filters.pushBack(filter);
 
 	return examplefunction;
 }
 
-bool DragDouble(const char* label, double* v, float v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0)
+bool DragDouble(const char* label, real64* v, real64 v_speed = 1.0f, float v_min = 0.0f, float v_max = 0.0f, const char* format = "%.3f", ImGuiSliderFlags flags = 0)
 {
+	//Engine::INFO << "SPEED: " << v_speed << "\n";
+
 	return ImGui::DragScalar(label, ImGuiDataType_Double, v, v_speed, &v_min, &v_max, format, flags);
 }
 
@@ -155,12 +162,14 @@ void deserializeProject(const char* projectdir) {
 
 	const auto proj = Engine::FileIO::loadYamlfile(projectdir);
 	if (proj) {
+
 		const auto transferfunctions = proj["TransferFunctions"];
 		for (const auto& tf : transferfunctions) {
 			RpGui::context->activetransferfunctions.pushBack(deserializeTransferFunction(tf));
 		}
 	}
 	else {
+		Engine::WARN << "couldnt load project file, creating a new project instead!";
 		RpGui::context->activetransferfunctions.pushBack(createExampleTransferFunction());
 	}
 
@@ -182,10 +191,6 @@ void deserializeProject(const char* projectdir) {
 
 			ReleaseSemaphore(tf.connection.semaphore, 1, nullptr);
 			tf.connection.commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin;fpgautil -b ").append(tf.remotebitfile)});
-
-			for (auto& f : tf.filters) {
-				sentFilterToRp(f, tf.getFilterSampleRate(), &tf.connection, tf.lowprecision);
-			}
 		}
 	}
 }
@@ -279,14 +284,6 @@ PH_DLL_EXPORT PH_APPLICATION_INITIALIZE(applicationInitialize) {
 	RpGui::renderer2D = Engine::Renderer2D::Wrapper::create(init);
 	return true;
 }
-/*
-	This is going to be the function that draws the plot, it takes in the vertices of the plot, the range of the plot and the region of the plot,
-	and it draws the plot using the renderer2D wrapper, this is going to be called from the drawTransferFunctionMagnitude and drawTransferFunctionPhase functions,
-	which are going to generate the vertices for the plot based on the transfer function and then call this function to draw the plot,
-	this is going to allow us to separate the logic of generating the vertices for the plot from the logic of drawing the plot,
-	which is going to make it easier to maintain and extend in the future, for example if we want to add support for different types of plots or different types of data sources for the plots,
-	we can just generate different vertices for those plots and then call this function to draw them without having to duplicate any code.
-*/
 
 
 typedef void (*UIfunc) (void*, RpGui::Context*, int32&);
@@ -441,7 +438,7 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	ImGui::SameLine();
 	if (ImGui::Button("Reset")) {
 
-		sendRPcommand("monitor 0x41230000 1; monitor 0x41230000 0", &tf->connection);
+		sendRPcommand("monitor 0x41200000 1; monitor 0x41200000 0", &tf->connection);
 	}
 
 	ImGui::Text("SSH Command");
@@ -502,9 +499,14 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			ImGui::EndCombo();
 		}
 
-		for (const auto& parameter : f.getParameters())
-		{
-			if (DragDouble(parameter.first, (double*)parameter.second, *parameter.second * dragSpeed)) b_dirty = true;
+		//Engine::INFO << ImGui::GetIO().DeltaTime << "\n";
+
+		if (DragDouble("cutoff frequency", &f.cutoffFrequency, 1.0f)) {
+			b_dirty = true;
+		}
+
+		if (DragDouble("Q factor", &f.qFactor, 1.0)) {
+			b_dirty = true;
 		}
 
 		if (b_dirty) {
@@ -519,8 +521,12 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	}
 
 	if (selectedFilter) {
-		recalculateFilter(*selectedFilter);
-		if (b_update) sentFilterToRp(*selectedFilter, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
+		recalculateFilter(*selectedFilter);	
+
+		if (b_update) {
+			sendTFToRP_API_V2(tf, tf->getFilterSampleRate());
+		}
+			//sentFilterToRp(*selectedFilter, tf->getFilterSampleRate(), &tf->connection, tf->lowprecision);
 		b_update = false;
 	}
 
@@ -547,6 +553,8 @@ void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {
 			}
 		}
 	}
+
+	if (ImGui::Checkbox("Show Filtered", &plotdata->showfiltered));
 
 	ImGui::DragFloat("Line Thickness", &plotdata->thickness, plotdata->thickness * 0.1f);
 	ImGui::ColorEdit3("Color", &plotdata->color.r);
@@ -672,9 +680,37 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	}
 
 	for (const auto& plotdata : RpGui::context->openedplots) {
+
+		//draw 
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
+
+		for (auto& item : copy) {
+			//write items in db
+			PH::real64 r = 20 * log10f(item.y);
+
+			item.y = r;
+			item.x = log10f(item.x);
+		}
+
 		drawPlot(copy.getArray(), plot->range, region, plotdata.color, glm::vec2{plotdata.thickness, plotdata.thickness});
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
+
+		if (plotdata.showfiltered) {
+			copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
+
+			for (auto& item : copy) {
+				for (const auto& f : RpGui::context->activetransferfunctions[0].filters) {
+					item.y = item.y * filterMagnitude(item.x, f.getBiquadCoefficients());
+				}
+
+				//write item in db
+				item.y = 20 * log10f(item.y);
+				item.x = log10f(item.x);
+			}
+			drawPlot(copy.getArray(), plot->range, region, plotdata.color * 0.5f, glm::vec2{ plotdata.thickness, plotdata.thickness });
+			Engine::DynamicArray<glm::vec2>::destroy(&copy);
+		}
+
 	}
 
 	//start drawing the text
@@ -725,8 +761,35 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 	
 	for (auto& plotdata : RpGui::context->openedplots) {
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.phasedata.getArray());
+
+		for (auto& item : copy) {
+			for (const auto& f : RpGui::context->activetransferfunctions[0].filters) {
+				item.y = item.y * filterMagnitude(item.x, f.getBiquadCoefficients());
+			}
+
+			//write item in db
+			item.y = glm::degrees(item.y);
+			item.x = log10f(item.x);
+		}
+
 		drawPlot(copy.getArray(), plot->range, region, plotdata.color, glm::vec2{ plotdata.thickness, plotdata.thickness });
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
+
+		if (plotdata.showfiltered) {
+			copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
+
+			for (auto& item : copy) {
+				for (const auto& f : RpGui::context->activetransferfunctions[0].filters) {
+					item.y = item.y - filterPhase(item.x, f.getBiquadCoefficients());
+				}
+
+				//write item in db
+				item.y = glm::degrees(item.y);
+				item.x = log10f(item.x);
+			}
+			drawPlot(copy.getArray(), plot->range, region, plotdata.color * 0.5f, glm::vec2{ plotdata.thickness, plotdata.thickness });
+			Engine::DynamicArray<glm::vec2>::destroy(&copy);
+		}
 	}
 
 	//start drawing the text

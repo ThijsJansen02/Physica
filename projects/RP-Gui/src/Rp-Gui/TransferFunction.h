@@ -62,15 +62,38 @@ namespace PH::RpGui {
 		return (PH::int16)(result > 0.0f ? result + 0.5 : result - 0.5);
 	}
 
-	//should maybe floor or round the value correctly but I can do that another time
 	inline PH::int32 convertToFixedPoint32(real64 in) {
 		uint64 mult = 1 << 30;
 		real64 result = in * mult;
 		return (PH::int32)(result > 0.0f ? result + 0.5 : result - 0.5);
 	}
 
+	inline PH::int32 convertToFixedPoint24(real64 in) {
+		uint64 mult = 1 << 22;
+		real64 result = in * mult;
+		return (PH::int32)(result > 0.0f ? result + 0.5 : result - 0.5);
+	}
+
 	inline Base::Complex<real64> applyFilter(Base::Complex<real64> s, const BiQuadCoefficients& coeffs) {
 		return (coeffs.b[0] * s * s + coeffs.b[1] * s + coeffs.b[2]) / (coeffs.a[0] * s * s + coeffs.a[1] * s + coeffs.a[2]);
+	}
+
+	inline real64 filterMagnitude(real64 omega, const BiQuadCoefficients& coeffs) {
+		Base::Complex<real64> s = omega * Base::Complex<real64>::i();
+
+		Base::Complex<real64> f = (coeffs.b[0] * s * s + coeffs.b[1] * s + coeffs.b[2]) / (coeffs.a[0] * s * s + coeffs.a[1] * s + coeffs.a[2]);
+
+		return f.modulus();
+
+	}
+
+	inline real64 filterPhase(real64 omega, const BiQuadCoefficients& coeffs) {
+		Base::Complex<real64> s = omega * Base::Complex<real64>::i();
+
+		Base::Complex<real64> f = (coeffs.b[0] * s * s + coeffs.b[1] * s + coeffs.b[2]) / (coeffs.a[0] * s * s + coeffs.a[1] * s + coeffs.a[2]);
+
+		return f.arg();
+
 	}
 
 	inline BiQuadCoefficients bilinearTransform(BiQuadCoefficients continuous, real64 targetfs) {
@@ -245,7 +268,7 @@ namespace PH::RpGui {
 			result.decimation = (real64)t["decimation"].as<uint32>();
 		}
 		else {
-			result.decimation = RpGui::standard_decimation;
+			result.decimation = 4;
 		}
 
 		for (const auto& f : t["filters"]) {
@@ -255,7 +278,63 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	inline void sentFilterToRp(Filter& f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision) {
+	struct BiquadCoefficients_RPAPI {
+		int32_t b0;
+		int32_t b1;
+		int32_t b2;
+		int32_t a1;
+		int32_t a2;
+	};
+
+	struct FilterFileLayout_RPAPI {
+		BiquadCoefficients_RPAPI filters[4];
+	};
+
+	inline void sendTFToRP_API_V2(TransferFunction* tf, real64 targetFS) {
+
+		uint32 index = 0;
+
+		auto* filterfile = Engine::Allocator::alloc<FilterFileLayout_RPAPI>();
+
+		for (Filter& f : tf->filters) {
+
+			const real64 unwarpedCF = f.cutoffFrequency;
+			const real64 unwarpedACF = f.antiCutoffFrequency;
+
+			f.cutoffFrequency = prewarp(2 * M_PI * unwarpedCF, targetFS);
+			f.antiCutoffFrequency = prewarp(2 * M_PI * unwarpedACF, targetFS);
+
+			BiQuadCoefficients dcoeffs = bilinearTransform(f.getBiquadCoefficients(), targetFS / (2 * M_PI));
+
+			f.cutoffFrequency = unwarpedCF;
+			f.antiCutoffFrequency = unwarpedACF;
+
+			if (index < 4) {
+				filterfile->filters[index].b0 = convertToFixedPoint24(dcoeffs.b[0]);
+				filterfile->filters[index].b1 = convertToFixedPoint24(dcoeffs.b[1]);
+				filterfile->filters[index].b2 = convertToFixedPoint24(dcoeffs.b[2]);
+				filterfile->filters[index].a1 = convertToFixedPoint24(dcoeffs.a[1]);
+				filterfile->filters[index].a2 = convertToFixedPoint24(dcoeffs.a[2]);
+			}
+			index++;
+		}
+
+		RpCommand c;
+		c.command = Engine::String::create("loadedcoeffs.rpbin");
+		c.type = SFTP;
+		c.data = filterfile;
+		c.datasize = sizeof(FilterFileLayout_RPAPI);
+
+		ReleaseSemaphore(tf->connection.semaphore, 1, nullptr);
+		tf->connection.commandqueue.push(c);
+
+		
+		sendRPcommand("./WriteCoefficients", &tf->connection);
+	}
+
+#define RP_FILTER_API 2
+
+	inline void sentFilterToRp(Filter& f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision, uint32 filterindex = 0) {
 
 		const real64 unwarpedCF = f.cutoffFrequency;
 		const real64 unwarpedACF = f.antiCutoffFrequency;
@@ -268,6 +347,28 @@ namespace PH::RpGui {
 		f.cutoffFrequency = unwarpedCF;
 		f.antiCutoffFrequency = unwarpedACF;
 
+#if RP_FILTER_API == 2
+		
+		FilterFileLayout_RPAPI* filterfile = Engine::Allocator::alloc<FilterFileLayout_RPAPI>();
+
+		filterfile->filters[filterindex].b0 = convertToFixedPoint32(dcoeffs.b[0]);
+		filterfile->filters[filterindex].b1 = convertToFixedPoint32(dcoeffs.b[1]);
+		filterfile->filters[filterindex].b2 = convertToFixedPoint32(dcoeffs.b[2]);
+		filterfile->filters[filterindex].a1 = convertToFixedPoint32(dcoeffs.a[1]);
+		filterfile->filters[filterindex].a2 = convertToFixedPoint32(dcoeffs.a[2]);
+
+		RpCommand c;
+		c.command = Engine::String::create("loadedcoeffs.rpbin");
+		c.type = SFTP;
+		c.data = filterfile;
+		c.datasize = sizeof(FilterFileLayout_RPAPI);
+
+		ReleaseSemaphore(connection->semaphore, 1, nullptr);
+		connection->commandqueue.push(c);
+
+#endif
+
+#if RP_FILTER_API == 1
 		Engine::String filterstring;
 
 		if (lowprecision) {
@@ -285,5 +386,6 @@ namespace PH::RpGui {
 		}
 
 		Engine::String::destroy(&filterstring);
+#endif
 	}
 }

@@ -663,15 +663,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	state.eventlist = win32Arraylist<PH::Platform::Event>::create(32);
 
 	if (!win32_initializeConsole()) {
-		return 1;
+		ERR << "Failed to initialize console!\n";
 	}
 
 	PH::Base::base_log = win32_consoleWrite;
 
-	printf("this is a test print!\n");
-
 	HWND windowhandle;
 	if (!win32_initializeWindow(&windowhandle, hInstance, nCmdShow, &state)) {
+		ERR << "Failed to initialize window\n";
 		return 1;
 	}
 
@@ -711,7 +710,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	//loading the application;
 	Application app;
-	if (!win32_loadApplication(windowhandle, "LabCore.dll", &app)) {
+	if (!win32_loadApplication(windowhandle, "RP-GUI.dll", &app)) {
+		ERR << "failed to load application!";
 		PH_DEBUG_BREAK();
 	}
 
