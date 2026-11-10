@@ -710,7 +710,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	//loading the application;
 	Application app;
-	if (!win32_loadApplication(windowhandle, "RP-GUI.dll", &app)) {
+	if (!win32_loadApplication(windowhandle, "LabCore.dll", &app)) {
 		ERR << "failed to load application!";
 		PH_DEBUG_BREAK();
 	}
