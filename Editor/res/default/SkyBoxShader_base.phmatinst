@@ -1,7 +1,0 @@
-UUID: 2992305050
-references:
-  - SkyBoxShader_base
-Asset:
-  ParentMaterial: 1709172079
-  UniformResources:
-    []

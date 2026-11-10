@@ -1,0 +1,89 @@
+assetidentifier:
+  assetid: 3658502787
+  assetdescriptionid: 6544691651984941516
+  filepath: assets/scenes/example_scene.lcscene
+  flags: 1
+  references:
+    - example_scene
+asset:
+  entities:
+    - components:
+        Tag:
+          name: green light
+          id: 1330464736
+        Transform:
+          rotXYZ: [0, -0, 0]
+          scale: [1, 1, 1]
+          translation: [0.84852225, 2.6428282, -2.0951855]
+        Point Light:
+          postion: [0.84852225, 2.6428282, -2.0951855]
+          intensity: 0.94
+          color: [1, 1, 1]
+    - components:
+        Tag:
+          name: red light
+          id: 3560254280
+        Transform:
+          rotXYZ: [0, -0, 0]
+          scale: [1, 1, 1]
+          translation: [-1.8559883, 2.718985, 2.211338]
+        Point Light:
+          postion: [-1.8559883, 2.718985, 2.211338]
+          intensity: 1.74
+          color: [1, 0, 0]
+    - components:
+        Tag:
+          name: sunlight
+          id: 2180830774
+        Transform:
+          rotXYZ: [0, -0, 0]
+          scale: [1, 1, 1]
+          translation: [-3.440455, 6.492333, 1.4011955]
+        Point Light:
+          postion: [-3.440455, 6.492333, 1.4011955]
+          intensity: 300
+          color: [1, 1, 1]
+    - components:
+        Tag:
+          name: box 2
+          id: 3386866062
+        Transform:
+          rotXYZ: [0, -59.45644, 0]
+          scale: [0.99172056, 0.99172044, 0.99172056]
+          translation: [0.15630083, 2.7295551, 2.1156404]
+        Mesh:
+          mesh: 328866994555156235
+          material: 3991480754
+    - components:
+        Tag:
+          name: box 1
+          id: 271409149
+        Transform:
+          rotXYZ: [0, -78.08085, 0]
+          scale: [0.35999998, 0.36, 0.35999998]
+          translation: [-1.2592754, 2.7483618, 3.6066175]
+        Mesh:
+          mesh: 328866994555156235
+          material: 1877075475
+    - components:
+        Tag:
+          name: floor
+          id: 0
+        Transform:
+          rotXYZ: [0, -32.56318, 0]
+          scale: [14.0922, 0.13627118, 13.580578]
+          translation: [-1.9041865, 1.8563744, 2.3872366]
+        Mesh:
+          mesh: 9808924416449029863
+          material: 3991480754
+    - components:
+        Tag:
+          name: box 3
+          id: 4047677183
+        Transform:
+          rotXYZ: [2.455829e-05, -74.590965, -2.324448e-05]
+          scale: [3.1078608, 3.1078606, 3.1078608]
+          translation: [-5.048878, 3.0313728, 2.8163724]
+        Mesh:
+          mesh: 9808924416449029863
+          material: 3991480754

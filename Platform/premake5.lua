@@ -3,7 +3,7 @@ project "Platform"
 	language "C++"
 	targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/int")
-	debugdir "%{wks.location}/projects/RP-Gui/"
+	debugdir "%{wks.location}/LabCore/"
 
 	files
 	{
@@ -18,7 +18,9 @@ project "Platform"
         "%{IncludeDir.base}",
 		"%{IncludeDir.glm}",
 		"%{IncludeDir.imgui}",
-		"%{IncludeDir.vulkanSDK}"
+		"%{IncludeDir.vulkanSDK}",
+		"%{IncludeDir.imguizmo}"
+
 	}
 
 	libdirs
@@ -35,11 +37,15 @@ project "Platform"
 	}
 
 	dependson {
-		'RP-GUI'
+		'RP-GUI',
+		'LabCore',
+		'LabCore-3D',
+		'LabCore-scene',
+		'LabCore-ssh'
 	}
-
 	defines 
 	{
+		"PH_PLATFORM_EXPORT",
 		"PH_STATIC_BUILD"
 	}
 

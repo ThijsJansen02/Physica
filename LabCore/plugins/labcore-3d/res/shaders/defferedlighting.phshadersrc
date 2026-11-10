@@ -1,0 +1,110 @@
+
+>>>VERTEX_SHADER
+
+#version 450
+
+//vertexbuffer attributes
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+
+//instancebuffer attributes
+layout(location = 2) in vec4 inRotScaleMat;
+layout(location = 3) in vec3 instanceTranslation;
+layout(location = 4) in vec4 instanceColor;
+layout(location = 5) in uint inTextureIndex;
+
+//outgoing attributes
+layout(location = 0) out vec4 fragColor;
+layout(location = 1) out vec2 TexCoord;
+layout(location = 2) out uint TextureIndex;
+
+layout(set = 0, binding = 1) uniform Scene {
+	mat4 projection;
+	mat4 view;
+} scene;	
+
+void main() {
+
+	mat2 rotscalematrix = mat2(inRotScaleMat);
+    gl_Position = scene.projection * scene.view * (vec4(rotscalematrix * inPosition.xy, inPosition.z, 1.0) + vec4(instanceTranslation, 0.0));
+
+    fragColor = instanceColor;
+	TexCoord = inTexCoord;
+	TextureIndex = inTextureIndex;
+}
+
+>>>FRAGMENT_SHADER
+
+#version 450
+
+layout(location = 0) in vec4 fragColor;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 2) flat in uint TextureIndex;
+
+layout(set = 1, binding = 1) uniform Properties {
+	vec3 ambient_color;
+	float ambientinstensity;
+} properties;	
+
+layout(location = 0) out vec4 outColor;
+
+layout(set = 0, binding = 0) uniform sampler2D texSampler[32];
+
+struct PointLight {
+	vec3 position;
+	float intensity;
+	vec3 color;
+	float attenuation;
+};
+
+layout(set = 2, binding = 0) uniform Scene {
+	mat4 projection;
+	mat4 view;
+	mat4 inverseview;
+
+	PointLight lights[16];
+	uint nlights;
+} scene;	
+
+void main() {
+	
+	vec4 albedo = texture(texSampler[TextureIndex], TexCoord).rgba;
+	vec3 normal = normalize(texture(texSampler[TextureIndex + 1], TexCoord).rgb);
+	vec4 positiondata = texture(texSampler[TextureIndex + 2], TexCoord).rgba;
+
+	if(positiondata.a == 0.0) {
+		discard;
+	}
+
+
+	vec3 pos = positiondata.rgb;
+	vec3 viewdir = normalize(pos);
+
+	vec3 diffuse = vec3(0.0, 0.0, 0.0);
+	vec3 specular = vec3(0.0, 0.0, 0.0);
+
+	for(int i = 0; i < scene.nlights; i++) {
+		//transform lightposition to viewspace
+		vec3 lightpos = (scene.view * vec4(scene.lights[i].position, 1.0)).xyz;
+
+		vec3 lightdir = normalize(lightpos - pos);
+		vec3 lightreflect = reflect(lightdir, normal);
+
+		float d = length(lightpos - pos);
+		float attenuation = 1.0 / (1.0 + (d * d));
+
+		float spec = pow(max(dot(viewdir, lightreflect), 0.0), 64);
+		float diff = max(dot(lightdir, normal), 0.0);
+
+		specular += attenuation * scene.lights[i].intensity * scene.lights[i].color * spec; 
+    	diffuse += attenuation * scene.lights[i].intensity * scene.lights[i].color * diff;
+	}
+
+    vec3 ambient = properties.ambientinstensity * properties.ambient_color;
+
+	outColor = vec4((diffuse + ambient) * albedo.rgb + (specular) * albedo.a, 1.0);
+
+
+}	
+
+>>>END_OF_FILE

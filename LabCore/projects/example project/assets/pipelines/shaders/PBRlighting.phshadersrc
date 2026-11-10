@@ -1,0 +1,183 @@
+
+>>>VERTEX_SHADER
+
+#version 450
+
+//vertexbuffer attributes
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+
+//instancebuffer attributes
+layout(location = 2) in vec4 inRotScaleMat;
+layout(location = 3) in vec3 instanceTranslation;
+layout(location = 4) in vec4 instanceColor;
+layout(location = 5) in uint inTextureIndex;
+
+//outgoing attributes
+layout(location = 0) out vec4 fragColor;
+layout(location = 1) out vec2 TexCoord;
+layout(location = 2) out uint TextureIndex;
+
+layout(set = 0, binding = 1) uniform Scene {
+	mat4 projection;
+	mat4 view;
+} scene;	
+
+void main() {
+
+	mat2 rotscalematrix = mat2(inRotScaleMat);
+    gl_Position = scene.projection * scene.view * (vec4(rotscalematrix * inPosition.xy, inPosition.z, 1.0) + vec4(instanceTranslation, 0.0));
+
+    fragColor = instanceColor;
+	TexCoord = inTexCoord;
+	TextureIndex = inTextureIndex;
+}
+
+>>>FRAGMENT_SHADER
+
+#version 450
+
+layout(location = 0) in vec4 fragColor;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 2) flat in uint TextureIndex;
+
+layout(set = 1, binding = 1) uniform Properties {
+	vec3 ambient_color;
+	float ambientinstensity;
+} properties;	
+
+layout(location = 0) out vec4 outColor;
+
+layout(set = 0, binding = 0) uniform sampler2D texSampler[32];
+
+float PI = 3.14159265359;
+
+struct PointLight {
+	vec3 position;
+	float intensity;
+	vec3 color;
+	float attenuation;
+};
+
+layout(set = 2, binding = 0) uniform Scene {
+	mat4 projection;
+	mat4 view;
+	mat4 inverseview;
+
+	PointLight lights[16];
+	uint nlights;
+} scene;	
+
+float calculateAttenuation(vec3 fragpos, vec3 lightpos) {
+	float d = length(fragpos - lightpos);
+	return 1 / (d * d); 
+}
+
+vec3 fresnelSchlick(float cosTheta, vec3 F0)
+{
+	return F0 + (1.0 - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+} 
+
+float distributionGGX(vec3 N, vec3 H, float roughness)
+{
+	float a      = roughness*roughness;
+	float a2     = a*a;
+	float NdotH  = max(dot(N, H), 0.0);
+	float NdotH2 = NdotH*NdotH;
+	
+	float num   = a2;
+	float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+	denom = PI * denom * denom;
+	
+	return num / denom;
+}
+
+float geometrySchlickGGX(float NdotV, float roughness)
+{
+	float r = (roughness + 1.0);
+	float k = (r*r) / 8.0;
+
+	float num   = NdotV;
+	float denom = NdotV * (1.0 - k) + k;
+	
+	return num / denom;
+}
+
+float geometrySmith(vec3 N, vec3 V, vec3 L, float roughness)
+{
+	float NdotV = max(dot(N, V), 0.0);
+	float NdotL = max(dot(N, L), 0.0);
+	float ggx2  = geometrySchlickGGX(NdotV, roughness);
+	float ggx1  = geometrySchlickGGX(NdotL, roughness);
+	
+	return ggx1 * ggx2;
+}
+
+void main() {
+
+	vec4 colordata = texture(texSampler[TextureIndex], TexCoord).rgba;
+	vec3 normal = normalize(texture(texSampler[TextureIndex + 1], TexCoord).rgb);
+	vec4 positiondata = texture(texSampler[TextureIndex + 2], TexCoord).rgba;
+	vec3 fragpos = positiondata.rgb;
+	vec3 albedo = colordata.rgb;
+	float roughness = colordata.a;
+	float metallic = 0.0;
+
+	//all calculations are in viewspace so view dir is just the fragpos
+	vec3 viewdir = normalize(-fragpos);
+
+	if(positiondata.a == 0.0) {
+		discard;
+	}
+
+	vec3 Lo = vec3(0.0);
+	
+	for(int i = 0; i < scene.nlights; i++) {
+		PointLight light = scene.lights[i];
+		
+		vec3 lightpos = (scene.view * vec4(light.position, 1.0)).xyz;
+		vec3 lightcolor = light.color * light.intensity;
+		
+		vec3 wo = viewdir;
+		vec3 wi = normalize(lightpos - fragpos);
+
+
+
+		float attenuation = calculateAttenuation(fragpos, lightpos);
+
+		vec3 radiance = lightcolor * attenuation;
+		
+		vec3 h = normalize(wo + wi);
+		float costheta = max(dot(h, wo), 0.0);
+
+		//when the metallicness is available metallic will mix
+		vec3 F0 = vec3(0.04); 
+		F0 = mix(F0, albedo, metallic);
+
+		vec3 F = fresnelSchlick(costheta, F0);
+
+		vec3 Ks = F;
+		vec3 Kd = vec3(1.0) - F;
+
+		//if a material is mettalic, it does not refract any light
+		Kd *= (1.0 - metallic);
+
+		float NDF = distributionGGX(normal, h, roughness);
+		float G = geometrySmith(normal, wo, wi, roughness);
+
+		float NdotWi = max(dot(wi, normal), 0.0);
+		float NdotWo = max(dot(wo, normal), 0.0);
+
+		vec3 numerator = vec3(1.0) * G * F * NDF;
+		float denomiator = (4.0 * NdotWi * NdotWo) + 0.0001;
+
+		vec3 specular = numerator / denomiator;
+
+		Lo += (Kd * albedo / PI + specular) * radiance * NdotWi;
+	}
+	
+	vec3 ambient = properties.ambient_color * properties.ambientinstensity * albedo;
+	outColor = vec4(ambient + Lo, 1.0);
+}	
+
+>>>END_OF_FILE

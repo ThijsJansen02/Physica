@@ -117,8 +117,14 @@ namespace PH::Vulkan {
 		VkDescriptorSet set[MAX_FRAMES_IN_FLIGHT];
 	};
 
+	struct SubPass {
+		uint32 colorattachmentcount;
+	};
+
 	struct Renderpass {
 		VkRenderPass renderpass;
+
+		Vulkan::ArrayList<Vulkan::SubPass> subpasses;
 	};
 
 	struct Shader {
@@ -153,6 +159,20 @@ namespace PH::Vulkan {
 		VkImageView view;
 		VkSampler sampler;
 		VkDeviceMemory imagememory;
+	};
+
+	enum VulkanObjectType {
+		VULKAN_FRAMEBUFFER,
+		VULKAN_TEXTURE,
+		VULKAN_DESCRIPTORSET,
+		VULKAN_DESCRIPTORSET_LAYOUT,
+		VULKAN_BUFFER
+	};
+
+	struct ObjectDeletePost {
+		VulkanObjectType objecttype;
+		Platform::GFX::id object;
+		uint32 framecounter;
 	};
 
 	struct VulkanAppContext {
@@ -214,7 +234,18 @@ namespace PH::Vulkan {
 		//for descriptor set allocation synchronization
 		Base::mutex_lock descriptorpoollock;
 		Base::mutex_lock commandpoollock;
+
+		ArrayList<ObjectDeletePost> objectdeletequeue;
 	};
+
+	inline void postObjectDeleteMessage(VulkanAppContext* context, Platform::GFX::id obj, VulkanObjectType type) {
+		ObjectDeletePost p;
+		p.framecounter = MAX_FRAMES_IN_FLIGHT;
+		p.object = obj;
+		p.objecttype = type;
+
+		context->objectdeletequeue.pushBack(p);
+	}
 
 	VkCommandBuffer beginSingleTimeCommands(VulkanAppContext* context);
 	void endSingleTimeCommands(VulkanAppContext* context, VkCommandBuffer commandBuffer);

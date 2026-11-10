@@ -1,0 +1,17 @@
+assetidentifier:
+  assetid: 2983062809953302303
+  assetdescriptionid: 983741375477342588
+  filepath: res/pipelines/defaultlightingpipe.phpipe
+  flags: 0
+  references:
+    - defaultlightingpipe
+asset:
+  type: 2
+  binpath: res/shaders/bin/defferedlighting.phshaderbin
+  srcpath: res/shaders/defferedlighting.phshadersrc
+  userbuffer: !!binary "Enj7PgAAgD8AAIA/zczMPQ=="
+  resources:
+    - name: Properties
+      binding: 1
+      type: 6
+      set: 1

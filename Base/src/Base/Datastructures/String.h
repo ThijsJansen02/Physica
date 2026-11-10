@@ -1,4 +1,5 @@
 #pragma once 
+#include "Base/utils.h"
 #include "Base/Memory.h"
 #include <string.h>
 #include <stdio.h>
@@ -14,6 +15,21 @@ namespace PH::Base {
 		return strlen;
 	}
 
+	//returns wheter the first matches str2 till the end of string 2 even if string 2 continues
+	inline bool32 stringPartOf(const char* str1, const char* str2) {
+		while (*str1 != '\0' && *str2 != '\0') {
+			if (*str1 != *str2) {
+				return false;
+			}
+			str1++;
+			str2++;
+		}
+
+		//if string 1 reached the end it is the same as part of string 2
+		return *str1 == '\0';
+	}
+
+	//returns wheter the strings are exactly the same
 	inline bool32 stringCompare(const char* str1, const char* str2) {
 		while (*str1 != 0 && *str2 != 0) {
 			if (*str1 != *str2) {
@@ -22,11 +38,15 @@ namespace PH::Base {
 			str1++;
 			str2++;
 		}
+
+		//if both are terminated strings are the same
 		return *str1 == *str2;
 	}
 
 	inline bool32 stringCompare(const char* str1, const char* str2, sizeptr maxsize) {
-		
+		if (maxsize == 0) {
+			return false;
+		}
 		
 		while (*str1 != 0 && *str2 != 0) {
 			if (maxsize == 0)
@@ -41,7 +61,29 @@ namespace PH::Base {
 			str2++;
 			maxsize--;
 		}
-		return *str1 == *str2;
+		return *(str1 - 1) == *(str2 - 1);
+	}
+
+	
+	inline bool32 stringCompareNcharacters(const char* str1, const char* str2, sizeptr nchars) {
+		if (nchars == 0) {
+			return true;
+		}
+
+		while (*str1 != 0 && *str2 != 0) {
+			if (nchars == 0)
+			{
+				return true;
+			}
+
+			if (*str1 != *str2) {
+				return false;
+			}
+			str1++;
+			str2++;
+			nchars--;
+		}
+		return *(str1 - 1) == *(str2 - 1);
 	}
 
 	//copies string from src to dst and returns the amount of bytes copied including the nulltermination character
@@ -65,6 +107,17 @@ namespace PH::Base {
 
 	inline void int16ToStr(int16 val, char* buffer, sizeptr size) {
 		sprintf_s(buffer, size, "%d", val);
+	}
+
+	inline void stringReplace(char* str, char cmp, char replace) {
+		while (*str != '\0') {
+
+			if(*str == cmp) {
+				*str = replace;
+			}
+
+			str++;
+		}
 	}
 
 	/// <summary>
@@ -107,6 +160,12 @@ namespace PH::Base {
 			return string;
 		}
 
+		char operator[](sizeptr index) {
+			PH_DEBUG_ASSERT(index < m_Length, "index is higher than the length of the string")
+			return m_Str[index];
+		}
+
+		//returns a substring from the begining of this to the next entry of character c
 		SubString getTill(char c) {
 
 			char* str = m_Str;
@@ -116,7 +175,19 @@ namespace PH::Base {
 				}
 				str++;
 			}
-			return SubString::create(m_Str, str - m_Str + 1);
+			return SubString::create(m_Str, str - m_Str);
+		}
+
+		//returns Substring from the begining of this till the first orrurrance of compstr
+		SubString getTill(const char* compstr) {
+			char* str = m_Str;
+			while (*str != 0) {
+				if (stringPartOf(compstr, str)) {
+					break;
+				}
+				str++;
+			}
+			return SubString::create(m_Str, str - m_Str);
 		}
 
 		SubString operator-(uint32 l) {
@@ -126,7 +197,7 @@ namespace PH::Base {
 		}
 
 		/// <summary>
-		/// returns the substring from the last found char c, if no such character is found the return is the whole string
+		/// returns the substring till the last found entry of character c
 		/// </summary>
 		/// <param name="c"></param>
 		/// <returns></returns>
@@ -163,9 +234,14 @@ namespace PH::Base {
 			return SubString::create(m_Str, lastfound - m_Str);
 		}
 
+		const char* getEndPtr() {
+			return m_Str + m_Length;
+		}
+
 
 		/// <summary>
 		/// returns the substring from the last found char c, if no such character is found the return is an empty substring
+		/// returns from the last found character to the end of the string including the last found character
 		/// </summary>
 		/// <param name="c"></param>
 		/// <returns></returns>
@@ -182,11 +258,32 @@ namespace PH::Base {
 			return SubString::create(lastfound, (m_Str + m_Length) - lastfound);
 		}
 
-		SubString moveHead(sizeptr length) {
+		//returns a substring with the head moved
+		SubString moveHead(int64 length) {
 			SubString result = *this;
 			result.m_Str += length;
 			result.m_Length -= length;
 			return result;
+		}
+
+		SubString moveTail(int64 length) {
+			SubString result = *this;
+			//result.m_Str += length;
+			result.m_Length += length;
+			return result;
+		}
+
+		//returns substring from the position after the first time str occurs in the substring
+		SubString getFrom(const char* compstr) {
+			char* str = m_Str;
+			while (*str != 0 && (str - m_Str) < m_Length) {
+				if (stringPartOf(compstr, str)) {
+					str += stringLength(compstr);
+					break;
+				}
+				str++;
+			}
+			return SubString::create(str, (m_Str + m_Length) - str);
 		}
 
 		SubString getFrom(char c) {
@@ -201,19 +298,38 @@ namespace PH::Base {
 			return SubString::create(str, (m_Str + m_Length) - str);
 		}
 
-		bool32 compare(const char* str) {
 
-			uint32 count = 0;
-			while (*str != 0 && count < m_Length) {
-				if (*str != m_Str[count]) {
-					return false;
+
+		bool32 compare(SubString other) {
+			sizeptr maxlength = minVal(other.getLength(), this->getLength());
+			stringCompare(this->getC_Str(), other.getC_Str(), maxlength);
+		}
+
+		bool32 compare(const char* str) {
+			stringCompare(this->getC_Str(), str, this->m_Length);
+			return false;
+		}
+
+		bool32 contains(char other) {
+			char* str = this->m_Str;
+			
+			while (*str != '\0' && (str - this->m_Str) < m_Length) {
+				if (*str == other) {
+					return true;
 				}
-				count++;
 				str++;
 			}
+			return false;
+		}
 
-			if (*str == '\0' && count == m_Length) {
-				return true;
+		bool32 contains(const char* other) {
+			const char* ptr = this->getC_Str();
+			sizeptr cmprlength = stringLength(other);
+			while (*ptr != '\0' && (ptr - this->getC_Str()) < this->getLength()) {
+				if (stringCompareNcharacters(ptr, other, cmprlength)) {
+					return true;
+				}
+				ptr++;
 			}
 			return false;
 		}
@@ -238,6 +354,10 @@ namespace PH::Base {
 
 	inline sizeptr minSizeptr(sizeptr l, sizeptr r) {
 		return (l < r) ? l : r;
+	}
+
+	inline bool32 stringCompare(const Base::SubString& left, const Base::SubString& right) {
+		return Base::stringCompare(left.getC_Str(), right.getC_Str());
 	}
 
 	inline bool32 subStringCopy(const SubString& substring, char* dst, sizeptr maxsize) {
@@ -294,6 +414,25 @@ namespace PH::Base {
 			return SubString::create(m_Str, stringLength(m_Str));
 		}
 
+		char operator[](sizeptr index) {
+			return m_Str[index];
+		}
+
+		//removes character at index
+		void remove(sizeptr index) {
+			sizeptr newsize = m_Size  - 1;
+			char* newstring = (char*)allocator::alloc(newsize);
+
+			copyMemory(m_Str, newstring, index);
+
+			copyMemory(m_Str + index + 1, newstring + index, m_Size - index - 1);
+
+			allocator::dealloc(m_Str);
+			m_Str = newstring;
+			m_Size = newsize;
+		}
+
+		//replaces all characters that match the comperand with the exchange character
 		void replace(char comperand, char exchange) {
 
 			char* str = m_Str;
@@ -304,6 +443,22 @@ namespace PH::Base {
 				str++;
 			}
 
+		}
+
+		//inserts a character at the given position
+		void insert(char character, sizeptr position) {
+			sizeptr newsize = m_Size + 1;
+			char* newstring = (char*)allocator::alloc(newsize);
+
+			copyMemory(m_Str, newstring, position);
+
+			newstring[position] = character;
+
+			copyMemory(m_Str + position, newstring + position + 1, m_Size - position);
+
+			allocator::dealloc(m_Str);
+			m_Str = newstring;
+			m_Size = newsize;
 		}
 
 
@@ -351,6 +506,11 @@ namespace PH::Base {
 			return *this;
 		}
 
+		String& append(String a) {
+			append(a.getSubString());
+			return *this;
+		}
+
 		String& appendFront(const char* string) {
 
 			sizeptr al = stringLength(string);
@@ -384,8 +544,16 @@ namespace PH::Base {
 			}
 			return false;
 		}
+		
+		bool32 contains(const char* str) {
+			return this->getSubString().contains(str);
+		}
 
+		//returns the size of the string in bytes including the null termination character
 		const sizeptr getSize() const { return m_Size; }
+
+		//returns the length of the string in amount of characters
+		const sizeptr getLength() const { return m_Size - 1; }
 		const char* getC_Str() const { return m_Str; }
 		char getChar(sizeptr index) const { return m_Str[index]; }
 
@@ -408,6 +576,16 @@ namespace PH::Base {
 			*this = other;
 		}
 
+		void set(SubString other) {
+			allocator::dealloc(m_Str);
+
+			m_Size = other.getLength() + 1;
+			m_Str = (char*)allocator::alloc(m_Size);
+
+			copyMemory((void*)other.getC_Str(), m_Str, other.getLength());
+			m_Str[m_Size - 1] = '\0';
+		}
+
 		char* m_Str;
 		sizeptr m_Size;
 	};
@@ -417,6 +595,68 @@ namespace PH::Base {
 		return left.compare(right);
 	}
 
+	inline bool32 isFilepath(Base::SubString str) {
+		return str.contains('.');
+	}
+
+	inline bool32 isDirPath(Base::SubString str) {
+		return !str.contains('.');
+	}
+
+	inline bool32 hasExtension(Base::SubString str) {
+		return str.contains('.');
+	}
+
+	inline bool32 isAbsolutePath(Base::SubString str) {
+		return str[1] == ':';
+	}
+
+	//returns the extension of the substring, including the dot
+	inline SubString getExtension(Base::SubString str) {
+		return str.getFromLast('.');
+	}
+
+	template<typename allocator>
+	void setExtension(String<allocator>* str, const char* extension) {
+		str->replace('\\', '/');
+
+		if (hasExtension(str->getSubString())) {
+			str->set(str->getTillLastExcluding('.'));
+			str->append(extension);
+		}
+		else {
+			str->append(extension);
+		}
+	}
+
+	template<typename allocator>
+	bool32 MakeRelative(String<allocator>* absolutepath, SubString homedir) {
+		
+		SubString homedirstr = homedir;
+		SubString relpath = absolutepath->getSubString();
+		
+		while (relpath.getLength() > 0 && homedirstr.getLength() > 0 && relpath[0] == homedirstr[0]) {
+			relpath = relpath.moveHead(1);
+			homedirstr = homedirstr.moveHead(1);
+		}
+
+		if (homedirstr.getLength() > 0) {
+			//homedir is not a prefix of the absolutepath
+			return false;
+		}
+
+		absolutepath->set(relpath);
+	}
+
+	//returns the filename of the substring, requires all backward slashes to be replaced by forward slashes
+	inline SubString getFileName(SubString filepath) {
+		return filepath.getFromLast('/').moveHead(1);
+	}
+
+	//returns the filename of the substring, requires all backward slashes to be replaced by forward slashes
+	inline SubString getFileNameWithoutExtension(SubString filepath) {
+		return filepath.getFromLast('/').getTillLast('.').moveTail(-1);
+	}
 
 	template<typename allocator>
 	class FilePath {

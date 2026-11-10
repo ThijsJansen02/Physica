@@ -1,3 +1,5 @@
+outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+
 include "Dependencies.lua"
 
 workspace "ProjectPhysica"
@@ -10,7 +12,6 @@ workspace "ProjectPhysica"
     }
     startproject "Platform"
 
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 
 group "core"
@@ -18,7 +19,14 @@ group "core"
     include "Platform"
     include "Sandbox"
     include "Engine"
-    include "Editor"
+    include "LabCore"
+group ""
+
+group "labcore-plugins"
+    include "LabCore/plugins/labcore-3d"
+    include "LabCore/plugins/labcore-plt"
+    include "LabCore/plugins/labcore-scene"
+    include "LabCore/plugins/labcore-ssh"
 group ""
 
 group "projects"

@@ -2,6 +2,7 @@
 #include <Platform/platformAPI.h>
 
 #include <Base/Base.h>
+#include <Base/random.h>
 #include <Base/Memory.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -20,16 +21,16 @@ namespace PH::Engine {
 
 
 	namespace Intern {
-		CONSOLE_WRITE(ConsoleWrite);
+		PH_ENGINE_API CONSOLE_WRITE(ConsoleWrite);
 	}
 
-	extern PH::Base::LogStream<Intern::ConsoleWrite> INFO;
-	extern PH::Base::LogStream<Intern::ConsoleWrite> WARN;
-	extern PH::Base::LogStream<Intern::ConsoleWrite> ERR;	
+	extern PH_ENGINE_API PH::Base::LogStream<Intern::ConsoleWrite> INFO;
+	extern PH_ENGINE_API PH::Base::LogStream<Intern::ConsoleWrite> WARN;
+	extern PH_ENGINE_API PH::Base::LogStream<Intern::ConsoleWrite> ERR;
 
 	struct Display;
 
-	class Allocator {
+	class PH_ENGINE_API Allocator {
 	public:
 
 #if ENGINE_USE_MALLOC
@@ -45,24 +46,35 @@ namespace PH::Engine {
 		static void init(void* mem, PH::sizeptr size) {
 
 		}
+
+		template<typename T>
+		static T* inst(const T& inst) {
+			T* result = (T*)malloc(sizeof(T));
+			*result = inst;
+			return result;
+		}
 #else
-		static void* alloc(PH::sizeptr size) {
-//			PH_DEBUG_ASSERT(size > 0, "memory of size 0 is pointless!")
-
-			return PH::Base::DynamicAllocateFirstFit(&memory, size);
-		}
-		static PH::bool32 dealloc(void* mem) {
-//			PH_DEBUG_ASSERT(mem, "memory is nullptr")
-
-			return PH::Base::DynamicDeallocate(&memory, mem);
+		template<typename T>
+		static T* alloc() {
+			return (T*)alloc(sizeof(T));
 		}
 
-		static void init(void* mem, PH::sizeptr size) {
-			memory = PH::Base::createDynamicMemoryBuffer(mem, size);
+		
+		template<typename T>
+		static T* push(const T& t) {
+			T* inst = (T*)alloc(sizeof(T));
+
+			*inst = t;
+			return inst;
 		}
 
-#endif
+
+		static void* alloc(PH::sizeptr size);
+		static PH::bool32 dealloc(void* mem);
+		static void init(void* mem, PH::sizeptr size);
+
 		static PH::Base::DynamicMemoryBuffer memory;
+#endif
 	};
 
 	class ArenaAllocator {
@@ -125,10 +137,16 @@ namespace PH::Engine {
 
 	//should always be called at the the start of a new frame, updates parameters
 	bool32 beginNewFrame(PH::Platform::Context* c);
-	real32 getTimeStep();
+
+	//returns the time step from last frame in seconds
+	PH_ENGINE_API real32 getTimeStep();
 	
 	//returns the parent display, the parentdisplay is the display created by the platform which is blitted to the screen
 	Display* getParentDisplay();
+
+	inline UUID createRandomUUID() {
+		return Base::pcg_hash((uint32)(PH::Platform::getTimeMs() * 1000.0f));
+	}
 
 	PH::Platform::GFX::Buffer createDynamicUniformBuffer(sizeptr size);
 }

@@ -1,0 +1,13 @@
+assetidentifier:
+  assetid: 2781615859
+  assetdescriptionid: 983741375477342588
+  filepath: assets/pipelines/lightbox.lcpipe
+  flags: 1
+  references:
+    - lightbox
+asset:
+  type: 0
+  binpath: assets/pipelines/shaders/bin/lightbox.phshaderbin
+  srcpath: assets/pipelines/shaders/lightbox.phshadersrc
+  resources:
+    []

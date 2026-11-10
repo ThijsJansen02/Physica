@@ -115,11 +115,35 @@ namespace PH::Platform {
 		HANDLE handle;
 	};
 
+#define PH_DIALOG_READONLY                 0x00000001
+#define PH_DIALOG_OVERWRITEPROMPT          0x00000002
+#define PH_DIALOG_HIDEREADONLY             0x00000004
+#define PH_DIALOG_NOCHANGEDIR              0x00000008
+#define PH_DIALOG_SHOWHELP                 0x00000010
+#define PH_DIALOG_ENABLEHOOK               0x00000020
+#define PH_DIALOG_ENABLETEMPLATE           0x00000040
+#define PH_DIALOG_ENABLETEMPLATEHANDLE     0x00000080
+#define PH_DIALOG_NOVALIDATE               0x00000100
+#define PH_DIALOG_ALLOWMULTISELECT         0x00000200
+#define PH_DIALOG_EXTENSIONDIFFERENT       0x00000400
+#define PH_DIALOG_PATHMUSTEXIST            0x00000800
+#define PH_DIALOG_FILEMUSTEXIST            0x00001000
+#define PH_DIALOG_CREATEPROMPT             0x00002000
+#define PH_DIALOG_SHAREAWARE               0x00004000
+#define PH_DIALOG_NOREADONLYRETURN         0x00008000
+#define PH_DIALOG_NOTESTFILECREATE         0x00010000
+#define PH_DIALOG_NONETWORKBUTTON          0x00020000
+
 	struct OpenFileDialogInfo {
 		PH::sizeptr resultbuffersize;
 		char* resultbuffer;
-		char* filter;
+		
+		const char* filter;
+
+		//if left nullptr the filedir will start in the currentdirectory
+		const char* startingdir;
 		PH::bool32 read;
+		uint32 flags;
 	};
 
 	struct Context {
@@ -191,12 +215,15 @@ namespace PH::Platform {
 			ImageLayout layout;
 		};
 
+		//renderpasses can have multiple subpasses, a subpass is a single pass that is performed on the attachments. a subpass can have multiple color attachments and a depth attachment. a subpass can also have input attachments, which are attachments that are read from but not written to.
 		struct SubPass {
 			Base::Array<AttachmentReference> colorattachments;
 			AttachmentReference* depthstencilattachment;
 			PipelineBindPoint bindpoint;
 		};
 
+		//a subpass dependency describes the dependency between two subpasses. it describes the source and destination subpass, as well as the stage and access masks for both subpasses.
+		//the source subpass is the subpass that is executed before the destination subpass. the destination subpass is the subpass that is executed after the source subpass.
 		struct SubpassDependency {
 			uint32 srcsubpass;
 			uint32 dstsubpass;
@@ -258,6 +285,9 @@ namespace PH::Platform {
 
 			PrimitiveTopology topology;
 			RenderpassDescription renderpass;
+
+			bool32 blend;
+			///uint32 colorblendattachments;
 
 			CullModeFlags cullmode;
 			bool32 depthtest;
@@ -326,6 +356,7 @@ namespace PH::Platform {
 			uint32 arrayelement;
 			uint32 descriptorcount;
 
+			//if dynamicwrite is set the write only applies to the current frame, the descriptor sets bound to the frames in flight are not written
 			bool32 dynamicwrite;
 
 			void* descriptorinfo;
@@ -376,6 +407,14 @@ namespace PH::Platform {
 			void* data;
 			PH::Platform::GFX::ImageUsageFlags usage;
 			PH::Platform::GFX::Format format;
+		};
+
+		struct Extent {
+			uint32 width, height, depth;
+		};
+
+		struct Offset {
+			int32 x, y, z;
 		};
 	}
 
@@ -511,7 +550,7 @@ namespace PH::Platform {
 
 			PH::Platform::Intern::gfx_CreateBuffersFN* gfxcreatebuffers;
 			PH::Platform::Intern::gfx_DestroyBuffersFN* gfxdestroybuffers;
-			PH::Platform::Intern::gfx_BindVertexBuffersFN* gfxbindvertexbuffers;
+			PH::Platform::Intern::gfx_BindVertexBuffersFN* gfxbindvertexbuffers;			
 			PH::Platform::Intern::gfx_BindIndexBufferFN* gfxbindindexbuffer;
 			PH::Platform::Intern::gfx_CopyBufferFN* gfxcopybuffers;
 			PH::Platform::Intern::gfx_MapBufferFN* gfxmapbuffer;
@@ -543,54 +582,92 @@ namespace PH::Platform {
 		};
 	}
 
+#ifdef PH_PLATFORM_EXPORT
+#define PH_PLATFORM_API __declspec(dllexport)
+#else 
+#ifdef PH_PLATFORM_IMPORT
+#define PH_PLATFORM_API __declspec(dllimport)
+#else
+#define PH_PLATFORM_API
+#endif
+#endif
+
 	namespace GFX {
-		extern Intern::gfx_DrawFN* draw;
-		extern Intern::gfx_DrawIndexedFN* drawIndexed;
-		extern Intern::gfx_SetViewportsFN* setViewports;
-		extern Intern::GFX_SetScissorsFN* setScissors;
+		extern PH_PLATFORM_API Intern::gfx_DrawIndexedFN*	drawIndexed;
+		extern PH_PLATFORM_API Intern::gfx_SetViewportsFN*  setViewports;
+		extern PH_PLATFORM_API Intern::GFX_SetScissorsFN*   setScissors;
+		extern PH_PLATFORM_API Intern::gfx_DrawFN*			draw;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateBuffersFN* createBuffers;
+		extern PH_PLATFORM_API Intern::gfx_DestroyBuffersFN* destroyBuffers;
+		extern PH_PLATFORM_API Intern::gfx_BindVertexBuffersFN* bindVertexBuffers;
+		extern PH_PLATFORM_API Intern::gfx_BindIndexBufferFN* bindIndexBuffer;
+		extern PH_PLATFORM_API Intern::gfx_CopyBufferFN* copyBuffer;
+		extern PH_PLATFORM_API Intern::gfx_MapBufferFN* mapBuffer;
+		extern PH_PLATFORM_API Intern::gfx_UnmapBufferFN* unmapBuffer;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateRenderpassDescriptionFN* createRenderpassDescriptions;
+		
+		//copies the buffer asynchronous in the commandbuffer of the the current frame
+		PH_PLATFORM_API bool32 copyBufferAsynchronous(PH::Platform::GFX::Buffer srcbuffer, PH::Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset);
+		
+		struct ImageToBufferCopyInfo {
+			GFX::Texture src;
+			GFX::Buffer dst;
 
-		extern Intern::gfx_CreateBuffersFN* createBuffers;
-		extern Intern::gfx_DestroyBuffersFN* destroyBuffers;
-		extern Intern::gfx_BindVertexBuffersFN* bindVertexBuffers;
-		extern Intern::gfx_BindIndexBufferFN* bindIndexBuffer;
-		extern Intern::gfx_CopyBufferFN* copyBuffer;	
-		extern Intern::gfx_MapBufferFN* mapBuffer;
-		extern Intern::gfx_UnmapBufferFN* unmapBuffer;
+			sizeptr bufferoffset;
+			GFX::Offset imageoffset;
+			GFX::Extent imageextent;
+		};
 
-		extern Intern::gfx_CreateRenderpassDescriptionFN* createRenderpassDescriptions;
-		extern Intern::gfx_CreateFramebuffersFN* createFramebuffers;
+		PH_PLATFORM_API bool32 copyImageToBufferAsynchronous(const ImageToBufferCopyInfo& info);
 
-		extern Intern::gfx_BeginRenderpassFN* beginRenderpass;
-		extern Intern::gfx_EndRenderpassFN* endRenderpass;
+		PH_PLATFORM_API bool32 destroyRenderpassDescriptions(GFX::RenderpassDescription* descriptions, uint32 count);
+		PH_PLATFORM_API bool32 destroyFrameBuffers(GFX::Framebuffer* framebuffers, uint32 count);
+		
+		extern PH_PLATFORM_API Intern::gfx_CreateFramebuffersFN* createFramebuffers;
+			   
+		extern PH_PLATFORM_API Intern::gfx_BeginRenderpassFN* beginRenderpass;
+		extern PH_PLATFORM_API Intern::gfx_EndRenderpassFN* endRenderpass;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateDescriptorSetLayoutsFN* createDescriptorSetLayouts;
+		extern PH_PLATFORM_API Intern::gfx_destroyDesctiptorSetLayoutsFN* destroyDescriptorSetLayouts;
+		extern PH_PLATFORM_API Intern::gfx_createDescriptorSetsFN* createDescriptorSets;
+		extern PH_PLATFORM_API Intern::gfx_DestroyDescriptorSetsFN* destroyDescriptorSets;
+		extern PH_PLATFORM_API Intern::gfx_updateDescriptorSetsFN* updateDescriptorSets;
+		extern PH_PLATFORM_API Intern::gfx_bindDescriptorSetsFN* bindDescriptorSets;
+			   
+		extern PH_PLATFORM_API Intern::gfx_CreateShadersFN* createShaders;
+		extern PH_PLATFORM_API Intern::gfx_DestroyShadersFN* destroyShaders;
+		extern PH_PLATFORM_API Intern::gfx_BindGraphicsPipelineFN* bindGraphicsPipeline;
+		extern PH_PLATFORM_API Intern::gfx_CreateGraphicsPipelinesFN* createGraphicsPipelines;
+				
 
-		extern Intern::gfx_CreateDescriptorSetLayoutsFN* createDescriptorSetLayouts;
-		extern Intern::gfx_destroyDesctiptorSetLayoutsFN* destroyDescriptorSetLayouts;
-		extern Intern::gfx_createDescriptorSetsFN* createDescriptorSets;
-		extern Intern::gfx_DestroyDescriptorSetsFN* destroyDescriptorSets;
-		extern Intern::gfx_updateDescriptorSetsFN* updateDescriptorSets;
-		extern Intern::gfx_bindDescriptorSetsFN* bindDescriptorSets;
 
-		extern Intern::gfx_CreateShadersFN* createShaders;
-		extern Intern::gfx_DestroyShadersFN* destroyShaders;
-		extern Intern::gfx_BindGraphicsPipelineFN* bindGraphicsPipeline;
-		extern Intern::gfx_CreateGraphicsPipelinesFN* createGraphicsPipelines;
+		extern PH_PLATFORM_API Intern::gfx_CreateTexturesFN* createTextures;
+		extern PH_PLATFORM_API Intern::gfx_DestroyTexturesFN* destroyTextures;
+			   
+		extern PH_PLATFORM_API Intern::gfx_DrawImguiWidgetsFN* drawImguiWidgets;
+		extern PH_PLATFORM_API Intern::gfx_CreateImguiImageFN* createImGuiImage;
 
-		extern Intern::gfx_CreateTexturesFN* createTextures;
-		extern Intern::gfx_DestroyTexturesFN* destroyTextures;
-
-		extern Intern::gfx_DrawImguiWidgetsFN* drawImguiWidgets;
-		extern Intern::gfx_CreateImguiImageFN* createImGuiImage;
 	}
 
-	extern Intern::LoadFileFN* loadFile;
-	extern Intern::UnloadFileFN* unloadFile;
-	extern Intern::ConsoleWriteFN* consoleWrite;
-	extern Intern::WriteFileFN* writeFile;
+	PH_PLATFORM_API void getCurrentDirectory(char* buffer, sizeptr maxsize);
+	PH_PLATFORM_API bool32 setCurrentDirectory(PH::Base::SubString directory);
+	PH_PLATFORM_API bool32 createDirectory(PH::Base::SubString directory);
 
-	extern Intern::getTimeMsFN* getTimeMs;
+	PH_PLATFORM_API bool32 setWindowTitle(PH::Base::SubString title);
 
-	extern Intern::createThreadFN* createThread;
-	extern Intern::ListFilesFN* listFiles;
 
-	extern Intern::OpenFileDialogFN* openFileDialog;
+	extern PH_PLATFORM_API Intern::LoadFileFN* loadFile;
+	extern PH_PLATFORM_API Intern::UnloadFileFN* unloadFile;
+	extern PH_PLATFORM_API Intern::ConsoleWriteFN* consoleWrite;
+	extern PH_PLATFORM_API Intern::WriteFileFN* writeFile;
+
+	extern PH_PLATFORM_API Intern::getTimeMsFN* getTimeMs;
+
+	extern PH_PLATFORM_API Intern::createThreadFN* createThread;
+	extern PH_PLATFORM_API Intern::ListFilesFN* listFiles;
+
+	extern PH_PLATFORM_API Intern::OpenFileDialogFN*  openFileDialog;
 }

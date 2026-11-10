@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Engine/Rendering.h>
+#include <Engine/RenderPrimitives.h>
 
 namespace PH::Engine {
 
@@ -14,8 +15,8 @@ namespace PH::Engine {
 			bool32 end() {
 				return Renderer2D::end(m_Context);
 			}
-			bool32 flush(Base::Array<Platform::GFX::DescriptorSet> globaldescriptorsets) {
-				return Renderer2D::flush(m_Context, globaldescriptorsets);
+			bool32 flush(Base::Array<Platform::GFX::DescriptorSet> additionaldescriptors) {
+				return Renderer2D::flush(m_Context, additionaldescriptors);
 			}
 			bool32 drawTexturedQuad(const glm::mat4& transform, Platform::GFX::Texture texture) {
 				return Renderer2D::drawTexturedQuad(transform, texture, m_Context);
@@ -46,6 +47,11 @@ namespace PH::Engine {
 			bool32 drawColoredQuad(glm::vec3 position, glm::vec2 size, glm::vec4 color) {
 				return Renderer2D::drawColoredQuad(position, size, color, m_Context);
 			}
+
+			bool32 drawColoredBox2D(const Box2D& box, const glm::vec4& color) {
+				return Renderer2D::drawColoredQuad(glm::vec3(0.5f * (box.bottomleft + box.topright), 0.0f), { box.right - box.left, box.top - box.bottom }, color, m_Context);
+			}
+
 			bool32 pushView(const glm::mat4& view) {
 				return Renderer2D::pushView(m_Context, view);
 			}

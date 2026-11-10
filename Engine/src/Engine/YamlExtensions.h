@@ -3,6 +3,7 @@
 #include <yaml-cpp/yaml.h>
 #include <glm/glm.hpp>
 #include <Platform/platformAPI.h>
+#include <Engine/Engine.h>
 
 namespace YAML {
 	template<>

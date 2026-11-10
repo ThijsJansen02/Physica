@@ -1,16 +1,23 @@
 //include the platform api to have access to platfom functions
-#include <Platform/platformAPI.cpp>
 #include "Engine.h"
+
+//this was for the old API
+//#include <Platform/platformAPI.cpp>
 #include "Display.h"
 #include "Rendering.h"
-#include "Scene.h"
 #include "Events.h"
 #include <Engine/Display.h>
+#include <Engine/coreassets/Font.h>
 
 #define ARENA_ALLOCATOR_SIZE (MEGA_BYTE * 128)
 
 namespace PH::Engine {
 
+	//memory pools and arenas
+	PH::Base::DynamicMemoryBuffer Engine::Allocator::memory;
+	thread_local PH::Base::MemoryArena Engine::ArenaAllocator::arena;
+
+	//allocators usable for imgui
 	void* imguiAllocator(size_t sz, void* userdata) {
 		return PH::Engine::Allocator::alloc(sz);
 	}
@@ -19,25 +26,38 @@ namespace PH::Engine {
 		PH::Engine::Allocator::dealloc(data);
 	}
 
+	void* Allocator::alloc(PH::sizeptr size) {
+		//			PH_DEBUG_ASSERT(size > 0, "memory of size 0 is pointless!")
+
+		return PH::Base::DynamicAllocateFirstFit(&memory, size);
+	}
+
+	PH::bool32 Allocator::dealloc(void* mem) {
+		return PH::Base::DynamicDeallocate(&memory, mem);
+	}
+
+	void Allocator::init(void* mem, PH::sizeptr size) {
+		memory = PH::Base::createDynamicMemoryBuffer(mem, size);
+	}
+
+	
+	//engine log streams
 	namespace Intern {
 		CONSOLE_WRITE(ConsoleWrite) {
 			Platform::consoleWrite(str);
 		}
 	}
-
 	PH::Base::LogStream<Intern::ConsoleWrite> INFO;
 	PH::Base::LogStream<Intern::ConsoleWrite> WARN;
 	PH::Base::LogStream<Intern::ConsoleWrite> ERR;
 
-	PH::Base::DynamicMemoryBuffer Engine::Allocator::memory;
-	thread_local PH::Base::MemoryArena Engine::ArenaAllocator::arena;
 
+	//global constructor functions declarations
 	PH::Platform::GFX::RenderpassDescription createDisplayRenderpass();
+	Platform::GFX::DescriptorSetLayout createFontDescriptorSetLayout();
+	
 
-	namespace Assets {
-		Platform::GFX::DescriptorSetLayout createSceneDescriptorSetLayout();
-	}
-
+	//engine context
 	struct Context {
 		real32 lastframetime_ms;
 		real32 timestep_ms;
@@ -45,6 +65,7 @@ namespace PH::Engine {
 		Display parentdisplay;
 	};
 
+	//global engine context
 	Engine::Context* context;
 
 	bool32 beginNewFrame(PH::Platform::Context* c) {
@@ -99,9 +120,9 @@ namespace PH::Engine {
 
 		//init the display renderpass... might make this optional if the use of displays is not required
 		Engine::Display::defaultrenderpassdescription = createDisplayRenderpass();
-		Engine::Assets::Scene::descriptorsetlayout = Engine::Assets::createSceneDescriptorSetLayout();
 
-		Engine::Renderer3D::cube = Engine::Renderer3D::createCube();
+		//create a default descriptorset layout for fonts
+		Engine::Font::descriptorsetlayout = createFontDescriptorSetLayout();
 
 		return true;
 	}

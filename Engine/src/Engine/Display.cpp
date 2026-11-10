@@ -15,82 +15,64 @@ namespace PH::Engine {
 		colorattachment.initiallayout = Platform::GFX::IMAGE_LAYOUT_UNDEFINED;
 		colorattachment.finallayout = Platform::GFX::IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-		colorattachment.format = Platform::GFX::FORMAT_R8G8B8A8_SRGB;
+		colorattachment.format = Platform::GFX::FORMAT_R8G8B8A8_UNORM;
 		colorattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
 		colorattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_STORE;
-
-		Platform::GFX::AttachmentDescription depthattachment{};
-		depthattachment.initiallayout = Platform::GFX::IMAGE_LAYOUT_UNDEFINED;
-		depthattachment.finallayout = Platform::GFX::IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-		depthattachment.format = Platform::GFX::FORMAT_D32_SFLOAT;
-		depthattachment.loadop = Platform::GFX::ATTACHMENT_LOAD_OP_CLEAR;
-		depthattachment.storeop = Platform::GFX::ATTACHMENT_STORE_OP_DONT_CARE;
 
 		Platform::GFX::AttachmentReference colorattachmentref{};
 		colorattachmentref.attachmentindex = 0;
 		colorattachmentref.layout = Platform::GFX::IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-		Platform::GFX::AttachmentReference depthattachmentref{};
-		depthattachmentref.attachmentindex = 1;
-		depthattachmentref.layout = Platform::GFX::IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 		Platform::GFX::AttachmentReference attachmentrefs[] = {
-			colorattachmentref, depthattachmentref
+			colorattachmentref
 		};
 
 		Platform::GFX::SubPass subpass{};
 		subpass.bindpoint = Platform::GFX::PIPELINE_BIND_POINT_GRAPHICS;
 		subpass.colorattachments = { &colorattachmentref, 1 };
-		subpass.depthstencilattachment = &depthattachmentref;
+		subpass.depthstencilattachment = PH_GFX_NULL;
 
-		/*
+		
 		Platform::GFX::SubpassDependency dependency{};
-		dependency.srcsubpass = 0;
+		dependency.srcsubpass = GFX_SUBPASS_EXTERNAL;
 		dependency.dstsubpass = 0;
-		dependency.dststagemask = PH::Platform::GFX::PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.srcstagemask = PH::Platform::GFX::PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		dependency.dstaccessmask = PH::Platform::GFX::ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-		*/
+		dependency.srcstagemask = PH::Platform::GFX::PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dststagemask = PH::Platform::GFX::PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		dependency.srcaccessmask = PH::Platform::GFX::ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dependency.dstaccessmask = PH::Platform::GFX::ACCESS_SHADER_READ_BIT;
 
-		Platform::GFX::AttachmentDescription attachmentdescriptions[] = { colorattachment, depthattachment };
+		Platform::GFX::AttachmentDescription attachmentdescriptions[] = { colorattachment };
 
 		Platform::GFX::RenderpassDescriptionCreateinfo renderpasscreate{};
 		renderpasscreate.attachments = { attachmentdescriptions, ARRAY_LENGTH(attachmentdescriptions) };
 		renderpasscreate.subpasses = { &subpass, 1 };
-		renderpasscreate.dependencies = { nullptr, 0 };
+		renderpasscreate.dependencies = { &dependency, 1 };
 
 		Platform::GFX::createRenderpassDescriptions(&renderpasscreate, &renderpass, 1);
 
 		return renderpass;
 	}
 
-	//might move to seperate dislpay translation unit
 	Display createDisplay(uint32 width, uint32 height) {
 
 		Display display;
 		display.renderpass = Display::defaultrenderpassdescription;
 
+
 		Platform::GFX::TextureCreateInfo texturecreate{};
-		texturecreate.format = Platform::GFX::FORMAT_R8G8B8A8_SRGB;
+		texturecreate.format = Platform::GFX::FORMAT_R8G8B8A8_UNORM;
 		texturecreate.width = width;
 		texturecreate.height = height;
 		texturecreate.data = nullptr;
 		texturecreate.usage = Platform::GFX::IMAGE_USAGE_SAMPLED_BIT | Platform::GFX::IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-		Platform::GFX::TextureCreateInfo depthcreate{};
-		depthcreate.format = Platform::GFX::FORMAT_D32_SFLOAT;
-		depthcreate.width = width;
-		depthcreate.height = height;
-		depthcreate.data = nullptr;
-		depthcreate.usage = Platform::GFX::IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-		PH::Platform::GFX::Texture attachments[2];
-		PH::Platform::GFX::TextureCreateInfo createinfos[] = { texturecreate, depthcreate };
-		Platform::GFX::createTextures(createinfos, attachments, 2);
+		PH::Platform::GFX::Texture attachments[1];
+		PH::Platform::GFX::TextureCreateInfo createinfos[] = { texturecreate };
+		Platform::GFX::createTextures(createinfos, attachments, 1);
 
 		display.colorattachment = attachments[0];
-		display.depthattachment = attachments[1];
+		display.depthattachment = PH_GFX_NULL;
 
 		Platform::GFX::FramebufferCreateInfo fbcreate;
 		fbcreate.attachments = { attachments, ARRAY_LENGTH(attachments)};
@@ -103,6 +85,8 @@ namespace PH::Engine {
 		display.framebuffersize = { width, height };
 		display.viewport = { width, height };
 
+		display.clearcolor = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+
 		return display;
 	}
 
@@ -114,8 +98,10 @@ namespace PH::Engine {
 		renderpassbegin.framebuffer = display.fb;
 		renderpassbegin.renderarea = { display.framebuffersize.x, display.framebuffersize.y };
 
+		glm::vec4 cc = display.clearcolor;
+
 		Platform::GFX::ClearValue clearvalues[2];
-		clearvalues[0] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		clearvalues[0] = {cc.r, cc.g, cc.b, cc.a};
 		clearvalues[1] = { 1.0f, 0 };
 
 		renderpassbegin.clearvalues = { clearvalues, ARRAY_LENGTH(clearvalues) };
@@ -139,6 +125,17 @@ namespace PH::Engine {
 
 		return true;
 	}
+
+	void PH_ENGINE_API destroyDisplay(Display* display) {
+
+		PH::Platform::GFX::destroyFrameBuffers(&display->fb, 1);
+		PH::Platform::GFX::destroyTextures(&display->colorattachment, 1);
+	}
+
+	void PH_ENGINE_API destroyImGuiDisplay(ImGuiDisplay* display) {
+
+	}
+
 	bool32 endRenderPass(const Display& display) {
 		Platform::GFX::endRenderpass();
 

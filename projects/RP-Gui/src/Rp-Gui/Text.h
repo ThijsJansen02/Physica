@@ -45,7 +45,6 @@ namespace PH::RpGui {
 		Font result = {};
 
 		const uint32 charcount = 96;
-
 		PH::Platform::FileBuffer ttf_buffer;
 		
 		

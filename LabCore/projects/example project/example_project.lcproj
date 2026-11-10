@@ -1,0 +1,81 @@
+openviews:
+  - viewname: Scene View
+    instanceid: 159279234
+    viewdata:
+      scene: 3658502787
+      Camera:
+        direction: [-0.3070417, -0.49547043, 0.8125481]
+        position: [-0.45529798, 5.9040947, -2.8996747]
+      lightpipe: 2511035463
+      tonemappipe: 2930578386
+  - viewname: Material View
+    instanceid: 421479791
+    viewdata:
+      selected: 3991480754
+includedassets:
+  - descriptionid: 8122762271555803
+    includedassets:
+      []
+  - descriptionid: 2064075887894144755
+    includedassets:
+      []
+  - descriptionid: 6544691651984941516
+    includedassets:
+      - assetid: 3658502787
+        assetdescriptionid: 6544691651984941516
+        filepath: assets/scenes/example_scene.lcscene
+        flags: 1
+        references:
+          - example_scene
+  - descriptionid: 983741375477342588
+    includedassets:
+      - assetid: 2511035463
+        assetdescriptionid: 983741375477342588
+        filepath: assets/pipelines/PBRlighting.lcpipe
+        flags: 1
+        references:
+          - PBRlighting
+      - assetid: 3991480754
+        assetdescriptionid: 983741375477342588
+        filepath: assets/pipelines/PRBmaterial.lcpipe
+        flags: 1
+        references:
+          - PRBmaterial
+      - assetid: 2930578386
+        assetdescriptionid: 983741375477342588
+        filepath: assets/pipelines/tonemap.lcpipe
+        flags: 1
+        references:
+          - tonemap
+      - assetid: 1877075475
+        assetdescriptionid: 983741375477342588
+        filepath: assets/pipelines/colorpipe.lcpipe
+        flags: 1
+        references:
+          - colorpipe
+      - assetid: 2781615859
+        assetdescriptionid: 983741375477342588
+        filepath: assets/pipelines/lightbox.lcpipe
+        flags: 1
+        references:
+          - lightbox
+  - descriptionid: 15876590110196968583
+    includedassets:
+      - assetid: 3887801820
+        assetdescriptionid: 15876590110196968583
+        filepath: assets/textures/Planks037A_2K-JPG_Color.jpg.lctex
+        flags: 1
+        references:
+          - Planks037A_2K-JPG_Color.jpg
+      - assetid: 2761470797
+        assetdescriptionid: 15876590110196968583
+        filepath: assets/textures/Planks037A_2K-JPG_Roughness.jpg.lctex
+        flags: 1
+        references:
+          - Planks037A_2K-JPG_Roughness.jpg
+      - assetid: 3808292401
+        assetdescriptionid: 15876590110196968583
+        filepath: assets/textures/Planks037A_2K-JPG_NormalDX.jpg.lctex
+        flags: 1
+        references:
+          - Planks037A_2K-JPG_NormalDX.jpg

@@ -1,90 +1,35 @@
 #pragma once
 #include "RpConnection.h"
 
+#include <yaml-cpp/yaml.h>
 #include "RpGui.h"
 #include <Engine/Engine.h>
 #include <Base/Math/Complex.h>
 #include <Base/Datastructures/Stream.h>
+#include "Filter.h"
 
 namespace PH::RpGui {
-
-	struct BiQuadCoefficients {
-		union {
-			struct {
-				real64 b0;
-				real64 b1;
-				real64 b2;
-
-				real64 a0;
-				real64 a1;
-				real64 a2;
-
-			};
-
-			struct {
-				real64 b[3];
-				real64 a[3];
-			};
-		};
-	};
-
-#define FILTER_TYPE_COUNT 7
-
-	enum FilterType {
-		LOWPASS,
-		BANDPASS,
-		BANDSTOP,
-		HIGHPASS,
-		ALLPASS,
-		RESONANCE_ANTI_RESONANCE,
-		COEFFICIENTS
-	};
-
-	static const char* FilterTypeStrings[] = {
-		"lowpass",
-		"bandpass",
-		"bandstop",
-		"highpass",
-		"allpass",
-		"resonance anti resonance",
-		"coefficients"
-	};
-
-	struct Filter {
-		FilterType type;
-
-		real32 cutoff;
-		real32 Qfactor;
-
-		union {
-			real32 gain;
-			struct {
-				real32 df;
-				real32 antiQfactor;
-			};
-		};
-
-		//not bilinear transformed
-		BiQuadCoefficients coeffs;
-	};
-
 
 	struct TransferFunction {
 		Engine::String name;
 		Engine::String currentcommand;
+
+		Engine::String remotebitfile;
 		RpConnection connection;
 
 		Engine::ArrayList<Filter> filters;
 		bool32 lowprecision = false;
-		uint32 decimation;
+		uint32 decimation = 1;
+		bool32 b_invert = false;
+
+		const real64 getFilterSampleRate() const { return (real64)RP_FPGA_SAMPLERATE / decimation; };
 	};
 
-	inline real64 prewarp(real64 w0, real64 fs) {
-		return 2 * fs * tan(w0 / (2 * fs));
+	inline real64 prewarp(real64 f_continuous, real64 f_sample) {
+		return 2 * f_sample * atan(f_continuous / (2 * f_sample));
 	}
 
-
-	inline void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 fs)
+	inline void bilinearTransform(real64 acoefs[], real64 dcoefs[], real64 f_sample)
 	{
 		double b0, b1, b2, a0, a1, a2;
 		double bz0, bz1, bz2, az0, az1, az2;
@@ -92,7 +37,7 @@ namespace PH::RpGui {
 		b0 = acoefs[0]; b1 = acoefs[1]; b2 = acoefs[2];
 		a0 = acoefs[3]; a1 = acoefs[4]; a2 = acoefs[5];
 
-		real64 T = 1 / fs;
+		real64 T = 1 / f_sample;
 		real64 K = 2 / T;
 		real64 Ks = K * K;
 
@@ -111,7 +56,6 @@ namespace PH::RpGui {
 		dcoefs[3] = az0; dcoefs[4] = az1; dcoefs[5] = az2;
 	}
 
-
 	inline PH::int16 convertToFixedPoint(real64 in) {
 		uint64 mult = 1 << 14;
 		real64 result = in * mult;
@@ -125,107 +69,8 @@ namespace PH::RpGui {
 		return (PH::int32)(result > 0.0f ? result + 0.5 : result - 0.5);
 	}
 
-
 	inline Base::Complex<real64> applyFilter(Base::Complex<real64> s, const BiQuadCoefficients& coeffs) {
-		return (coeffs.b0 * s * s + coeffs.b1 * s + coeffs.b2) / (coeffs.a0 * s * s + coeffs.a1 * s + coeffs.a2);
-	}
-
-	inline BiQuadCoefficients getResonanceAntiResonanceBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor, real64 anticutoff, real64 antiQfactor) {
-
-
-		BiQuadCoefficients result;
-		result.b0 = 1.0f;
-		result.b1 = cutoff / Qfactor;
-		result.b2 = cutoff * cutoff;
-		result.a0 = 1.0f;
-		result.a1 = anticutoff / antiQfactor;
-		result.a2 = anticutoff * anticutoff;
-		return result;
-	}
-
-	inline BiQuadCoefficients getlowPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
-		
-		BiQuadCoefficients result;
-		result.b0 = 0;
-		result.b1 = 0;
-		result.b2 = cutoff * cutoff;
-		result.a0 = 1;
-		result.a1 = cutoff / Qfactor;
-		result.a2 = cutoff * cutoff;
-		return result;
-	}
-
-	inline BiQuadCoefficients getBandPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
-		
-		BiQuadCoefficients result;
-		result.a0 = 1;
-		result.a1 = cutoff / Qfactor;
-		result.a2 = cutoff * cutoff;
-
-		result.b0 = 1;
-		result.b1 = cutoff;
-		result.b2 = cutoff * cutoff;
-
-		return result;
-	}
-
-	inline BiQuadCoefficients getBandStopBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
-
-		BiQuadCoefficients result;
-		result.b0 = 1;
-		result.b1 = cutoff / Qfactor;
-		result.b2 = cutoff * cutoff;
-
-		result.a0 = 1;
-		result.a1 = cutoff;
-		result.a2 = cutoff * cutoff;
-
-		return result;
-	}
-
-	inline BiQuadCoefficients getHighPassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
-
-		BiQuadCoefficients result;
-		result.b0 = 1.0f;
-		result.b1 = 0.0f;
-		result.b2 = 0.0f;
-
-		result.a0 = 1;
-		result.a1 = cutoff / Qfactor;
-		result.a2 = cutoff * cutoff;
-
-		return result;
-	}
-
-	inline BiQuadCoefficients getAllpassBiquadCoefficientsContinuous(real64 cutoff, real64 Qfactor) {
-		BiQuadCoefficients result;
-		result.b0 = 0.0f;
-		result.b1 = 0.0f;
-		result.b2 = 1.0f;
-		result.a0 = 0.0f;
-		result.a1 = 0.0f;
-		result.a2 = 1.0f;
-		return result;
-	}
-
-	inline BiQuadCoefficients calculateCoefficients(const Filter& filter) {
-
-		switch (filter.type) {
-			case FilterType::LOWPASS:
-				return getlowPassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
-			case FilterType::BANDPASS:
-				return getBandPassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
-			case FilterType::BANDSTOP:
-				return getBandStopBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
-			case FilterType::HIGHPASS:
-				return getHighPassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
-			case FilterType::RESONANCE_ANTI_RESONANCE:
-				return getResonanceAntiResonanceBiquadCoefficientsContinuous(filter.cutoff - (0.5f * filter.df), filter.Qfactor, filter.cutoff + (0.5f * filter.df), filter.antiQfactor);	
-			case FilterType::ALLPASS:
-				return getAllpassBiquadCoefficientsContinuous(filter.cutoff, filter.Qfactor);
-			case FilterType::COEFFICIENTS:
-				return filter.coeffs;
-		}
+		return (coeffs.b[0] * s * s + coeffs.b[1] * s + coeffs.b[2]) / (coeffs.a[0] * s * s + coeffs.a[1] * s + coeffs.a[2]);
 	}
 
 	inline BiQuadCoefficients bilinearTransform(BiQuadCoefficients continuous, real64 targetfs) {
@@ -277,14 +122,12 @@ namespace PH::RpGui {
 	inline Engine::String generateRpFilterString32(const BiQuadCoefficients& dcoeffs) {
 		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(100);
 
-		int32 a1 = convertToFixedPoint32(dcoeffs.a1);
-		int32 a2 = convertToFixedPoint32(dcoeffs.a2);
+		int32 a1 = convertToFixedPoint32(dcoeffs.a[1]);
+		int32 a2 = convertToFixedPoint32(dcoeffs.a[2]);
 
-		int32 b0 = convertToFixedPoint32(dcoeffs.b0);
-		int32 b1 = convertToFixedPoint32(dcoeffs.b1);
-		int32 b2 = convertToFixedPoint32(dcoeffs.b2);
-
-		s << "export PATH=$PATH:/opt/redpitaya/bin;";
+		int32 b0 = convertToFixedPoint32(dcoeffs.b[0]);
+		int32 b1 = convertToFixedPoint32(dcoeffs.b[1]);
+		int32 b2 = convertToFixedPoint32(dcoeffs.b[2]);
 
 		//first coeff at 0x41200000
 		char buffer[9];
@@ -319,14 +162,12 @@ namespace PH::RpGui {
 		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(100);
 		
 
-		int16 a1 = convertToFixedPoint(dcoeffs.a1);
-		int16 a2 = convertToFixedPoint(dcoeffs.a2);
+		int16 a1 = convertToFixedPoint(dcoeffs.a[1]);
+		int16 a2 = convertToFixedPoint(dcoeffs.a[2]);
 
-		int16 b0 = convertToFixedPoint(dcoeffs.b0);
-		int16 b1 = convertToFixedPoint(dcoeffs.b1);
-		int16 b2 = convertToFixedPoint(dcoeffs.b2);
-
-		s << "export PATH=$PATH:/opt/redpitaya/bin;";
+		int16 b0 = convertToFixedPoint(dcoeffs.b[0]);
+		int16 b1 = convertToFixedPoint(dcoeffs.b[1]);
+		int16 b2 = convertToFixedPoint(dcoeffs.b[2]);
 
 		//first 2 coeffs at 0x41200000
 		s << "monitor 0x41200000 0x";
@@ -356,59 +197,9 @@ namespace PH::RpGui {
 		return result;
 	}
 
-	inline void recalculateFilter(Filter* filter) {
-		filter->coeffs = calculateCoefficients(*filter);
-	}
-
-	inline void serializeFilter(const Filter& filter, YAML::Emitter& out) {
-		out << YAML::BeginMap;
-		out << YAML::Key << "cutoff" << YAML::Value << filter.cutoff;
-		out << YAML::Key << "Qfactor" << YAML::Value << filter.Qfactor;
-		if (filter.type == FilterType::RESONANCE_ANTI_RESONANCE) {
-			out << YAML::Key << "df" << YAML::Value << filter.df;
-			out << YAML::Key << "antiQfactor" << YAML::Value << filter.antiQfactor;
-		}
-		else {
-			out << YAML::Key << "gain" << YAML::Value << filter.gain;
-		}
-		out << YAML::Key << "FilterType" << YAML::Value << (int)filter.type;
-
-		out << YAML::Key << "b0" << YAML::Value << filter.coeffs.b0;
-		out << YAML::Key << "b1" << YAML::Value << filter.coeffs.b1;
-		out << YAML::Key << "b2" << YAML::Value << filter.coeffs.b2;
-
-		out << YAML::Key << "a0" << YAML::Value << filter.coeffs.a0;
-		out << YAML::Key << "a1" << YAML::Value << filter.coeffs.a1;
-		out << YAML::Key << "a2" << YAML::Value << filter.coeffs.a2;
-
-		out << YAML::EndMap;
-	}
-
-	inline Filter deserializeFilter(const YAML::Node& filter) {
-		Filter result;
-		result.cutoff = filter["cutoff"].as<real32>();
-		result.Qfactor = filter["Qfactor"].as<real32>();
-		result.type = (FilterType)filter["FilterType"].as<int>();
-		if (result.type == FilterType::RESONANCE_ANTI_RESONANCE) {
-			result.df = filter["df"].as<real32>();
-			result.antiQfactor = filter["antiQfactor"].as<real32>();
-		}
-		else {
-			result.gain = filter["gain"].as<real32>();
-		}
-
-		if (result.type == FilterType::COEFFICIENTS) {
-			result.coeffs.a0 = filter["a0"].as<real64>();
-			result.coeffs.a1 = filter["a1"].as<real64>();
-			result.coeffs.a2 = filter["a2"].as<real64>();
-			result.coeffs.b0 = filter["b0"].as<real64>();
-			result.coeffs.b1 = filter["b1"].as<real64>();
-			result.coeffs.b2 = filter["b2"].as<real64>();
-		}
-
-
-		recalculateFilter(&result);
-		return result;
+	inline void recalculateFilter(Filter& filter) {
+		filter.calculateCoefficients();
+		filter.getBiquadCoefficients();
 	}
 
 	inline void serializeTransferFunction(const TransferFunction& function, YAML::Emitter& out) {
@@ -418,10 +209,11 @@ namespace PH::RpGui {
 		out << YAML::Key << "remote" << YAML::Value << function.connection.remoteip.getC_Str();
 		out << YAML::Key << "decimation" << YAML::Value << function.decimation;
 		out << YAML::Key << "lowprecision" << YAML::Value << function.lowprecision;
+		out << YAML::Key << "remotebitfilepath" << YAML::Value << function.remotebitfile.getC_Str();
 		out << YAML::Key << "filters" << YAML::Value << YAML::BeginSeq;
 
 		for (const auto& filter : function.filters) {
-			serializeFilter(filter, out);
+			filter.serialize(out);
 		}
 
 		out << YAML::EndSeq;
@@ -434,6 +226,13 @@ namespace PH::RpGui {
 		result.name = t["name"].as<Engine::String>();
 		result.connection.remoteip = t["remote"].as<Engine::String>();
 		result.filters = Engine::ArrayList<Filter>::create(1);
+
+		if (t["remotebitfilepath"]) {
+			result.remotebitfile = t["remotebitfilepath"].as<Engine::String>();
+		}
+		else {
+			result.remotebitfile = Engine::String::create("sinewave_generator_wrapper.bit.bin");
+		}
 
 		if (t["lowprecision"]) {
 			result.lowprecision = t["lowprecision"].as<bool32>();
@@ -449,52 +248,42 @@ namespace PH::RpGui {
 			result.decimation = RpGui::standard_decimation;
 		}
 
-		for (auto& f : t["filters"]) {
-			Filter f_ = deserializeFilter(f);
-			result.filters.pushBack(f_);
+		for (const auto& f : t["filters"]) {
+			result.filters.pushBack(Filter::deserialize(f));
 		}
 
 		return result;
 	}
 
+	inline void sentFilterToRp(Filter& f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision) {
 
-	inline void sentFilterToRp(Filter f, real64 targetfs, RpGui::RpConnection* connection, bool32 lowprecision) {
+		const real64 unwarpedCF = f.cutoffFrequency;
+		const real64 unwarpedACF = f.antiCutoffFrequency;
 
-		//if the filter type is resonance anti resonance the cutoff is average between both resonances, so we need to calculate the cutoff differently
-		//f.antiQfactor = prewarp(2 * M_PI * f.antiQfactor, targetfs);
+		f.cutoffFrequency = prewarp(2 * M_PI * unwarpedCF, targetfs);
+		f.antiCutoffFrequency = prewarp(2 * M_PI * unwarpedACF, targetfs);
 
-		BiQuadCoefficients dcoeffs = {};
+		BiQuadCoefficients dcoeffs = bilinearTransform(f.getBiquadCoefficients(), targetfs / (2 * M_PI));
 
-		if (f.type == FilterType::RESONANCE_ANTI_RESONANCE) {
-			real64 cutoff1 = prewarp(2 * M_PI * (f.cutoff - (0.5f * f.df)), targetfs);
-			real64 cutoff2 = prewarp(2 * M_PI * (f.cutoff + (0.5f * f.df)), targetfs);
+		f.cutoffFrequency = unwarpedCF;
+		f.antiCutoffFrequency = unwarpedACF;
 
-			dcoeffs = bilinearTransform(getResonanceAntiResonanceBiquadCoefficientsContinuous(cutoff1, f.Qfactor, cutoff2, f.antiQfactor), targetfs);
-		}
-
-		else if (f.type == FilterType::COEFFICIENTS) {
-			dcoeffs = bilinearTransform(f.coeffs, targetfs / (2 * M_PI));
-		}
-
-		else {
-			f.cutoff = prewarp(2 * M_PI * (real64)f.cutoff, targetfs);
-			dcoeffs = bilinearTransform(calculateCoefficients(f), targetfs);
-		}
-
-		Engine::String rpcommand;
+		Engine::String filterstring;
 
 		if (lowprecision) {
-			rpcommand = generateRPfilterString(dcoeffs);
+			filterstring = generateRPfilterString(dcoeffs);
 		}
 		else {
-			rpcommand = generateRpFilterString32(dcoeffs);
+			filterstring = generateRpFilterString32(dcoeffs);
 		}
 
 		if (connection->open) {
-			connection->commandqueue.push({ rpcommand });
-			connection->commandqueue.push({ Engine::String::create("export PATH=$PATH:/opt/redpitaya/bin; monitor 0x41230000 1; monitor 0x41230000 0") });
-			//connection->commandqueue.push({ Engine::String::create("monitor 0x41230000 0") });
-			ReleaseSemaphore(connection->semaphore, 1, nullptr);
+			filterstring.append("; monitor 0x41230000 1; monitor 0x41230000 0");
+
+			sendRPcommand(filterstring.getC_Str(), connection);
+
 		}
+
+		Engine::String::destroy(&filterstring);
 	}
 }

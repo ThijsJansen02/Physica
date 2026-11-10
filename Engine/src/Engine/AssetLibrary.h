@@ -1,592 +1,632 @@
-
 #pragma once
-#include <typeinfo>
-#include "Engine.h"
+#include "AssetDescription.h"
 #include <Base/Datastructures/HashMap.h>
-#include <Base/random.h>
-#include "AssetStorage.h"
-#include "Asset.h"
 
-namespace YAML {
-	class Emitter;
-	class Node;
-}
+namespace PH::Engine {
 
-namespace PH::Engine::Assets {
-
-	template<typename work>
-	struct CircularWorkQueue;
-
-	inline uint64 uuidhash(const Engine::UUID& uuid) {
-		return uuid;
-	}
-
-	inline uint64 stringHash(const char* const& key) {
-		return Base::pcg_hash((uint32)Base::stringLength(key));
-	}
 	
-	inline bool32 stringCompare_(const char* const& key1, const char* const& key2) {
-		return Base::stringCompare(key1, key2);
-	}
 
-	inline bool32 UUIDcompare(const UUID& k1, const UUID& k2) {
-		return k1 == k2;
-	}
-
-	inline bool32 storage_UUID_compare(UUID k1, UUID k2) {
-		return k1 == k2;
-	}
-
-	inline uint64 storage_UUID_hash(UUID id) {
-		return id;
-	}
+	typedef enum AssetFlagsBits {
+		PH_ASSET_SERIALIZABLE = 1
+	};	
 	
-	inline void saveAssetToDisk(const Asset* asset, YAML::Emitter& out) {
+	typedef uint32 AssetFlags;
 
-		out << YAML::Key << "UUID" << YAML::Value << asset->id;
-		out << YAML::Key << "references" << YAML::Value << YAML::BeginSeq; // references
-		for (auto ref : asset->references) {
-			out << YAML::Value << ref.getC_Str();
-		}
-		out << YAML::EndSeq; //references;
-	}
-
-	using assetreferences = Base::ChainedHashMap<const char*, Asset*, stringHash, stringCompare_, Engine::Allocator>;
-
-	struct ThreadInfo {
-		bool32 open;
-		Library* lib;
-		DWORD threadid;
-		HANDLE semaphore;
+	enum AssetStatus {
+		LOADED,
+		LOADING,
+		UNLOADED
 	};
 
-	struct LoaderThread {
-		ThreadInfo info;
-		PH::Platform::Thread thread;
-	};
+	//assetidentifier
+	//will exist for as long as it is included in the project even if the asset is unloaded
+	//holds information about where the asset is on disk and if it is loaded into memory
+	struct AssetIdentifier {
+		AssetID assetid;
+		volatile AssetStatus status;
+		AssetFlags flags;
 
-	struct LoaderThreadWork {
-		Asset* assettobeloaded;
-	};
+		//maybe make this an ID if we do not require the asset description to be persistent in memory but for now it is persistent
+		AssetDescriptionID assetdescription;
 
-	//TODO: should use circular work queue from the base library instead of this homebrew one, but for now this is fine
+		Engine::ArrayList<Engine::String> references;
 
-	/// <summary>
-	/// work queue capable of multithreaded queue operations
-	/// </summary>
-	/// <typeparam name="Work"></typeparam>
-	template<typename Work>
-	struct CircularWorkQueue {
+		Engine::String filepath;
+		AssetBase* assetdata;
 
-		volatile DWORD writeptr = 0;
-		volatile DWORD readptr = 0;
-
-		void push(const Work& work) {
-
-			storage[writeptr] = work;
-
-			_ReadWriteBarrier(); //make sure the compiler doesnt increase the writeptr before the work is submitted to the queue
-
-			writeptr++;
-			writeptr %= storage.getCapacity();
-		}
-
-		bool32 hasWork() {
-			return writeptr != readptr;
-		}
-
-		bool32 isFull() {
-			return (writeptr + 1) % storage.getCapacity() == readptr;
-		}
-
-		Work* pop() {
-			while (true) {
-				if (!hasWork()) {
-					return nullptr;
-				}
-
-				DWORD index = readptr;
-				DWORD newreadptr = (readptr + 1) % storage.getCapacity();
-				Work* w = &storage[index % storage.getCapacity()];
-
-				if (InterlockedCompareExchange(&readptr, newreadptr, index) == index) {
-					return w;
-				}
+		const char* getName() {
+			if (references.getCount() > 0) {
+				return references[0].getC_Str();
 			}
+			return filepath.getC_Str();
 		}
-		DynamicArray<Work> storage;
 	};
 
-	class Library {
+	//creates an asset identifier for the given asset
+	PH_ENGINE_API AssetIdentifier createAssetIdentifier(AssetBase* asset, AssetID id, AssetDescription* description);
+
+	//container with all assets of a given type
+	struct AssetPool {
+		AssetDescription description;
+
+		Base::ChainedHashMap<AssetID, AssetIdentifier, Base::uint64Hash, Base::uint64Compare, Engine::Allocator> assets;
+		Base::ChainedHashMap<Base::SubString, AssetIdentifier*, Base::stringHash, Base::stringCompare, Engine::Allocator> assetreferences;
+	};
+
+	class PH_ENGINE_API AssetLibrary {
 	public:
-		using AssetStorage = AssetStorage<storage_UUID_hash, storage_UUID_compare, Engine::Allocator>;
-		static Library* create();
 
-		static UUID createRandomUUID() {
-			return Base::pcg_hash((uint32)(PH::Platform::getTimeMs() * 1000.0f));
+		static AssetLibrary createAssetLibrary();
+
+		void addAssetType(const AssetDescription& description);
+
+	private:
+		AssetDescription* getAssetDescription(AssetDescriptionID id) {
+			return &assetpools.get_last(id)->description;
 		}
 
-		/// <summary>
-		/// adds an asset that you already created to the library. making it visible to the get function...
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="asset">the asset that is to be added to the library</param>
-		/// <returns></returns>
-		template<typename type>
-		type* add(type asset) {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-
-			UUID id = createRandomUUID();
-			asset.id = id;
-
-			return assets.add<type>(id, asset);
+		//retrieves an asset description based on the asked extension. extensions are the primary keys for asset descriptions
+		template<typename Asset>
+		AssetDescription* getAssetDescription() {
+			AssetDescriptionID descriptionid = Asset::getAssetDescriptionID();
+			return getAssetDescription(descriptionid);
 		}
 
-		/// <summary>
-		/// adds an asset to the library that already has an id
-		/// </summary>
-		/// <typeparam name="type">the type of asset that is to be added</typeparam>
-		/// <param name="asset">the actual asset instance that is added</param>
-		/// <param name="id">the that the asset is to be found at</param>
-		/// <returns></returns>
-		template<typename type>
-		type* add(const type& asset, UUID id) {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-
-			return assets.add<type>(id, asset);
+		AssetPool* getAssetPool(AssetDescriptionID id) {
+			return assetpools.get_last(id);
 		}
 
-		/// <summary>
-		/// returns an asset at the id if it is present in the library... if it is not present it returns a nullptr
-		/// </summary>
-		/// <typeparam name="type">the type of asset that is to be found</typeparam>
-		/// <param name="uuid">the id of the asset</param>
-		/// <returns>the asset or nullptr if it is not found</returns>
-		template<typename type>
-		type* get(UUID uuid) {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-
-			return assets.get<type>(uuid);
+		template<typename Asset>
+		AssetPool* getAssetPool() {
+			AssetDescriptionID descriptionid = Asset::getAssetDescriptionID();
+			return getAssetPool(descriptionid);
 		}
 
-		/// <summary>
-		/// checks weather the asset is loaded, if it is not loaded it loads the asset immediatly in place..
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		template<typename type>
-		type* getLoaded(Engine::UUID id) {
-			type* asset = get<type>(id);
-
-			if (!asset) {
-				return nullptr;
+		void unloadAsset(AssetIdentifier* id, AssetPool* pool) {
+			AssetDescription* desc = &pool->description;
+			if (id->assetdata && desc->destroy_) {
+				desc->destroy_(id->assetdata);
 			}
 
-			if (asset->status == AssetStatus::NOT_LOADED) {
-				load<type>(id);
+			if (id->assetdata) {
+				Engine::Allocator::dealloc(id->assetdata);
 			}
 
-
-			//this should be changed to a more elegant synchronization primitive
-			if (asset->status == AssetStatus::LOADING) {
-
-				//wait for max 10 seconds
-				for (uint32 i = 0; i < 100; i++) {
-					if (asset->status != AssetStatus::LOADING) {
-						break;
-					}
-					Sleep(100);
-				}
-				if (asset->status != AssetStatus::LOADED) {
-					return nullptr;
-				}
-			}
-
-			return asset;
+			id->status = UNLOADED;
 		}
 
-		/// <summary>
-		/// returns the asset and if it needs to be loaded it lazy loads it...
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		template<typename type>
-		type* getLazyLoaded(Engine::UUID id) {
-			type* asset = get<type>(id);
-
-			if (!asset) {
-				return nullptr;
-			}
-
-			if (asset->status == AssetStatus::NOT_LOADED) {
-				lazyLoad<type>(id);
-			}
-
-			return asset;
-		}
-
-		/// <summary>
-		/// get an asset by its reference. every asset cant supply string refererces to the library with which they can be found.
-		/// </summary>
-		/// <typeparam name="type">the type of asset that is to be found</typeparam>
-		/// <param name="name">the reference at which the item is to be found</param>
-		/// <returns>a pointer to that asset or a nullptr of the asset is not found</returns>
-		template<typename type>
-		type* getByReference(const char* name) {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-
-			Asset** asset = references.get_last(name);
-			if (!asset) {
-				return nullptr;
-			}
-
-			if ((*asset)->type == type::getType()) {
-				return (type*)*asset;
-			}
-			return nullptr;
-		}
-
-		template<typename type>
-		type* getLoadedByReference(const char* name) {
-			type* asset = getByReference<type>(name);
-			if (asset) {
-				return getLoaded<type>(asset->id);
-			}
-			return nullptr;
-		}
-		
-		/// <summary>
-		/// add a string reference to an asset. when a reference is supplied to an asset the asset can be found at its address
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="id">the id of the source asset</param>
-		/// <param name="name">the reference that is to be added</param>
-		/// <returns>wheather the asset at id was found and if the reference was succesfully added</returns>
-		template<typename type>
-		bool32 addReference(UUID id, const char* name) {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-
-			Asset* asset = (Asset*)assets.get<type>(id);
-			if (!asset) {
-				Engine::WARN << "failed to add reference: " << name << " to UUID: " << id << "\n";
-				return false;
-			}
-
-			if (asset->references.getCapacity() == 0) {
-				asset->references = ArrayList<String>::create(1);
-			}
-
-			const String& ref = asset->references.pushBack(String::create(name));
-			references.add(ref.getC_Str(), asset);
-			return true;
-		}
-
-		/// <summary>
-		/// returns all the assets of a given type
-		/// </summary>
-		/// <typeparam name="type">the type of asset that is returned</typeparam>
-		/// <typeparam name="allocator">the allocator with which the resulting arraylist is created</typeparam>
-		/// <returns>a list with all the assets of a given type</returns>
-		template<typename type, typename allocator = Engine::Allocator>
-		Base::ArrayList<type*, allocator> getAll() {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-			return assets.getAllOfType<type, allocator>();
-		}
-
-		/// <summary>
-		/// allows you to add an asset with a given name and directory. 
-		/// The name is added as a reference to the asset and the final path is the directory with the name plus extension
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="name">The name reference that is added to the asset after being added the library</param>
-		/// <param name="directory">the file directory that the asset is added to</param>
-		/// <param name="asset">the asset that needs te be added to the library</param>
-		/// <returns>a pointer to the location that the asset is placed in</returns>
-		template<typename type>
-		type* add(const char* name, const char* directory, const type& asset) {
-
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-
-			type result = asset;
-			result.type = type::getType();
-			result.filepath = String::create(directory).append("/").append(name).append(type::getExtension());
-			result.id = createRandomUUID();
-			result.references = Engine::ArrayList<String>::create(1);
-			result.status = AssetStatus::LOADED;
-
-			type* resultptr = assets.add<type>(result.id, result);
-			addReference<type>(result.id, name);
-			return resultptr;
-		}
-
-		/// <summary>
-		/// saves the asset to disk. is implemented per asset but can only be called when a valid filepath is set for the asset
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="asset">the asset that needs to be saved to disk</param>
-		template<typename type>
-		void saveToDisk(const type* asset) {
+		//destroys an asset identifier and any asset that is still attached to it
+		void destroyAssetIdentifier(AssetIdentifier* id, AssetPool* pool) {
 			
-			//if an asset is not loaded, it should not be saved to disk because it is not complete!
-			if (!(asset->status == AssetStatus::LOADED)) {
+			//if an asset loader thread is loading the asset, wait till it has finished loading
+			while (id->status == LOADING) {
+				Sleep(100);
+			}
+
+			for (auto& ref : id->references) {
+				pool->assetreferences.remove(ref.getSubString());
+				Engine::String::destroy(&ref);
+			}
+
+			Engine::ArrayList<Engine::String>::destroy(&id->references);
+			Engine::String::destroy(&id->filepath);
+
+			AssetDescription* desc = &pool->description;
+			unloadAsset(id, pool);
+
+			//remove the actual asset
+			pool->assets.remove(id->assetid);
+		}
+
+		void serializeReferences(YAML::Emitter& out, Base::Array<Engine::String> references) {
+
+			out << YAML::BeginSeq;
+			for (const auto& ref : references) {
+				out << YAML::Value << ref.getC_Str();
+			}
+			out << YAML::EndSeq;
+		}
+
+		Engine::ArrayList<Engine::String> deserializeReferences(YAML::Node in, AssetPool* pool, AssetIdentifier* toref) {
+			Engine::ArrayList<Engine::String> result = Engine::ArrayList<Engine::String>::create();
+			for (YAML::Node ref : in) {
+				result.pushBack(ref.as<Engine::String>());
+				pool->assetreferences.add(result[result.getCount() - 1].getSubString(), toref);
+			}
+			return result;
+		}
+
+		void SerializeIdentifier(YAML::Emitter& out, AssetIdentifier* identifier) {
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "assetid" << YAML::Value << identifier->assetid;
+			out << YAML::Key << "assetdescriptionid" << YAML::Value << identifier->assetdescription;
+			out << YAML::Key << "filepath" << YAML::Value << identifier->filepath.getC_Str();
+			out << YAML::Key << "flags" << YAML::Value << identifier->flags;
+			out << YAML::Key << "references" << YAML::Value;
+			serializeReferences(out, identifier->references.getArray());
+
+			out << YAML::EndMap;
+		}
+
+		AssetIdentifier* deserializeAssetIdentifier(YAML::Node in, const char* filepath = nullptr) {
+			AssetIdentifier id{};
+			id.assetdata = nullptr;
+
+			if (in["assetdescriptionid"]) {
+				id.assetdescription = in["assetdescriptionid"].as<AssetDescriptionID>();	
+			}
+
+			AssetPool* pool = getAssetPool(id.assetdescription);
+			if(!pool) {
+				Engine::WARN << "including an unknown asset type" << "/n";
+				return nullptr;
+			}
+
+			id.assetid = in["assetid"].as<AssetID>();
+			id.flags = in["flags"].as<AssetFlags>();
+
+			if (filepath) {
+				id.filepath = Engine::String::create(filepath);
+			} else {
+				if (in["filepath"]) {
+					id.filepath = in["filepath"].as<Engine::String>();
+				}
+			}
+
+
+			id.status = UNLOADED;
+			
+			if (pool->assets.contains_key(id.assetid)) {
+				Engine::WARN << "deserializing an identifier that already exists in the project, possible conflict: " << pool->assets.get_last(id.assetid)->getName() << "\n";
+				return nullptr;
+			}
+
+			auto* result = pool->assets.add(id.assetid, id);
+
+			result->references = deserializeReferences(in["references"], pool, result);
+
+			return result;
+		}
+
+		//deserializes asset identifier and adds it to the pool
+		AssetIdentifier* deserializeAssetIdentifier(YAML::Node in, AssetPool* pool) {
+			
+			AssetIdentifier id{};
+			id.assetdata = nullptr;
+
+			if (in["assetdescriptionid"]) {
+				id.assetdescription = in["assetdescriptionid"].as<AssetDescriptionID>();
+				PH_DEBUG_ASSERT(id.assetdescription == pool->description.id, "asset description id does not equal the pool description id")
+			}
+			else {
+				id.assetdescription = pool->description.id;
+			}
+
+			id.assetid = in["assetid"].as<AssetID>();
+			id.flags = in["flags"].as<AssetFlags>();
+			id.filepath = in["filepath"].as<Engine::String>();
+
+			id.status = UNLOADED;
+			
+			auto* result = pool->assets.add(id.assetid, id);
+
+			result->references = deserializeReferences(in["references"], pool, result);
+			
+			return result;
+
+		}
+
+		//serialize asset in location of users choice
+		void SerializeAsset(AssetIdentifier* identifier, AssetDescription* desc, const char* path) {
+
+			//if the path is null return
+			if (!path) {
+				return;
+			}
+
+			if (!identifier->assetdata || !(identifier->status == LOADED)) {
 				return;
 			}
 
 			YAML::Emitter out;
-			out << YAML::BeginMap;
-			saveAssetToDisk(asset, out);
-			out << YAML::Key << "Asset" << YAML::Value;
 
-			type::serialize(out, (type*)asset);
+			out << YAML::BeginMap;
+
+			out << YAML::Key << "assetidentifier" << YAML::Value;
+			SerializeIdentifier(out, identifier);
+
+			out << YAML::Key << "asset";
+			if (desc->serialize_) {
+				desc->serialize_(out, identifier->assetdata);
+			}
+
 			out << YAML::EndMap;
 
-			Platform::FileBuffer file;
-			file.data = (void*)out.c_str();
-			file.size = out.size();
-			
-			Platform::writeFile(file, asset->filepath.getC_Str());
+			Engine::FileIO::writeYamlFile(out, path);
 		}
 
-		/// <summary>
-		/// includes an asset into the project without loading it. as subsqequent call to load(UUID id) or lazyLoad(UUID) loads the asset into memory..
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="path">the path to the asset on disk</param>
-		/// <returns></returns>
-		template<typename type>
-		type* include(const char* path) {
-			auto root = FileIO::loadYamlfile(path);
+		//deserializes an already included asset
+		bool32 deserializeAsset(AssetPool* pool, AssetIdentifier* identifier, YAML::Node asset) {
 			
-			auto assetnode = root["Asset"];
-			if (!assetnode) {
-				INFO << "Failed to include asset\n";
-				return nullptr;
-			}
-
-
-			type asset{};
-			loadAssetInfo(root, &asset, path);
-
-			if (!type::include(assetnode, this, &asset)) {
-				WARN << "asset " << path << " was not included correctly!\n";
-				return nullptr;
-			}
-
-			asset.status = AssetStatus::NOT_LOADED;
-			asset.type = type::getType();
-
-			if (assets.get<type>(asset.id)) {
-				WARN << "trying to include an asset that already exists in the library\n";
-				return nullptr;
-			}
-
-			type* ptr = add(asset, asset.id);
-			for (String& str : asset.references) {
-				references.add(str.getC_Str(), ptr);
-			}
-			return ptr;
-		}
-
-		/// <summary>
-		/// loads an included asset that is not yet loaded
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		template<typename type>
-		type* load(UUID id) {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-			type* asset = get<type>(id);
-			asset->status = AssetStatus::LOADING;
-
 			if (!asset) {
-				return nullptr;
+				return false;
 			}
-
-			auto root = FileIO::loadYamlfile(asset->filepath.getC_Str());
-			auto assetnode = root["Asset"];
-			if (!assetnode) {
-				return nullptr;
-			}
-
-			INFO << "loading asset: " << asset->filepath.getC_Str() << "\n";
-
-			if (!type::deserialize(assetnode, this, asset, asset->filepath.getC_Str())) {
-				return nullptr;
-			}
-
-			asset->type = type::getType();
-			asset->status = AssetStatus::LOADED;
-			return asset;
-		}
-
-		/// <summary>
-		/// loads an asset asynchronously
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="id"></param>
-		template<typename type>
-		void lazyLoad(UUID id) {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-
-			type* asset = get<type>(id);
-			asset->status = AssetStatus::LOADING;
-
-			LoaderThreadWork work;
-			work.assettobeloaded = (Asset*)asset;
-
-			loadqueue.push(work);
-
-			ReleaseSemaphore(workavailablesemaphore, 1, nullptr);
-		}
-
-		/// <summary>
-		/// loads a certain asset from disk directly into the library
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="path">the path where the asset resides</param>
-		/// <returns>returns a pointer to where the asset is stored in memory</returns>
-		template<typename type>
-		type* load(const char* path) {
-			static_assert(std::is_base_of<Asset, type>::value, "type not an asset!");
-
-			auto root = FileIO::loadYamlfile(path);
-
-			auto assetnode = root["Asset"];
-			if (!assetnode) {
-				return nullptr;
-			}
-
-			type asset{};
-			loadAssetInfo(root, &asset, path);
-
-			INFO << "loading asset: " << path << "\n";
-
-			if (!type::include(assetnode, this, &asset)) {
-				WARN << "asset " << path << " was not included correctly!\n";
-				return nullptr;
-			}
-
-			if (!type::deserialize(assetnode, this, &asset, path)) {
-				WARN << "asset " << path << " was not deserialized correctly!\n";
-				return nullptr;
-			}
-
-			asset.status = AssetStatus::LOADED;
-			asset.type = type::getType();
-
-			type* ptr = add(asset, asset.id);
-			for (String& str : asset.references) {
-				references.add(str.getC_Str(), ptr);
-			}
-			return ptr;
-		}
-
-		
-		/// <summary>
-		/// imports an asset from a sourcefile like a texture image.
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="sourcefile"></param>
-		/// <param name="name"></param>
-		/// <returns></returns>
-		template<typename type>
-		type* import(const char* sourcefile, const char* targetdir, const char* name) {
 			
-			type newasset{};
-			type::loadFromSource(sourcefile, &newasset);
-			newasset.status = AssetStatus::LOADED;
-			newasset.type = type::getType();
-			return add(name, targetdir, newasset);
-		}
+			if (pool->description.deserialize_) {
+				if (identifier->assetdata) {
+					Engine::WARN << "deserializing an asset that was already loaded!\n";
+					unloadAsset(identifier, pool);
+				}
 
-		/// <summary>
-		/// imports an asset from a source file and names it to the same name as the source file
-		/// </summary>
-		/// <typeparam name="type"></typeparam>
-		/// <param name="sourcefile">the source file with which the asset is to be created, like an fbx file directory</param>
-		/// <returns>the imorted asset</returns>
-		template<typename type>
-		type* import(const char* sourcefile) {
+				identifier->assetdata = (AssetBase*)Engine::Allocator::alloc(pool->description.localdatasize);
+				pool->description.deserialize_(asset, identifier->assetdata);
+				identifier->status = LOADED;
 
-			String sourcedir = String::create(sourcefile);
-			sourcedir.replace('\\', '/');
-			
-			if (sourcedir.getSize() <= 1) {
-				return nullptr;
+				//set identifier
+				identifier->assetdata->identifier = identifier;
+				identifier->assetdata->id = identifier->assetid;
+				
 			}
-
-			String name = String::create(sourcedir.getFromLast('/').getSubString().moveHead(1).getTillLast('.') - 1);
-			String targetdir = String::create(sourcedir.getSubString().getTillLast('/'));
-
-			type* ptr = import<type>(sourcefile, targetdir.getC_Str(), name.getC_Str());
-			String::destroy(&name);
-			String::destroy(&targetdir);
-			String::destroy(&sourcedir);
-
-			return ptr;
+			else {
+				Engine::WARN << "the deserializer for asset " << identifier->getName() << " does not exist!\n";
+				return false;
+			}
+			return true;
 		}
 
+		//deserializes an already included asset
+		bool32 deserializeAsset(AssetPool* pool, AssetIdentifier* identifier) {
 
-		/// <summary>
-		/// puts the filepaths of the assets in the 
-		/// </summary>
-		/// <param name="out"></param>
-		void serialize(YAML::Emitter& out);
-		bool32 deserialize(YAML::Node& root);
-		bool32 deserialize(const char* rootpath);
+			YAML::Node assetnode = Engine::FileIO::loadYamlfile(identifier->filepath.getC_Str());
 
-		bool32 saveAllToDisk();
-
-	private:
-
-		//sets all the asset parameters
-		bool32 loadAssetInfo(YAML::Node& root, Asset* asset,const char* path) {
-
-			auto id = root["UUID"];
-			if (!id) {
-				WARN << "asset at path: " << path << " doesnt have an ID\n";
+			if (!assetnode) {
 				return false;
 			}
 
-			asset->id = id.as<UUID>();
-			if (asset->id == 0) {
-				WARN << "asset at path: " << path << "doesnt have a valid ID";
+			if (!assetnode["asset"]) {
+				return false;
 			}
 
-			/*
-			auto assettype = root["AssetType"];
-			if (assettype) {
-				asset->type = (AssetType)assettype.as<uint32>();
-			} 
-			*/
+			return deserializeAsset(pool, identifier, assetnode["asset"]);
+		}
 
-			asset->references = ArrayList<String>::create(0);
-			auto references = root["references"];
-			if (references) {
-				for (auto ref : references) {
-					asset->references.pushBack(ref.as<String>());
+	public:
+
+		//includes an asset from a file that is not yet included
+		void includeAsset(const char* filepath) {
+			YAML::Node n = Engine::FileIO::loadYamlfile(filepath);
+
+			if (!n["assetidentifier"]) {
+				Engine::WARN << "asset does not have an identifier! might not be an asset\n";
+				return;
+			}
+
+			deserializeAssetIdentifier(n["assetidentifier"], filepath);
+		}
+
+		//serialize
+		void serializeAssetIdentifiers(YAML::Emitter& out) {
+			Engine::ArrayList<AssetPool*> pools = this->assetpools.getAll<Engine::Allocator>();
+			
+			out << YAML::BeginSeq;
+			for (AssetPool* pool: pools) {
+				Engine::ArrayList<AssetIdentifier*> assets = pool->assets.getAll<Engine::Allocator>();
+
+				out << YAML::BeginMap;
+				out << YAML::Key << "descriptionid" << YAML::Value << pool->description.id;
+				
+				out << YAML::Key << "includedassets" << YAML::Value << YAML::BeginSeq;
+				for (AssetIdentifier* identifier : assets) {
+					if (identifier->flags & PH_ASSET_SERIALIZABLE) {
+						SerializeIdentifier(out, identifier);
+					}
+				}
+				out << YAML::EndSeq;
+				out << YAML::EndMap;
+				Engine::ArrayList<AssetIdentifier*>::destroy(&assets);
+			}
+			out << YAML::EndSeq;
+			Engine::ArrayList<AssetPool*>::destroy(&pools);
+		}
+
+		void deserializeAssetIdentifiers(YAML::Node in) {
+			if (in) {
+				for (YAML::Node pool : in) {
+
+					AssetPool* assetpool = nullptr;
+					if (!pool["descriptionid"]) {
+						continue;
+					}
+
+					assetpool = getAssetPool(pool["descriptionid"].as<AssetDescriptionID>());
+					if (!assetpool) {
+						continue;
+					}
+
+					if (!pool["includedassets"]) {
+						continue;
+					}
+
+					for (YAML::Node asset : pool["includedassets"]) {
+						deserializeAssetIdentifier(asset, assetpool);
+					}
+				}
+			}
+		}
+
+		//serialzes all assets in memory that are serializable
+		void serializeAssets() {
+
+			Engine::ArrayList<AssetPool*> pools = this->assetpools.getAll<Engine::Allocator>();
+			for (AssetPool* pool : pools) {
+				Engine::ArrayList<AssetIdentifier*> assets = pool->assets.getAll<Engine::Allocator>();
+
+				for (AssetIdentifier* identifier : assets) {
+					if (identifier->flags & PH_ASSET_SERIALIZABLE) {
+						SerializeAsset(identifier, &pool->description, identifier->filepath.getC_Str());
+					}
+				}
+				
+				Engine::ArrayList<AssetIdentifier*>::destroy(&assets);
+			}
+			Engine::ArrayList<AssetPool*>::destroy(&pools);
+		}
+
+
+		//deletes all serializable assets, the identifier as well as any in memory data
+		void removeAllSerializabeAssets() {
+			Engine::ArrayList<AssetPool*> pools = this->assetpools.getAll<Engine::Allocator>();
+
+			for (AssetPool* pool : pools) {
+				Engine::ArrayList<AssetIdentifier*> assets = pool->assets.getAll<Engine::Allocator>();
+
+				
+				for (AssetIdentifier* identifier : assets) {
+
+					//if the asset is currently loading in a different thread, wait till the loading has completed
+					if (identifier->flags & PH_ASSET_SERIALIZABLE) {
+						destroyAssetIdentifier(identifier, pool);
+					}
+				}
+				Engine::ArrayList<AssetIdentifier*>::destroy(&assets);
+			}
+			Engine::ArrayList<AssetPool*>::destroy(&pools);
+		}
+
+
+		//retrieves an assetidentifier of type Asset based on the given id, returns nullptr if the asset is not found
+		template<typename Asset>
+		AssetIdentifier* getAssetIdentifier(AssetID id) {
+			auto* pool = getAssetPool<Asset>();
+			return pool->assets.get_last(id);
+		}
+
+		//retrieves an asset and loads it in when needed, blocks the calling thread until the asset is loaded
+		template<typename Asset>
+		Asset* getAsset(AssetID id) {
+
+			AssetIdentifier* identifier = getAssetIdentifier<Asset>(id);
+			Asset* asset = (Asset*)identifier->assetdata;
+
+			if (!asset || identifier->status == UNLOADED) {
+				
+			}
+
+			return asset;
+		}
+
+		//laod asset into memory
+		template<typename Asset>
+		bool32 loadAsset(AssetID id) {
+			AssetIdentifier* identifier = getAssetIdentifier<Asset>(id);
+
+			PH_DEBUG_ASSERT(identifier->status != LOADED, "asset is already loaded!");
+
+			AssetPool* pool = getAssetPool<Asset>();
+			return deserializeAsset(pool, identifier);
+		}
+
+
+		//if the identifier is found based on the assetid, loads the asset in memory if it is not yet loaded. returns nullptr if asset is not found
+		template<typename Asset>
+		AssetIdentifier* getLoadedAssetIdentifier(AssetID id) {
+			AssetIdentifier* identifier = getAssetIdentifier<Asset>(id);
+
+			if (!identifier) {
+				return nullptr;
+			}
+
+			if (identifier->status == UNLOADED) {
+				loadAsset<Asset>(id);
+			}
+
+			return identifier;
+		}
+
+		//if the identifier is found based on the assetid, loads the asset in memory if it is not yet loaded. returns nullptr if asset is not found
+		template<typename Asset>
+		Asset* getLoadedAsset(AssetID id) {
+			
+			AssetIdentifier* identifier = getLoadedAssetIdentifier<Asset>(id);
+			return (Asset*)identifier->assetdata;
+		}
+
+
+		template<typename Asset>
+		bool32 addReferenceToAsset(AssetID assetid, const char* reference) {
+			AssetIdentifier* identifier = getAssetIdentifier<Asset>(assetid);
+			if (identifier == nullptr) {
+				Engine::WARN << "trying to add a reference to an asset that does not exist\n";
+				return false;
+			}
+
+			auto& strref = identifier->references.pushBack(Engine::String::create(reference));
+
+			getAssetPool<Asset>()->assetreferences.add(strref.getSubString(), identifier);
+			return true;
+		}
+
+		template<typename Asset> 
+		bool32 addReferenceToAsset(Asset* asset, const char* reference) {
+			AssetBase* base = (AssetBase*)asset;
+			return addReferenceToAsset<Asset>(base->identifier->assetid, reference);
+		}
+
+
+		/// <summary>
+		/// adds a new asset to the project that will be serialized and deserialize automatically to the file path
+		/// </summary>
+		/// <typeparam name="Asset">the asset type that is added to the project</typeparam>
+		/// <param name="asset">the created asset that needs to be added to the project</param>
+		/// <param name="filepath">the filepath where the asset needs to be serialized</param>
+		/// <param name="name">the name that is attached to the asset, more references can be added</param>
+		/// <param name="flags">the assetflags for the asset</param>
+		/// <returns></returns>
+		template<typename Asset>
+		AssetIdentifier* addAsset(Asset* asset, const char* filepath, const char* name, AssetFlags flags) {
+			AssetPool* pool = getAssetPool<Asset>();
+			
+			if (!pool) {
+				Engine::WARN << "trying to add an asset that has no pool or description, see if the assettype is actually added to the system\n";
+				return nullptr;
+			}
+			
+			AssetIdentifier identifier{};
+			identifier.assetid = Engine::createRandomUUID();
+			identifier.filepath = String::create(filepath);
+			identifier.flags = flags;
+			identifier.status = UNLOADED;
+			identifier.assetdescription = pool->description.id;
+
+			AssetIdentifier* result = pool->assets.add(identifier.assetid, identifier);
+
+			//asset is loaded and not serializable
+			if (asset) {
+				result->status = AssetStatus::LOADED;
+				result->assetdata = (AssetBase*)asset;
+				result->assetdata->id = identifier.assetid;
+				result->assetdata->identifier = result;
+			}
+
+			addReferenceToAsset<Asset>(result->assetid, name);
+
+			return result;
+		}
+
+		//adds an asset to the library with no disk requirement, these assets are not automatically serialized or deserialize and have to be serialized and deserialized manually
+		//add a persistent id to the asset to have other assets and views find the asset consistently
+		template<typename Asset>
+		AssetIdentifier* addPersistentAsset(Asset* asset, AssetID id) {
+			//asset should be derived from AssetBase, so we can cast it to AssetBase
+			AssetPool* pool = getAssetPool<Asset>();
+
+			if (pool->assets.contains_key(id)) {
+				Engine::WARN << "adding asset that already exists, remove asset before including new asset!\n";
+				return nullptr;
+			}
+ 
+			AssetIdentifier* identifier = pool->assets.add(id, createAssetIdentifier((AssetBase*)asset, id, &pool->description));
+
+			//asset is loaded and not serializable
+			identifier->flags = 0;
+			identifier->status = AssetStatus::LOADED;
+
+			AssetBase* base = (AssetBase*)asset;
+			base->identifier = identifier;
+			base->id = id;
+
+			return identifier;
+		}
+
+		//adds an asset to the library with no disk requirement, these assets are not automatically serialized or deserialize and have to be serialized and deserialized manually
+		//add a persistent id to the asset to have other assets and views find the asset consistently
+		template<typename Asset>
+		AssetIdentifier* addPersistentAsset(Asset* asset, AssetID id, const char* name) {
+			AssetIdentifier* identifier = addPersistentAsset<Asset>(asset, id);
+			addReferenceToAsset<Asset>(asset, name);
+			return identifier;
+		}
+
+		//serialize asset in location of users choice
+		template<typename Asset>
+		void SerializeAsset(AssetIdentifier* identifier, const char* path) {
+			SerializeAsset(identifier, getAssetDescription<Asset>(), path);
+		}
+
+		//deserialize asset in location of users choice and creates the identifier for the asset
+		template<typename Asset>
+		AssetIdentifier* deserializeAddAsset(const char* path) {
+			YAML::Node root = Engine::FileIO::loadYamlfile(path);
+
+			AssetPool* pool = getAssetPool<Asset>();
+
+			if (!root) {
+				return nullptr;
+			}
+
+
+			if (!root["assetidentifier"]) {
+				return nullptr;
+			}
+				
+			AssetIdentifier* id = deserializeAssetIdentifier(root["assetidentifier"], pool);
+
+			if (!root["asset"]) {
+				return nullptr;
+			}
+
+			if (!deserializeAsset(pool, id, root["asset"])) {
+				return nullptr;
+			}
+
+			return id;
+		}
+
+		template<typename Asset>
+		Engine::ArrayList<AssetIdentifier*> getAllIdentifiersOfType() {
+			auto* pool = getAssetPool<Asset>();
+			return pool->assets.getAll<Engine::Allocator>();
+		}
+		
+		//retrieves an assetidentifier of type Asset based on the given reference, returns nullptr if the asset is not found
+		template<typename Asset>
+		AssetIdentifier* getAssetIdentifierByReference(const char* reference) {
+			auto* pool = getAssetPool<Asset>();
+			AssetIdentifier* asset = *pool->assetreferences.get_last(Base::SubString(reference));
+			return asset;
+		}
+		
+
+		//gets asset by reference, returns nullptr if the asset is not found or if the asset is not yet loaded
+		template<typename Asset>
+		Asset* getAssetByReference(const char* reference) {
+
+			AssetIdentifier* identifier = getAssetIdentifierByReference<Asset>(reference);
+			if(!identifier) {
+				return nullptr;
+			}
+
+			return (Asset*)identifier->assetdata;
+		}
+
+		template<typename Asset> 
+		Asset* getLoadedAssetByReference(const char* reference) {
+			
+			AssetIdentifier* identifier = getAssetIdentifierByReference<Asset>(reference);
+			if (!identifier) {
+				return nullptr;
+			}
+
+			if (identifier->status == UNLOADED) {
+				if (!loadAsset<Asset>(identifier->assetid)) {
+					return nullptr;
 				}
 			}
 
-			asset->filepath = String::create(path);
-			asset->internsource = false;
+			return (Asset*)identifier->assetdata;
 		}
 
-		friend int32 AssetLoaderThreadProc(
-			void* userdata
-		);
-
-		template<typename type>
-		type* addLoadedAsset(type& asset, const char* path);
-		
-		CircularWorkQueue<LoaderThreadWork> loadqueue;
-		ArrayList<LoaderThread*> loaderthreads;
-		HANDLE workavailablesemaphore;
-
-		assetreferences references;
-		Library::AssetStorage assets;
+		Base::ChainedHashMap<AssetDescriptionID, AssetPool, Base::uint64Hash, Base::uint64Compare, Engine::Allocator> assetpools;
 	};
 }

@@ -110,7 +110,10 @@ namespace PH::Vulkan {
 
 	VkSurfaceFormatKHR chooseSurfaceFormat(Array<VkSurfaceFormatKHR> availableformats) {
 		for (const auto& format : availableformats) {
-			if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR) {
+			if (format.format == VK_FORMAT_B8G8R8A8_UNORM) {
+				return format;
+			}
+			else if (format.format == VK_FORMAT_B8G8R8A8_SRGB && format.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR) {
 				return format;
 			}
 		}
@@ -398,8 +401,13 @@ namespace PH::Vulkan {
 		VkExtent2D swapchainextend = chooseSwapChainExtend(swapchainsupport.capabilities, context->windowwidth, context->windowheight);
 
 		uint32 imagecount = swapchainsupport.capabilities.minImageCount + 1;
-		if (swapchainsupport.capabilities.maxImageCount > 0) {
+
+		if (swapchainsupport.capabilities.maxImageCount > 0 && imagecount > swapchainsupport.capabilities.maxImageCount) {
 			imagecount = Base::minVal(imagecount, swapchainsupport.capabilities.maxImageCount);
+		}
+
+		if (imagecount > MAX_FRAMES_IN_FLIGHT) {
+			imagecount = MAX_FRAMES_IN_FLIGHT;
 		}
 
 		VkSwapchainCreateInfoKHR createinfo{};
@@ -651,6 +659,7 @@ namespace PH::Vulkan {
 		createinfo.poolSizeCount = 2;
 		createinfo.pPoolSizes = &poolsizes[0];
 		createinfo.maxSets = VULKAN_DESCRIPTOR_POOL_SIZE;
+		createinfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
 		VkDescriptorPool result;
 
@@ -760,6 +769,7 @@ namespace PH::Vulkan {
 
 	//starts ends a single time usage commandbuffer.
 	void endSingleTimeCommands(VulkanAppContext* context, VkCommandBuffer commandBuffer) {
+		
 		vkEndCommandBuffer(commandBuffer);
 
 		VkFence fence;
@@ -800,6 +810,8 @@ namespace PH::Vulkan {
 		HINSTANCE instance
 	) {
 
+		*context = {};
+
 		Allocator::init(init.memory, init.memorysize);
 		ArenaAllocator::init(Allocator::alloc(ARENA_SIZE), ARENA_SIZE);
 		
@@ -813,7 +825,7 @@ namespace PH::Vulkan {
 		context->textureimages = FracturedArraylist<TextureImage>::create(1);
 		context->framebuffers = FracturedArraylist<Framebuffer>::create(1);
 
-		//TODO(Thijs): add default base types at index 0;
+		//TODO(Thijs): add default base types at index 0; GFX_NULL is 0 so this should revert to some base type
 		context->textureimages.add({});
 		context->graphicspipelines.add({});
 		context->buffers.add({});
@@ -850,6 +862,10 @@ namespace PH::Vulkan {
 		context->renderFinishedSemaphores = createSemaphores(context);
 
 		context->descriptorpool = createDescriptorPool(context);
+
+
+		//create the object delete queue
+		context->objectdeletequeue = ArrayList<ObjectDeletePost>::create(1);
 	}
 
 	void win32_resizeSwapchain(VulkanAppContext* context, uint32 width, uint32 height) {
@@ -871,22 +887,72 @@ namespace PH::Vulkan {
 		}
 	}
 
+	bool32 destroyFrameBuffer(VulkanAppContext* context, PH::Platform::GFX::Framebuffer framebuffer);
+	PH::bool32 destroyTexture(VulkanAppContext* context, PH::Platform::GFX::Texture texture);
+	bool32 destroyDescriptorSets(VulkanAppContext* context, Platform::GFX::DescriptorSet* desctiptorsets, uint32 count);
+	bool32 destroyDesctiptorSetLayouts(VulkanAppContext* context, Platform::GFX::DescriptorSetLayout* layouts, uint32 count);
+	bool32 destroyBuffers(VulkanAppContext* context, Platform::GFX::Buffer* buffers, uint32 count);
+
+	void cleanupDeleteQueue(VulkanAppContext* context) {
+		uint32 pc = 0;
+		while (pc < context->objectdeletequeue.getCount()) {
+
+			ObjectDeletePost* p = &context->objectdeletequeue[pc];
+
+			if (p->framecounter <= 0) {
+
+				switch (p->objecttype) {
+					case VULKAN_FRAMEBUFFER: {
+						destroyFrameBuffer(context, p->object);
+						break;
+					}
+					case VULKAN_TEXTURE: {
+						destroyTexture(context, p->object);
+						break;
+					}
+					case VULKAN_DESCRIPTORSET: {
+						destroyDescriptorSets(context, &p->object, 1);
+						break;
+					}
+					case VULKAN_DESCRIPTORSET_LAYOUT: {
+						destroyDesctiptorSetLayouts(context, &p->object, 1);
+						break;
+					}
+					case VULKAN_BUFFER: {
+						destroyBuffers(context, &p->object, 1);
+						break;
+					}
+				}
+
+				context->objectdeletequeue.remove(pc);
+			}
+			else {
+				pc++;
+				p->framecounter--;
+			}
+
+		}
+	}
+
 	void startFrame(VulkanAppContext* context) {
+
+		//clean up all unused objects
+		cleanupDeleteQueue(context);
+
 
 		//the current frameindex, is not the same as the image index as it is possible to have more images in the swapchain than frames being worked on
 		uint32 frameindex = context->frameindex;
-
-		//this is the index of the image in the swapchain that we are currently going to render to. it is aquired with vkAcquireNextImageKHR
-		uint32_t imageindex;
-		vkAcquireNextImageKHR(context->device, context->swapchain, UINT64_MAX, context->imageAvailableSemaphores[frameindex], VK_NULL_HANDLE, &imageindex);
-
-		context->imageindex = imageindex;
-
 		//we have to wait if the rendering on this frame from the last time we submitted rendercommands to this frame is not yet done. 
 		//after the wait is done we have to manually reset the fence
 		vkWaitForFences(context->device, 1, &context->inFlightFences[frameindex], VK_TRUE, UINT64_MAX);
 		vkResetFences(context->device, 1, &context->inFlightFences[frameindex]);
-		
+
+
+		//this is the index of the image in the swapchain that we are currently going to render to. it is aquired with vkAcquireNextImageKHR
+		uint32_t imageindex;
+		vkAcquireNextImageKHR(context->device, context->swapchain, UINT64_MAX, context->imageAvailableSemaphores[frameindex], VK_NULL_HANDLE, &imageindex);
+		context->imageindex = imageindex;
+
 		//resetting and recording the rendercommands again to the commandbuffer
 		vkResetCommandBuffer(context->commandbuffers[frameindex], 0);	
 
@@ -913,7 +979,7 @@ namespace PH::Vulkan {
 		VkSubmitInfo submitinfo{};
 		submitinfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-		//the color attachmentoutput rendering commands that are submitted in this commandbuffer should only start when the image is available
+		//the graphics command buffer has to wait on the image available semaphore that is signaled when vkAcquireNextImageKHR has finished acquiring its next image
 		VkSemaphore waitsemaphores[] = { context->imageAvailableSemaphores[frameindex] };
 		VkPipelineStageFlags waitstages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitinfo.waitSemaphoreCount = ARRAY_LENGTH(waitsemaphores);
@@ -923,6 +989,8 @@ namespace PH::Vulkan {
 		submitinfo.commandBufferCount = 1;
 		submitinfo.pCommandBuffers = &context->commandbuffers[frameindex];
 
+		//the renderqueue submit singnals the image available semaphore for the frame when it is done rendering
+		//the presentqueue waits on this semaphore before it presents the image
 		//signal the renderfinished semaphore once the commandbuffer is finished executing
 		VkSemaphore signalsemaphores[] = { context->renderFinishedSemaphores[frameindex] };
 		submitinfo.signalSemaphoreCount = ARRAY_LENGTH(signalsemaphores);
@@ -936,7 +1004,9 @@ namespace PH::Vulkan {
 		VkPresentInfoKHR presentinfo{};
 		presentinfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-		//the frame can only be presented when the render finished semaphore is signaled.
+		
+		//the frame can only be presented when the render finished semaphore is signaled. 
+		//ask the swapchain to wait on the renderfinished semaphore before presenting it to the screen
 		presentinfo.waitSemaphoreCount = ARRAY_LENGTH(signalsemaphores);
 		presentinfo.pWaitSemaphores = signalsemaphores;
 

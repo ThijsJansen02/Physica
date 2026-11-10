@@ -67,6 +67,12 @@ namespace PH::Vulkan {
 		return VkImageViewType(viewtype);
 	}
 
+	bool32 destroyRenderpassDescriptions(VulkanAppContext* context, PH::Platform::GFX::RenderpassDescription* descriptions, uint32 count);
+	bool32 postDestroyFrameBuffers(VulkanAppContext* context, PH::Platform::GFX::Framebuffer* framebuffers, uint32 count);
+	bool32 copyBufferAsynchronous(VulkanAppContext* context, Platform::GFX::Buffer srcbuffer, Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset);
+	bool32 copyImageToBufferAsynchrounous(VulkanAppContext* context, const Platform::GFX::ImageToBufferCopyInfo& info);
+
+
 	PH_GFX_DRAW(draw);
 	PH_GFX_SET_VIEWPORTS(setViewports);
 	PH_GFX_SET_SCISSORS(setScissors);

@@ -61,20 +61,13 @@ namespace PH::Base {
 			Node* ptr = firstnode;
 
 			while (i < index) {
+				PH_DEBUG_ASSERT(ptr != nullptr, "index is higher than the length of the chain")
+
 				ptr = ptr->next;
 				i++;
 			}
 
-			Node* next = ptr->next;
-			Node* prev = ptr->prev;
-			if (prev) {
-				prev->next = next;
-			}
-			if (next) {
-				next->prev = prev;
-			}
-
-			allocator::dealloc(ptr);
+			removeNode(ptr);
 		}
 
 		void add(const T& elem) {
@@ -108,11 +101,57 @@ namespace PH::Base {
 		}
 
 		void removeNode(Node* node) {
-			if (node->prev) { node->prev->next = node->next; }
-			if (node->next) { node->next.prev = node->prev; }
+			if (node->prev) {
+				node->prev->next = node->next;
+			}
+			else {
+				firstnode = node->next;
+			}
+
+			if (node->next) {
+				node->next->prev = node->prev;
+			}
+			else {
+				lastnode = node->prev;
+			}
 
 			allocator::dealloc(node);
 		}
+
+		//adds a node to the front of the list, and makes it the new first node. doesnt create new data uses the node provided
+		inline Node* extract(Node* node) {
+			
+			if (node->prev) { 
+				node->prev->next = node->next;
+			}
+			else {
+				firstnode = node->next;
+			}
+
+			if (node->next) { 
+				node->next->prev = node->prev; 
+			}
+			else {
+				lastnode = node->prev;
+			}
+
+			return node;
+		}
+
+		void pushFront(Node* n) {
+			
+			//if there is a first node, set its previous to the new node
+			if (firstnode) { firstnode->prev = n; };
+
+			n->next = firstnode;
+			n->prev = nullptr;
+			firstnode = n;
+
+			//if the last node is not yet set, set it to the new node because this is the first and last node in the list
+			if (!lastnode) { lastnode = n; }
+		}
+
+
 
 		void pushFront(const T& elem) {
 			Node newnode{};

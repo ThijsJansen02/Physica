@@ -1,7 +1,6 @@
 
 #include "Rendering.h"
 #include "Platform/platformAPI.h"
-#include "assets/Mesh.h"
 
 #include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_cross.hpp>
@@ -317,8 +316,8 @@ namespace PH::Engine {
 			return result;
 		}
 
-		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
-
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(Platform::GFX::RenderpassDescription renderpass, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
+			
 			//create the shader modules
 			Platform::GFX::ShaderCreateinfo vertcreate{};
 			vertcreate.chachedir = nullptr;
@@ -339,6 +338,7 @@ namespace PH::Engine {
 
 			if (!GFX::createShaders(infos, shaders, 2)) {
 				Engine::WARN << "failed to create shaders!\n";
+				return PH_GFX_NULL;
 			}
 
 			if (globalDescriptorSetLayout == PH_GFX_NULL) {
@@ -358,23 +358,30 @@ namespace PH::Engine {
 			//adding it all together in the pipeline create;
 			PH::Platform::GFX::GraphicsPipelineCreateinfo pipelinecreate{};
 			pipelinecreate.layouts = layouts.getArray();
-			pipelinecreate.renderpass = target->renderpass;
+			pipelinecreate.renderpass = renderpass;
 			pipelinecreate.shaderstages = { shaders, 2 };
 			pipelinecreate.topology = Platform::GFX::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 			pipelinecreate.vertexbindingdescriptions = { quadvertexbindingdescription, ARRAY_LENGTH(quadvertexbindingdescription) };
 			pipelinecreate.vertexattributedescriptions = { quadvertexinputattributes, ARRAY_LENGTH(quadvertexinputattributes) };
 			pipelinecreate.depthtest = false;
+			pipelinecreate.blend = false;
 
 			Platform::GFX::GraphicsPipeline pipeline;
 
 			if (!Platform::GFX::createGraphicsPipelines(&pipelinecreate, &pipeline, 1)) {
- 				Engine::WARN << "failed to create graphicspipeline!\n";
+				Engine::WARN << "failed to create graphicspipeline!\n";
+				//TODO: delete shaders because they wont be used
+				return PH_GFX_NULL;
 			}
 
 			//destroying the layouts array
 			layouts.release();
 
 			return pipeline;
+		}
+
+		Platform::GFX::GraphicsPipeline createGraphicsPipelineFromBinaries(const Engine::Display* target, Base::Array<uint8> vertsource, Base::Array<uint8> fragsource, Base::Array<GFX::DescriptorSetLayout> userlayouts) {
+			return createGraphicsPipelineFromBinaries(target->renderpass, vertsource, fragsource, userlayouts);
 		}
 
 		Engine::DynamicArray<uint8> compileGLSLSourceToVulkanBinary(const char* source, PH::Platform::GFX::ShaderStageFlags shaderstage) {
@@ -452,54 +459,6 @@ namespace PH::Engine {
 
 		Platform::GFX::DescriptorSet createGlobalDescriptorSet(Context* context, sizeptr scenebufferoffset);
 
-		void moveToNextDesciptorSet(Context* context) {
-			context->globaldescriptorpointer++;
-			if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
-				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, sizeof(SceneBuffer) * context->globaldescriptorpointer));
-			}
-		}
-
-		void checkCreateDesciptorSet(Context* context) {
-			if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
-				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, sizeof(SceneBuffer) * context->globaldescriptorpointer));
-			}
-		}
-
-		///checks wheter a new descriptorset is needed and wheter the currently indexed exists and is valid if not creates a new descriptorset
-		void checkMoveNextDescriptorSet(Context* context) {
-			if (!context->quads.empty()) {
-				flush(context, { nullptr, 0 });
-			}
-			checkCreateDesciptorSet(context);
-		}
-
-		bool32 pushView(Context* context, const glm::mat4& view) {
-
-			checkMoveNextDescriptorSet(context);
-
-			context->localscenebuffer.view = view;
-			return true;
-		}
-
-
-		bool32 pushProjection(Context* context, const glm::mat4& projection) {
-
-			checkMoveNextDescriptorSet(context);
-
-			context->localscenebuffer.projection = projection;
-			return true;
-		}
-
-		bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context) {
-			
-			checkMoveNextDescriptorSet(context);
-
-			context->currentpipeline = pipeline;
-			context->userdescriptors.clear();
-			context->userdescriptors.pushBack(userdescriptors);
-
-			return true;
-		}
 
 		Platform::GFX::DescriptorSet createGlobalDescriptorSet(Context* context, sizeptr scenebufferoffset) {
 
@@ -616,6 +575,7 @@ namespace PH::Engine {
 		}
 
 		bool32 updateDescriptorSet(Context* context) {
+
 			GFX::DescriptorWrite write{};
 			write.dynamicwrite = true;
 
@@ -649,7 +609,86 @@ namespace PH::Engine {
 			return true;
 		}
 
+		//checks wheter the current descriptor set exists and is valid, if not creates a new descriptor set
+		void checkCreateDesciptorSet(Context* context) {
+			if (context->globaldescriptors.getCount() <= context->globaldescriptorpointer) {
+				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, sizeof(SceneBuffer) * context->globaldescriptorpointer));
+			}
+		}
+
+		//moves to the next global descriptor set and checks if it exists and is valid, if not creates a new descriptor set
+		void moveToNextDesciptorSet(Context* context) {
+			context->globaldescriptorpointer++;
+			checkCreateDesciptorSet(context);
+		}
+
+		//moves all global state forward to the next draw call
+		bool32 reset(Context* context) {
+			//reset all the data for the next drawcall
+			context->textures.clear();
+			context->textures.pushBack(context->nulltexture);
+			context->quads.clear();
+
+			//increase the global descriptor pointer
+			moveToNextDesciptorSet(context);
+
+			return true;
+		}
+
+
+		///checks wheter a new descriptorset is needed and wheter the currently indexed exists and is valid if not creates a new descriptorset,.
+		//If there are still quads in the current draw call flushes the draw call and resets the context for the next draw call
+		void checkMoveNextDescriptorSet(Context* context) {
+			if (!context->quads.empty()) {
+				flush(context, { nullptr, 0 });
+				reset(context);
+			}
+			checkCreateDesciptorSet(context);
+		}
+
+		bool32 pushView(Context* context, const glm::mat4& view) {
+
+			//if there are still quads in the current draw call flush them
+			checkMoveNextDescriptorSet(context);
+
+			context->localscenebuffer.view = view;
+			return true;
+		}
+
+
+		bool32 pushProjection(Context* context, const glm::mat4& projection) {
+
+			checkMoveNextDescriptorSet(context);
+
+			context->localscenebuffer.projection = projection;
+			return true;
+		}
+
+		bool32 pushGraphicsPipeline(Platform::GFX::GraphicsPipeline pipeline, Base::Array<Platform::GFX::DescriptorSet> userdescriptors, Renderer2D::Context* context) {
+
+			checkMoveNextDescriptorSet(context);
+
+			context->currentpipeline = pipeline;
+			context->userdescriptors.clear();
+			context->userdescriptors.pushBack(userdescriptors);
+
+			return true;
+		}
+
+		//does not have to do anything for now
 		bool32 begin(Context* context) {
+			return true;
+		}
+
+		
+		bool32 end(Context* context) {
+
+			flush(context, { nullptr, 0 });
+			reset(context);
+			return true;
+		}
+
+		bool32 startFrame(Context* context) {
 
 			if (context->globaldescriptors.getCount() <= 0) {
 				context->globaldescriptors.pushBack(createGlobalDescriptorSet(context, 0));
@@ -664,9 +703,11 @@ namespace PH::Engine {
 			return true;
 		}
 
-		bool32 end(Context* context) {
+		//does not do anything for now but keep for continuity Begin - End
+		bool32 endFrame(Context* context) {
 			return true;
 		}
+
 
 		bool32 flush(Context* context, Base::Array<Platform::GFX::DescriptorSet> additionaldescriptors) {
 
@@ -684,6 +725,7 @@ namespace PH::Engine {
 				return false;
 			}
 
+			//shoudl fix this for better performance NO REASON TO COPY BUNCH OF MEMORY!
 			//might not be necessary to copy the data every frame if the buffer is persistently mapped but for now this is the easiest way to do it
 			Base::copyMemory(context->quads.raw(), (uint8*)instancememory + instanceoffset, context->quads.getCount() * sizeof(ColoredQuadInstance));
 
@@ -707,19 +749,12 @@ namespace PH::Engine {
 			
 			context->drawninstances += context->quads.getCount();	
 
-			//reset all the data for the next drawcall
-			context->textures.clear();
-			context->textures.pushBack(context->nulltexture);
-			context->quads.clear();
-
-			//increase the global descriptor pointer
-			context->globaldescriptorpointer++;
-
 			descriptorsets.release();
 			return true;
 		}
 	}
 
+	/*
 	namespace Renderer3D {
 
 		Engine::Assets::Mesh cube;
@@ -1037,4 +1072,5 @@ namespace PH::Engine {
 		}
 
 	}
+	*/
 }

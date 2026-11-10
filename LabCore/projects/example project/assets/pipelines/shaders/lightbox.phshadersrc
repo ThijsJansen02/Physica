@@ -1,0 +1,130 @@
+
+
+>>>VERTEX_SHADER
+
+#version 450
+
+//vertexbuffer attributes
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+layout(location = 2) in vec3 inNormal;
+layout(location = 3) in vec3 inTangent;
+layout(location = 4) in vec3 inBiTangent;
+
+
+//instancebuffer attributes
+layout(location = 5) in uint inMatindex;
+layout(location = 6) in uint inObjectid;
+layout(location = 7) in vec4 inTransformr0;
+layout(location = 8) in vec4 inTransformr1;
+layout(location = 9) in vec4 inTransformr2;
+
+
+layout(location = 0) out VS_OUT {
+    vec3 fragpos;
+    vec2 UV;
+    mat3 TBN;
+    float determinant;
+    flat uint objectid;
+} vs_out;  
+
+
+layout(set = 0, binding = 0) uniform Scene {
+	mat4 projection;
+	mat4 view;
+    mat4 inverseview;
+} scene;	
+
+mat3 calcNormalMatrix(mat3 puretransform) {
+
+    mat3 model3 = mat3(puretransform);
+
+    //pure scale
+    vec3 scale = vec3(
+        length(model3[0]),
+        length(model3[1]),
+        length(model3[2])
+    );
+    
+    //pure rotation
+    mat3 rotation = mat3(
+        model3[0] / scale.x,
+        model3[1] / scale.y,
+        model3[2] / scale.z
+    );
+
+    mat3 normalmatrix = rotation * mat3(
+        1.0 / scale.x, 0.0, 0.0,
+        0.0, 1.0 / scale.y, 0.0,
+        0.0, 0.0, 1.0 / scale.z
+    );
+
+    return normalmatrix;
+}
+
+
+void main() {
+
+    mat3 pure_transform = transpose(mat3(inTransformr0.xyz, inTransformr1.xyz, inTransformr2.xyz));
+    mat3 pure_view = mat3(scene.view);
+    mat3 normalmatrix = calcNormalMatrix(pure_transform);
+
+    mat4 transform = transpose(mat4(inTransformr0, inTransformr1, inTransformr2, vec4(0.0, 0.0, 0.0, 1.0)));
+    
+    vs_out.determinant = 1.0f;//determinant(pure_transform);
+
+    vec4 position_worldspace = transform * vec4(inPosition, 1.0f);
+    vec4 position_viewspace = scene.view * position_worldspace;
+    vec4 position_screenspace = scene.projection * position_viewspace; 
+
+    gl_Position = position_screenspace;
+
+    vs_out.fragpos = vec3(position_viewspace.xyz);
+    vs_out.UV = inTexCoord;
+
+
+    normalmatrix = pure_view * normalmatrix;
+    vec3 T = normalize(normalmatrix * inTangent);
+    vec3 B = normalize(normalmatrix * inBiTangent);
+    vec3 N = normalize(normalmatrix * inNormal);
+    
+    vs_out.TBN = mat3(T, B, N);
+
+    vs_out.objectid = inObjectid;
+}
+
+>>>FRAGMENT_SHADER
+
+#version 450
+
+layout(location = 0) in VS_OUT {
+    vec3 fragpos;
+    vec2 UV;
+    mat3 TBN;
+    float determinant;
+    flat uint objectid;
+} fs_in;  
+
+//output to color buffer
+layout(location = 0) out vec4 outAlbedo;
+layout(location = 1) out vec4 outNormal;
+layout(location = 2) out vec4 outPosition;
+layout(location = 3) out uint outObjectid;
+
+
+void main() {	
+
+    outPosition.rgb = fs_in.fragpos;
+    outPosition.a = 1.0;
+
+    outAlbedo.rgb = vec3(1.0, 1.0, 1.0);
+
+    vec3 normaltexel = vec3(0.0, 0.0, -1.0);
+
+    outNormal.rgb = normalize(fs_in.TBN * normaltexel);
+    outNormal.a = 1.0;
+
+    outObjectid = fs_in.objectid;
+}
+
+>>>END_OF_FILE

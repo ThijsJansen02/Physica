@@ -40,7 +40,7 @@ namespace PH::Base {
 		}
 
 		ArrayIterator<type> operator-(sizeptr subtraction) const {
-			return create(ptr + subtraction);
+			return create(ptr - subtraction);
 		}
 
 		sizeptr operator-(ArrayIterator<type> other) const {
@@ -243,7 +243,9 @@ namespace PH::Base {
 				PH::Base::copyMemory(m_Data, newarray, m_Count * sizeof(type));
 			}
 
-			allocator::dealloc(m_Data);
+			if (m_Data) {
+				allocator::dealloc(m_Data);
+			}
 			m_Count = count;
 			m_Data = newarray;
 		}
@@ -337,13 +339,13 @@ namespace PH::Base {
 			 return a;
 		}
 
+		ArrayList() : m_Storage(storage::create(0)), m_End(iterator::create(nullptr)) {
+
+		}
+
 		static void destroy(ArrayList* item) {
 			item->release();
 			return;
-		}
-
-		ArrayList() {
-
 		}
 
 		template<typename allocator_ = allocator>
@@ -378,10 +380,18 @@ namespace PH::Base {
 
 			m_Storage[index] = {};
 			for (uint32 i = index; i < getCount() - 1; i++) {
-				m_Storage[index] = m_Storage[index + 1];
+				m_Storage[i] = m_Storage[i + 1];
 			}
 			--m_End;
 			return true;
+		}
+
+		bool32 remove(T* element) {
+			sizeptr index = element - begin().ptr;
+
+			PH_DEBUG_ASSERT(index >= 0)
+
+			return remove(index);
 		}
 
 		void release() {

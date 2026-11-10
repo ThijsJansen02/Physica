@@ -12,11 +12,13 @@ IncludeDir["entt"] = "%{wks.location}/dep/entt/src"
 IncludeDir["yaml"] = "%{wks.location}/dep/yaml/include"
 IncludeDir["assimp"] = "%{wks.location}/dep/assimp/include"
 IncludeDir["vulkanSDK"] = "%{VULKAN_SDK}/Include"
-IncludeDir["imguizmo"] = "%{wks.location}/dep/ImGuizmo"
+IncludeDir["imguizmo"] = "%{wks.location}/dep/ImGuizmo_/ImGuizmo/src"
 IncludeDir["zep"] = "%{wks.location}/dep/zep/include"
 IncludeDir["editor"] = "%{wks.location}/Editor/src"
 IncludeDir["stb"] = "%{wks.location}/dep/stb_"
 IncludeDir["pybind11"] = "%{wks.location}/dep/pybind11/include"
+IncludeDir["labcore"] = "%{wks.location}/LabCore/src"
+IncludeDir["labcore_scene"] = "%{wks.location}/LabCore/plugins/labcore-scene/src"
 
 --IncludeDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/include"
 IncludeDir["cpython"] = "%{wks.location}/dep/embeddedpython/include"
@@ -29,6 +31,7 @@ IncludeDir["zlib"] = "%{wks.location}/dep/zlib/include"
 
 
 LibraryDir = {}
+
 LibraryDir["vulkanSDK"] = "%{VULKAN_SDK}/Lib"
 LibraryDir["openssl"] = "%{wks.location}/dep/openssl/lib/VC/x64"
 LibraryDir["libssh"] = "%{wks.location}/dep/libssh/lib"
@@ -38,6 +41,8 @@ LibraryDir["cpython"] = "%{wks.location}/dep/embeddedpython/libs"
 --LibraryDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/libs"
 
 Library = {}
+Library["platform"] = "%{wks.location}/bin/" .. outputdir .. "/Platform/Platform.lib"
+
 Library["cpython_debug"] = "%{LibraryDir.cpython}/python313.lib"
 Library["cpython"] = "%{LibraryDir.cpython}/python313.lib"
 

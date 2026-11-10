@@ -122,6 +122,14 @@ PH::uint64 pack(PH::uint32 high, PH::uint32 low) {
 	return result;
 }
 
+struct win32PlatformState {
+	PH::bool32 running;
+	PH::uint32 windowwidth;
+	PH::uint32 windowheight;
+
+	win32Arraylist<PH::Platform::Event> eventlist;
+};
+
 /// <summary>
 /// KEY_DOWN: lparem(keycode)
 /// KEY_UP: lparam(keycode)
@@ -129,7 +137,7 @@ PH::uint64 pack(PH::uint32 high, PH::uint32 low) {
 /// </summary>
 /// <param name="message"></param>
 /// <returns></returns>
-PH::Platform::Event win32_translateMessage(MSG message) {
+PH::Platform::Event win32_translateMessage(MSG message, const win32PlatformState& state) {
 
 	PH::Platform::Event result{};
 	result.type = PH_EVENT_TYPE_NULL;
@@ -143,7 +151,7 @@ PH::Platform::Event win32_translateMessage(MSG message) {
 	case WM_MOUSEMOVE:
 		result.type = PH_EVENT_TYPE_MOUSE_MOVED;
 		result.lparam = LOWORD(message.lParam);
-		result.rparam = HIWORD(message.lParam);
+		result.rparam = state.windowheight - HIWORD(message.lParam);
 		break;
 	case WM_KEYDOWN:
 		result.type = PH_EVENT_TYPE_KEY_PRESSED;
@@ -246,7 +254,7 @@ bool win32_initializeConsole() {
 /// <returns></returns>
 bool win32_initializeWindow(HWND* hwnd, HINSTANCE hInstance, int nCmdShow, void* userptr) {
 
-	const wchar_t CLASS_NAME[] = L"Main Window Class";
+	const wchar_t* CLASS_NAME = L"Main Window Class";
 
 	WNDCLASS wc = { };
 
@@ -256,9 +264,9 @@ bool win32_initializeWindow(HWND* hwnd, HINSTANCE hInstance, int nCmdShow, void*
 
 	RegisterClass(&wc);
 	*hwnd = CreateWindowEx(
-		0,                              // Optional window styles.
+		0,
 		CLASS_NAME,                     // Window class
-		L"Learn to Program Windows",    // Window text
+		L"Unnamed Application",			// Window text
 		WS_OVERLAPPEDWINDOW,            // Window style
 
 		// Size and position
@@ -391,14 +399,6 @@ PH_UNLOAD_FILE(win32_unloadFile) {
 	return true;
 }
 
-struct win32PlatformState {
-	PH::bool32 running;
-	PH::uint32 windowwidth;
-	PH::uint32 windowheight;
-
-	win32Arraylist<PH::Platform::Event> eventlist;
-};
-
 static void vkImGuiCheckResult(VkResult err) {
 	if (err != VK_SUCCESS) {
 		DebugBreak();
@@ -481,7 +481,7 @@ struct win32_ThreadInfo {
 	PH::Platform::ThreadCreateInfo info;
 };
 
-//weird implementation, why does it have to create a memory arena for the GFX layer?
+//weird implementation, why does it have to create a memory arena for the GFX layer? because an arena allocator is not thread safe
 DWORD WINAPI win32_ThreadProc(
 	_In_ LPVOID lpParameter
 ) {
@@ -545,22 +545,72 @@ PH::bool32 win32_loadApplication(HWND windowhandle, const char* dllname, Applica
 	applicationInitializeFN* applicationInitialize = (applicationInitializeFN*)GetProcAddress(applicationlib, "applicationInitialize");
 	if (!applicationInitialize) { ERR << "failed to load application Initialize\n"; return false; }
 
-	applicationReloadFN* applicationReload = (applicationReloadFN*)GetProcAddress(applicationlib, "applicationReload");
-	if (!applicationReload) { ERR << "failed to load application reload\n"; return false; }
-
 	app->applicationDestroy = applicationDestroy;
 	app->applicationUpdate = applicationUpdate;
-	app->applicationReload = applicationReload;
 	app->applicationInitialize = applicationInitialize;
 
 	return true;
 }
 
-PH_DLL_EXPORT bool applicationReload(PH::Platform::Intern::PlatformAPI* platform);
-
 struct PlatformAppContext {
 	HWND windowhandle;
 } platformcontext;
+
+void win32_printLastError() {
+	DWORD error = GetLastError();
+	LPSTR message = nullptr;
+	FormatMessageA(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr,
+		error,
+		0,
+		reinterpret_cast<LPSTR>(&message),
+		0,
+		nullptr
+	);
+
+	INFO << "Error " << (PH::uint32)error << ": "
+		<< (message ? message : "Unknown error")
+		<< '\n';
+
+	if (message)
+		LocalFree(message);
+}
+
+PH::bool32 win32_setWindowTitle(PH::Base::SubString title) {
+	auto titlestr = PH::Base::String<PlatformAllocator>::create(title);
+	bool r = SetWindowTextA(platformcontext.windowhandle, titlestr.getC_Str());
+	PH::Base::String<PlatformAllocator>::destroy(&titlestr);
+	return r;
+}
+
+PH::bool32 win32_createDirectory(PH::Base::SubString directory) {
+	auto str = PH::Base::String<PlatformAllocator>::create(directory);
+	bool r = CreateDirectoryA(str.getC_Str(), nullptr);
+	if (!r) {
+		win32_printLastError();
+	}
+	PH::Base::String<PlatformAllocator>::destroy(&str);
+	return r;
+}
+
+void win32_getCurrentDirectory(char* buffer, PH::sizeptr maxsize) {
+	GetCurrentDirectoryA(maxsize, buffer);
+}
+
+PH::bool32 win32_setCurrentDirectory(PH::Base::SubString directory) {
+	auto str = PH::Base::String<PlatformAllocator>::create(directory);
+	str.replace('/', '\\');
+	bool r = SetCurrentDirectoryA(str.getC_Str());
+	if (!r) {
+		win32_printLastError();
+	}
+
+	PH::Base::String<PlatformAllocator>::destroy(&str);
+	return r;
+}
 
 PH_OPEN_FILE_DIALOG(win32_openFileDialog) {
 
@@ -573,11 +623,13 @@ PH_OPEN_FILE_DIALOG(win32_openFileDialog) {
 	ofn.hwndOwner = platformcontext.windowhandle;
 	ofn.lpstrFile = szFile;
 	ofn.nMaxFile = sizeof(szFile);
-	if (GetCurrentDirectoryA(256, currentDir))
-		ofn.lpstrInitialDir = currentDir;
+
+
+
+	ofn.lpstrInitialDir = info.startingdir;
 	ofn.lpstrFilter = info.filter;
 	ofn.nFilterIndex = 1;
-	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+	ofn.Flags = info.flags;
 
 	if (GetOpenFileNameA(&ofn)) {
 		char* str = ofn.lpstrFile;
@@ -593,6 +645,8 @@ PH_OPEN_FILE_DIALOG(win32_openFileDialog) {
 	return false;
 
 }
+
+bool loadPlatformAPI(PH::Platform::Intern::PlatformAPI* platform);
 
 PH::uint32 lastwindowwidth;
 PH::uint32 lastwindowheight;
@@ -620,6 +674,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	if (!win32_initializeWindow(&windowhandle, hInstance, nCmdShow, &state)) {
 		return 1;
 	}
+
+	platformcontext.windowhandle = windowhandle;
 
 	RECT windowrect;
 	GetClientRect(
@@ -655,7 +711,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
 	//loading the application;
 	Application app;
-	if (!win32_loadApplication(windowhandle, "RP-GUI.dll", &app)) {
+	if (!win32_loadApplication(windowhandle, "LabCore.dll", &app)) {
 		PH_DEBUG_BREAK();
 	}
 
@@ -677,8 +733,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	api.gfxdrawimguiwidgets = vulkan_draw_imgui_widgets;
 	api.gfxcreateimguiimage = vulkan_create_imgui_image;
 
-	app.applicationReload(&api);
-	applicationReload(&api);
+	loadPlatformAPI(&api);
 
 	QueryPerformanceCounter(&systemstartcount);
 	QueryPerformanceFrequency(&PerformanceFrequency);
@@ -689,7 +744,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	context.windowheight = state.windowheight;
 	context.imguicontext = ImGui::GetCurrentContext();
 	
-	context.appmemsize = GIGA_BYTE;
+	context.appmemsize = GIGA_BYTE / 4;
 	context.appmemory = VirtualAlloc(nullptr, context.appmemsize, MEM_COMMIT, PAGE_READWRITE);
 	
 	context.ellapsedtimeseconds = 0.0f;
@@ -708,7 +763,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 		while (PeekMessageA(&msg, windowhandle, 0, 0, PM_REMOVE) > 0) {
 
 			TranslateMessage(&msg);
-			PH::Platform::Event e = win32_translateMessage(msg);
+			PH::Platform::Event e = win32_translateMessage(msg, state);
 			if (e.type == PH_EVENT_TYPE_NULL) {
 				DispatchMessage(&msg);
 			}
@@ -732,10 +787,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 			lastwindowheight = state.windowheight;
 		}
 
+		PH::Vulkan::startFrame(&vulkancontext);
 		
 		ImGui::NewFrame();
-
-		PH::Vulkan::startFrame(&vulkancontext);
 
 		LARGE_INTEGER currentframecount;
 		QueryPerformanceCounter(&currentframecount);

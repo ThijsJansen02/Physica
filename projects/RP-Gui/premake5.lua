@@ -43,15 +43,21 @@ project "RP-GUI"
 		"IMGUI_API=__declspec(dllexport)",
 		"PH_SHARED_BUILD",
 		"PH_ENGINE_EXPORT",
+		"PH_PLATFORM_IMPORT",
 		"YAML_CPP_STATIC_DEFINE"
 	}
 
 	libdirs {
-		"%{LibraryDir.cpython}"
+		"%{LibraryDir.cpython}",
+		"%{LibraryDir.openssl}",
+		"%{LibraryDir.libssh}"
 	}
 
 	links
 	{
+		"Ws2_32.lib",
+		"Iphlpapi.lib",
+		"Crypt32.lib",
 		"base",
 		"Engine"
 	}
@@ -80,7 +86,11 @@ project "RP-GUI"
 
 		links 
 		{
-			"%{Library.cpython_debug}"
+			"%{Library.cpython_debug}",
+			"%{Library.openssl_debug}",
+			"%{Library.libssh_debug}",
+			"%{Library.libcrypto_debug}",
+			"%{Library.zlib_debug}"
 		}
 
 	filter "configurations:Release"
@@ -90,7 +100,11 @@ project "RP-GUI"
 
 		links 
 		{
-			"%{Library.cpython}"
+			"%{Library.cpython}",
+			"%{Library.openssl}",
+			"%{Library.libssh}",
+			"%{Library.libcrypto}",
+			"%{Library.zlib}"
 		}
 
 	filter "configurations:Dist"
@@ -100,7 +114,11 @@ project "RP-GUI"
 
 		links 
 		{
-			"%{Library.cpython}"
+			"%{Library.cpython}",
+			"%{Library.openssl}",
+			"%{Library.libssh}",
+			"%{Library.libcrypto}",
+			"%{Library.zlib}"
 		}
 
     

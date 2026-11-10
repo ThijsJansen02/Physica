@@ -1,0 +1,146 @@
+#pragma once
+#include <glm/glm.hpp>
+#include <Platform/platformAPI.h>
+#include <Engine/GPUBuffer.h>
+#include "assets/Mesh.h"
+#include "assets/GraphicsPipeline.h"
+
+namespace PH::LabCore3D {
+
+	struct MeshInstance {
+		uint32 materialindex;
+		uint32 objectid;
+		glm::vec4 trow0;
+		glm::vec4 trow1;
+		glm::vec4 trow2;
+	};
+
+	static PH::Platform::GFX::VertexInputBindingDescription mesh3Dvertexbindingdescription[] = {
+		//vertexbuffer
+		{0, sizeof(Vertex3D), Platform::GFX::INPUT_RATE_PER_VERTEX},
+
+		//instancebuffer
+		{1, sizeof(MeshInstance), Platform::GFX::INPUT_RATE_PER_INSTANCE}
+	};
+
+	static PH::Platform::GFX::VertexInputAttributeDescription mesh3Dvertexinputattributes[] = {
+
+		//vertexinput
+		{0, 0, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, position)},
+		{0, 1, Platform::GFX::FORMAT_R32G32_SFLOAT, offsetof(Vertex3D, texcoord)},
+		{0, 2, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, normal)},
+		{0, 3, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, tangent)},
+		{0, 4, Platform::GFX::FORMAT_R32G32B32_SFLOAT, offsetof(Vertex3D, bitangent)},
+
+		//might want to pack materialindex and objectid into one uint32
+		//instanceinput
+		{1, 5, Platform::GFX::FORMAT_R32_UINT, offsetof(MeshInstance, materialindex)},
+		{1, 6, Platform::GFX::FORMAT_R32_UINT, offsetof(MeshInstance, objectid)},
+		{1, 7, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow0)},
+		{1, 8, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow1)},
+		{1, 9, Platform::GFX::FORMAT_R32G32B32A32_SFLOAT, offsetof(MeshInstance, trow2)}
+	};
+
+
+	struct GBuffer {
+		sizeptr widhth;
+		sizeptr height;
+
+		PH::Platform::GFX::Framebuffer fb;
+		PH::Platform::GFX::Texture albedo;
+		PH::Platform::GFX::Texture normal;
+		PH::Platform::GFX::Texture depth;
+		PH::Platform::GFX::Texture position;
+
+		PH::Platform::GFX::Texture objectid;
+	};
+
+	struct DefferedRendererCreateInfo {
+		sizeptr maxinstancecount;
+		sizeptr gbufferwidth;
+		sizeptr gbufferheight;
+
+
+		//initial values, can be changed on the fly
+		PH::Platform::GFX::Viewport viewport;
+		glm::vec4 clearcolor;
+	};
+
+
+	struct DefferedRenderer {
+
+		struct PointLight {
+			glm::vec3 position;
+			real32 intensity;
+			glm::vec3 color;
+			real32 attenuation;
+		};
+
+		struct SceneVariables {
+			glm::mat4 projection;
+			glm::mat4 view;
+			glm::mat4 normalmatrix;
+
+			//lights
+			PointLight lights[16];
+			uint32 nlights;
+		};
+
+		enum OutputSource {
+			DEFFERED_ALBEDO = 0,
+			DEFFERED_NORMAL,
+			DEFFERED_LIGHTING,
+			DEFFERED_POSITION
+		};
+
+		static DefferedRenderer create();
+		static DefferedRenderer create(const DefferedRendererCreateInfo& info);
+
+		static PH::Platform::GFX::RenderpassDescription createGeometryRenderpass();
+		static PH::Platform::GFX::RenderpassDescription geometryrenderpass;
+
+		static PH::Platform::GFX::DescriptorSetLayout createSceneDescriptorLayout();
+		static PH::Platform::GFX::DescriptorSetLayout scenedescriptorlayout;
+
+		static PH::Platform::GFX::RenderpassDescription createLightingRendererpass();
+		static PH::Platform::GFX::RenderpassDescription lightingrenderpass;
+
+		void beginGeometryPass();
+		void setProjection(glm::mat4 projection);
+		void setView(glm::mat4 view);
+		void pushLight(const DefferedRenderer::PointLight& light);
+
+		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline);
+		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform);
+		void drawMesh(Mesh* mesh, GraphicsPipeline* pipeline, const glm::mat4& transform, uint32 objectid);
+		void endGeometryPass();
+
+		void applyLightpass(GraphicsPipeline* pipe);
+		void applyPostProcess();
+
+		//outputs the given source to the given display target using the given tonemapping pipeline
+		void output(Engine::Display* target, GraphicsPipeline* tonemap, OutputSource source);
+
+		PH::Platform::GFX::Viewport viewport;
+		glm::vec4 albedoclearcolor;
+
+		GBuffer gbuffer;
+
+		Platform::GFX::Framebuffer lightpassbuffer;
+		Platform::GFX::Texture lightpassattachment;
+
+		Engine::DynamicGPUBuffer<MeshInstance> instancebuffer;
+		Engine::DynamicGPUBuffer<DefferedRenderer::SceneVariables> scenevariables;
+
+		sizeptr lightinsertptr;
+		sizeptr instanceptr;
+
+		PH::Platform::GFX::DescriptorSet scenedescriptorset;
+
+	private:
+		void begin();
+		void end();
+	};
+	
+	extern DefferedRenderer renderer;
+}
