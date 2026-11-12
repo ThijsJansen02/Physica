@@ -1,6 +1,6 @@
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
-include "Dependencies.lua"
+include "dep/Dependencies.lua"
 
 workspace "ProjectPhysica"
     architecture "x64"
