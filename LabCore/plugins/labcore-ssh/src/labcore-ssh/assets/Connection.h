@@ -91,6 +91,7 @@ namespace PH::LabCoreSSH {
 
 	Engine::AssetDescription createConnectionAssetdescription();
 	PH::bool32 pollOpenConnectionResultsCallback(Engine::AssetLibrary* assets);
+	bool32 FileTransferPopupCallBack(Engine::AssetLibrary* lib);
 
 	//creates a connection asset but does not open the connection, call openConnection to open the ssh connection
 	LC_SSH_API Connection createConnection(const char* remoteip);

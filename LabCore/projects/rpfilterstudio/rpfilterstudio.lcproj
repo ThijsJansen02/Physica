@@ -3,6 +3,13 @@ openviews:
     instanceid: 3307938272
     viewdata:
       current: 3336718505
+  - viewname: Python Shell
+    instanceid: 116818458
+    viewdata:
+      shellbgcolor: [0.3, 0.2, 0.1, 1]
+      messages:
+        - message: lc.setShellClearColor(lc.Vec4(0.3, 0.2, 0.1, 1.0))
+          source: 0
 includedassets:
   - descriptionid: 6544691651984941516
     includedassets:

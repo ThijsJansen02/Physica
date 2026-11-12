@@ -24,5 +24,6 @@ extern "C" {
 
 		PH::LabCore::addView(PH::LabCoreSSH::createConnectionViewDescription());
 		addOnRenderCallback(PH::LabCoreSSH::connectionCreatePopupModalCallback);
+		addOnRenderCallback(PH::LabCoreSSH::FileTransferPopupCallBack);
 	}
 }

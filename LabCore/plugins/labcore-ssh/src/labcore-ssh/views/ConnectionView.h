@@ -11,6 +11,9 @@ namespace PH::LabCoreSSH {
 		 Engine::String currentcommand;
 	};
 
+	//opens a popup window to allow the user to create a new connection
+	LC_SSH_API bool32 openCreateConnectionPopup();
+
 	LabCore::ViewDescription createConnectionViewDescription();
 	bool32 connectionCreatePopupModalCallback(Engine::AssetLibrary* lib);
 }

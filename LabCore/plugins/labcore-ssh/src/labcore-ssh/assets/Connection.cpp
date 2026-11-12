@@ -193,10 +193,12 @@ namespace PH::LabCoreSSH {
 		info->connected = true;
 		Engine::INFO << "connected with Rp " << info->remoteip.getC_Str() << "\n";
 #endif
-		//wait for the semaphore to be released
-		WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
 
 		while (true) {
+
+			//wait for the semaphore to be released
+			WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
+
 			RemoteCommand* workptr = info->outqueue.pop();
 
 			//if there is a command -> send it to the rp
@@ -289,7 +291,7 @@ namespace PH::LabCoreSSH {
 					ssh_channel_free(channel);
 				}
 
-				if (work.type == SFTP_WRITE) {
+				if (work.type == TYPE_SFTP_WRITE) {
 					// Create SFTP session
 					sftp_session sftp = sftp_new(my_ssh_session);
 					if (!sftp) {
@@ -335,18 +337,13 @@ namespace PH::LabCoreSSH {
 
 					info->inqueue.push(r);
 				}
-
-
-			}
-			else {
-				//INFO << "thread: " << (uint32)info->thread.id << " is going to sleep\n";
-				WaitForSingleObjectEx(info->semaphore, INFINITE, FALSE);
-				//INFO << "thread: " << (uint32)info->thread.id << " woke up\n";
 			}
 		}
 
 		ssh_disconnect(my_ssh_session);
 		ssh_free(my_ssh_session);
+
+		info->connected = false;
 		return 0;
 	}
 

@@ -9,9 +9,16 @@ namespace PH::LabCoreSSH {
 	bool32 openCreatePopupModal = false;
 	bool32 openFileTransferpopup = false;
 
+	Connection* targetconnection = nullptr;
+
 	void shellReturnPrintConsol(SSHshellExec* exec, Base::SubString output, Base::SubString err) {
 		Engine::INFO << output << "\n";
 		Engine::ERR << err << "\n";
+	}
+
+	bool32 openCreateConnectionPopup() {
+		openCreatePopupModal = true;
+		return true;
 	}
 
 	PH::bool32 drawConnectionView(ConnectionView* view) {
@@ -53,14 +60,68 @@ namespace PH::LabCoreSSH {
 			}
 
 			if (ImGui::Button("Transfer File")) {
-
+				openFileTransferpopup = true;
+				targetconnection = c;
 			}
 		}
 		ImGui::PopItemWidth();
 		return true;
 	}
 
-	bool32 FileTransferPopup(Engine::AssetLibrary* lib) {
+	bool32 FileTransferPopupCallBack(Engine::AssetLibrary* lib) {
+		if (openFileTransferpopup) {
+			ImGui::OpenPopup("SSH File Transfer");
+			openFileTransferpopup = false;
+		}
+
+		Platform::setCurrentDirectory(PH::LabCore::getCurrentProjectDir());
+		ImGuiIO& io = ImGui::GetIO();
+
+		ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_Appearing);
+		ImGui::SetNextWindowPos(
+			ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
+			ImGuiCond_Appearing,
+			ImVec2(0.5f, 0.5f)
+		);
+
+		static Engine::String dst = Engine::String::create("");
+		static Engine::String src = Engine::String::create("");
+		
+		if (ImGui::BeginPopup("SSH File Transfer")) {
+			targetconnection = ImGuiext::assetSelecter<Connection>("connection", targetconnection, "select connection", LabCore::getAssetLibrary());
+		
+			if (ImGuiext::FilePath("Source", &src, "", LabCore::getCurrentProjectDir().getC_Str(), PH_DIALOG_FILEMUSTEXIST)) {
+				if (PH::Engine::Events::isKeyPressed(PH_RETURN)) {
+					Base::SubString filename = Base::getFileName(src.getSubString());
+					dst.set(filename);
+				}
+			}
+			
+			
+			ImGuiext::Input("Destination", &dst);
+
+			if (ImGui::Button("transfer")) {
+				PH::Platform::FileBuffer f{};
+				if (PH::Platform::loadFile(&f, src.getC_Str())) {
+					LabCoreSSH::RemoteCommand rc{};
+					rc.type = TYPE_SFTP_WRITE;
+					rc.sftpwrite.callback_ = nullptr;
+					rc.sftpwrite.data = Engine::DynamicArray<uint8>::create(f.size, (uint8)f.data);
+					rc.sftpwrite.path = Engine::String::create(dst.getC_Str());
+					
+					LabCoreSSH::sendCommand(targetconnection, rc);
+					PH::Platform::unloadFile(&f);
+				}
+				ImGui::CloseCurrentPopup();
+			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("cancel")) {
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+
 		return true;
 	}
 
