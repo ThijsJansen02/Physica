@@ -52,6 +52,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate)
 {
 	PH::Engine::beginNewFrame(&context);
 
+
 	for (auto e : context.events) {
 		PH::Engine::Events::onEvent(e);
 		PH::LabCore::interpretEventForViews(PH::LabCore::appcontext->viewinstances, e);
@@ -60,8 +61,10 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate)
 	auto parentdisplay = PH::Engine::getParentDisplay();
 	
 	PH::Engine::BeginDockspace();
+	
 	PH::LabCore::draw();
 	PH::LabCore::update();
+	
 	PH::Engine::EndDockspace();
 
 	

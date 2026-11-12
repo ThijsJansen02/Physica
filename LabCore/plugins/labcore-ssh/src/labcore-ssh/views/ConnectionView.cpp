@@ -7,6 +7,7 @@
 namespace PH::LabCoreSSH {
 
 	bool32 openCreatePopupModal = false;
+	bool32 openFileTransferpopup = false;
 
 	void shellReturnPrintConsol(SSHshellExec* exec, Base::SubString output, Base::SubString err) {
 		Engine::INFO << output << "\n";
@@ -15,6 +16,7 @@ namespace PH::LabCoreSSH {
 
 	PH::bool32 drawConnectionView(ConnectionView* view) {
 
+		ImGui::PushItemWidth(200.0f);
 		view->current = ImGuiext::assetSelecter<Connection>("connection", view->current, "select connection", LabCore::getAssetLibrary());
 		
 		ImGui::SameLine();
@@ -28,8 +30,15 @@ namespace PH::LabCoreSSH {
 			Connection* c = view->current;
 			ImGuiext::Input("remote ip", & c->remoteip);
 
-			if (ImGui::Button("connect")) {
-				openConnection(c);
+			if (c->connected) {
+				if (ImGui::Button("Disconnect")) {
+					//add code to close thread
+				}
+			}
+			else {
+				if (ImGui::Button("Connect")) {
+					openConnection(c);
+				}
 			}
 
 			ImGuiext::Input("shell command", &view->currentcommand);
@@ -42,7 +51,16 @@ namespace PH::LabCoreSSH {
 
 				sendCommand(c, command);
 			}
+
+			if (ImGui::Button("Transfer File")) {
+
+			}
 		}
+		ImGui::PopItemWidth();
+		return true;
+	}
+
+	bool32 FileTransferPopup(Engine::AssetLibrary* lib) {
 		return true;
 	}
 
