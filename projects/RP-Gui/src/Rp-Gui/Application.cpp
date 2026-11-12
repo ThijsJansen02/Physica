@@ -500,6 +500,12 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 		}
 
 		Parameters params = f.getParameters();
+		if (f.type == FilterType::COMPLEX)
+		{
+			ImGui::Checkbox("Use Zero", &f.use_zero);
+			ImGui::SameLine();
+			ImGui::Checkbox("Use Pole", &f.use_pole);
+		}
 		for (size_t i = 0; i < params.size; i++)
 		{
 			if (DragDouble(params.labels[i], (double*)params.values[i], *params.values[i] * dragSpeed)) b_dirty = true;
@@ -529,6 +535,23 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 	ImGui::SeparatorText("Display Options");
 
 	DragDouble("Gain Offset [dB] - Visual Only!", &tf->visualGain, 10 * dragSpeed, -100.0, 100.0);
+
+	ImGui::SeparatorText("Other");
+
+	if (ImGui::SliderInt("DC Offset", &tf->dcOffset, -(1 << 14) - 1, (1 << 14)))
+	{
+		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(50);
+
+		char buffer[9];
+		s << "monitor 0x41210000 0x";
+		writeHexVal32(tf->dcOffset, buffer);
+		s << buffer;
+
+		Engine::String result = s.createString<Engine::Allocator>();
+		Base::Stream<Engine::Allocator>::destroy(&s);
+
+		sendRPcommand(result.getC_Str(), &tf->connection);
+	}
 }
 
 void drawPlotDataGui(void* function, RpGui::Context* context, int32& id) {

@@ -23,6 +23,8 @@ namespace PH::RpGui {
 		bool32 b_invert = false;
 		real64 visualGain = 0.0f; // Shifts transfer function visually by amount in dB
 
+		int32 dcOffset = 0; // Temporary - used in open loop tf measurement
+
 		const real64 getFilterSampleRate() const { return (real64)RP_FPGA_SAMPLERATE / decimation; };
 	};
 

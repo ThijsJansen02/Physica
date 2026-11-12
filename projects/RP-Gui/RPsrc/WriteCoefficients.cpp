@@ -18,6 +18,8 @@
 #define GPIO_TRI1   0x04
 #define GPIO_TRI2  0x0C
 
+
+
 #define WRITE_PIN_OFFSET 1
 #define ADDRESS_PIN_OFFSET 8
 
@@ -157,8 +159,6 @@ int main (int argc, char **argv) {
         return -1;
     }
 
-    printf("test");
-
     FilterFileLayout filters{};
     size_t nelements_read = fread(&filters, sizeof(FilterFileLayout), 1, filterfile);
     if(nelements_read < 1) {
@@ -182,7 +182,7 @@ int main (int argc, char **argv) {
      // Configure all GPIO bits as outputs
     gpio1[GPIO_TRI1 / 4] =  0x00000000;
     gpio1[GPIO_TRI2 / 4] = 0x00000000;
-    
+
 
     //filter 1
     uint32_t adress = fpga_filtercoeff_base_adress[filter];

@@ -3,7 +3,7 @@
 #include <Engine/AssetLibrary.h>
 #include <Base/Datastructures/String.h>
 
-#include <map>
+#include <complex>
 #include <yaml-cpp/yaml.h>
 
 using namespace PH;
@@ -28,6 +28,7 @@ enum FilterType {
 	HIGHPASS,
 	ALLPASS,
 	RESONANCE_ANTI_RESONANCE,
+	COMPLEX,
 	COEFFICIENTS
 };
 
@@ -37,6 +38,7 @@ static const char* FilterTypeStrings[] = {
 	"High-Pass",
 	"All-Pass",
 	"Resonance Anti-Resonance",
+	"Complex",
 	"Coefficients"
 };
 
@@ -61,12 +63,18 @@ public:
 	real64 gain = 0.0f; // in decibels
 	real64 antiCutoffFrequency = 800.0f;
 	real64 antiQFactor = 10.0f;
+	real64 zero_r;
+	real64 zero_i;
+	real64 pole_r;
+	real64 pole_i;
 	real64 b0 = 1;
 	real64 b1 = 1;
 	real64 b2 = 1;
 	real64 a0 = 1;
 	real64 a1 = 1;
 	real64 a2 = 1;
+
+	bool use_zero, use_pole;
 
 	FilterType type = ALLPASS;
 

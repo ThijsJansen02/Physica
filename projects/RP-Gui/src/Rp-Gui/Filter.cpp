@@ -44,6 +44,29 @@ void Filter::calculateCoefficients()
 		coeffs.a[1] = antiCutoffFrequency / antiQFactor;
 		coeffs.a[2] = antiCutoffFrequency * antiCutoffFrequency;
 		break;
+	case COMPLEX:
+		if (use_zero) {
+			coeffs.b[0] = 1.0f;
+			coeffs.b[1] = -2 * zero_r;
+			coeffs.b[2] = zero_r * zero_r + zero_i * zero_i;
+		}
+		else {
+			coeffs.b[0] = 0.0f;
+			coeffs.b[1] = 0.0f;
+			coeffs.b[2] = zero_r * zero_r + zero_i * zero_i;
+		}
+		if (use_pole)
+		{
+			coeffs.a[0] = 1.0f;
+			coeffs.a[1] = -2 * pole_r;
+			coeffs.a[2] = pole_r * pole_r + pole_i * pole_i;
+		}
+		else {
+			coeffs.a[0] = 0.0f;
+			coeffs.a[1] = 0.0f;
+			coeffs.a[2] = pole_r * pole_r + pole_i * pole_i;
+		}
+		break;
 	case COEFFICIENTS:
 		coeffs.b[0] = b0;
 		coeffs.b[1] = b1;
@@ -103,6 +126,20 @@ Parameters Filter::getParameters()
 		parameters.size = 4;
 
 		break;
+	case COMPLEX:
+		parameters.labels[0] = "Zero (Real)";
+		parameters.labels[1] = "Zero (Imag)";
+		parameters.labels[2] = "Pole (Real)";
+		parameters.labels[3] = "Pole (Imag)";
+
+		parameters.values[0] = &zero_r;
+		parameters.values[1] = &zero_i;
+		parameters.values[2] = &pole_r;
+		parameters.values[3] = &pole_i;
+
+		parameters.size = 4;
+
+		break;
 	case COEFFICIENTS:
 		parameters.labels[0] = "b0";
 		parameters.labels[1] = "b1";
@@ -135,6 +172,14 @@ Filter Filter::deserialize(const YAML::Node& node)
 	filter.gain = node["gain"].as<real64>();
 	filter.antiCutoffFrequency = node["anticutoff"].as<real64>();
 	filter.antiQFactor = node["antiqfactor"].as<real64>();
+
+	filter.zero_r = node["zero_r"].as<real64>();
+	filter.zero_i = node["zero_i"].as<real64>();
+	filter.pole_r = node["pole_r"].as<real64>();
+	filter.pole_i = node["pole_i"].as<real64>();
+	filter.use_zero = node["use_zero"].as<bool>();
+	filter.use_pole = node["use_pole"].as<bool>();
+
 	filter.b0 = node["b0"].as<real64>();
 	filter.b1 = node["b1"].as<real64>();
 	filter.b2 = node["b2"].as<real64>();
@@ -157,6 +202,14 @@ void Filter::serialize(YAML::Emitter& out) const
 	out << YAML::Key << "gain" << YAML::Value << gain;
 	out << YAML::Key << "anticutoff" << YAML::Value << antiCutoffFrequency;
 	out << YAML::Key << "antiqfactor" << YAML::Value << antiQFactor;
+
+	out << YAML::Key << "zero_r" << YAML::Value << zero_r;
+	out << YAML::Key << "zero_i" << YAML::Value << zero_i;
+	out << YAML::Key << "pole_r" << YAML::Value << pole_r;
+	out << YAML::Key << "pole_i" << YAML::Value << pole_i;
+	out << YAML::Key << "use_zero" << YAML::Value << use_zero;
+	out << YAML::Key << "use_pole" << YAML::Value << use_pole;
+
 	out << YAML::Key << "b0" << YAML::Value << b0;
 	out << YAML::Key << "b1" << YAML::Value << b1;
 	out << YAML::Key << "b2" << YAML::Value << b2;
