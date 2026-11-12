@@ -37,13 +37,9 @@ project "Platform"
 	}
 
 	dependson {
-		'RP-GUI',
-		'LabCore',
-		'LabCore-3D',
-		'LabCore-scene',
-		'LabCore-ssh',
-		'RpFilterStudio'
+		
 	}
+	
 	defines 
 	{
 		"PH_PLATFORM_EXPORT",

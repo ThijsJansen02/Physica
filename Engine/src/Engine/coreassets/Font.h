@@ -2,7 +2,10 @@
 #include <Platform/platformAPI.h>
 #include <Engine/AssetDescription.h>
 
+#ifndef STB_TRUETYPE_INCLUDE
+#define STB_TRUETYPE_INCLUDE
 #include <stb/stb_truetype.h>
+#endif
 
 #include <Engine/Rendering.h>
 

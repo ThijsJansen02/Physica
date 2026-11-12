@@ -1,3 +1,4 @@
+#define STB_TRUETYPE_INCLUDE
 #define STB_TRUETYPE_IMPLEMENTATION
 #include <stb_/stb/stb_truetype.h>
 

@@ -2,44 +2,44 @@
 VULKAN_SDK = os.getenv("VULKAN_SDK")
 
 IncludeDir = {}
-IncludeDir["platform"] = "%{wks.location}/Platform/src"
-IncludeDir["base"] = "%{wks.location}/Base/src/"
-IncludeDir["engine"] = "%{wks.location}/Engine/src/"
-IncludeDir["glm"] = "%{wks.location}/dep/glm/"
-IncludeDir["imgui"] = "%{wks.location}/dep/imgui"
-IncludeDir["dep"] = "%{wks.location}/dep"
-IncludeDir["entt"] = "%{wks.location}/dep/entt/src"
-IncludeDir["yaml"] = "%{wks.location}/dep/yaml/include"
-IncludeDir["assimp"] = "%{wks.location}/dep/assimp/include"
+IncludeDir["platform"] = "%{PhysicaLocation}/Platform/src"
+IncludeDir["base"] = "%{PhysicaLocation}/Base/src/"
+IncludeDir["engine"] = "%{PhysicaLocation}/Engine/src/"
+IncludeDir["glm"] = "%{PhysicaLocation}/dep/glm/"
+IncludeDir["imgui"] = "%{PhysicaLocation}/dep/imgui"
+IncludeDir["dep"] = "%{PhysicaLocation}/dep"
+IncludeDir["entt"] = "%{PhysicaLocation}/dep/entt/src"
+IncludeDir["yaml"] = "%{PhysicaLocation}/dep/yaml/include"
+IncludeDir["assimp"] = "%{PhysicaLocation}/dep/assimp/include"
 IncludeDir["vulkanSDK"] = "%{VULKAN_SDK}/Include"
-IncludeDir["imguizmo"] = "%{wks.location}/dep/ImGuizmo_/ImGuizmo/src"
-IncludeDir["zep"] = "%{wks.location}/dep/zep/include"
-IncludeDir["editor"] = "%{wks.location}/Editor/src"
-IncludeDir["stb"] = "%{wks.location}/dep/stb_"
-IncludeDir["pybind11"] = "%{wks.location}/dep/pybind11/include"
-IncludeDir["labcore"] = "%{wks.location}/LabCore/src"
-IncludeDir["labcore_scene"] = "%{wks.location}/LabCore/plugins/labcore-scene/src"
-IncludeDir["labcore_ssh"] = "%{wks.location}/LabCore/plugins/labcore-ssh/src"
-IncludeDir["labcore_3d"] = "%{wks.location}/LabCore/plugins/labcore-3d/src"
+IncludeDir["imguizmo"] = "%{PhysicaLocation}/dep/ImGuizmo_/ImGuizmo/src"
+IncludeDir["zep"] = "%{PhysicaLocation}/dep/zep/include"
+IncludeDir["editor"] = "%{PhysicaLocation}/Editor/src"
+IncludeDir["stb"] = "%{PhysicaLocation}/dep/stb_"
+IncludeDir["pybind11"] = "%{PhysicaLocation}/dep/pybind11/include"
+IncludeDir["labcore"] = "%{PhysicaLocation}/LabCore/src"
+IncludeDir["labcore_scene"] = "%{PhysicaLocation}/LabCore/plugins/labcore-scene/src"
+IncludeDir["labcore_ssh"] = "%{PhysicaLocation}/LabCore/plugins/labcore-ssh/src"
+IncludeDir["labcore_3d"] = "%{PhysicaLocation}/LabCore/plugins/labcore-3d/src"
 
 --IncludeDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/include"
-IncludeDir["cpython"] = "%{wks.location}/dep/embeddedpython/include"
---IncludeDir["cpythonPCheaders"] = "%{wks.location}/dep/cpython/PC"
+IncludeDir["cpython"] = "%{PhysicaLocation}/dep/embeddedpython/include"
+--IncludeDir["cpythonPCheaders"] = "%{PhysicaLocation}/dep/cpython/PC"
 
 --openssl and libssh for remote red pitaya access
-IncludeDir["openssl"] = "%{wks.location}/dep/openssl/include"
-IncludeDir["libssh"] = "%{wks.location}/dep/libssh/include"
-IncludeDir["zlib"] = "%{wks.location}/dep/zlib/include"
+IncludeDir["openssl"] = "%{PhysicaLocation}/dep/openssl/include"
+IncludeDir["libssh"] = "%{PhysicaLocation}/dep/libssh/include"
+IncludeDir["zlib"] = "%{PhysicaLocation}/dep/zlib/include"
 
 
 LibraryDir = {}
 
 LibraryDir["vulkanSDK"] = "%{VULKAN_SDK}/Lib"
-LibraryDir["openssl"] = "%{wks.location}/dep/openssl/lib/VC/x64"
-LibraryDir["libssh"] = "%{wks.location}/dep/libssh/lib"
-LibraryDir["zlib"] = "%{wks.location}/dep/zlib/lib"
+LibraryDir["openssl"] = "%{PhysicaLocation}/dep/openssl/lib/VC/x64"
+LibraryDir["libssh"] = "%{PhysicaLocation}/dep/libssh/lib"
+LibraryDir["zlib"] = "%{PhysicaLocation}/dep/zlib/lib"
 
-LibraryDir["cpython"] = "%{wks.location}/dep/embeddedpython/libs"
+LibraryDir["cpython"] = "%{PhysicaLocation}/dep/embeddedpython/libs"
 --LibraryDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/libs"
 
 Library = {}

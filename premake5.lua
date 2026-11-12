@@ -1,4 +1,5 @@
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+PhysicaLocation = "%{wks.location}"
 
 include "dep/Dependencies.lua"
 

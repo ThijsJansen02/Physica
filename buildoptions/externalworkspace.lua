@@ -2,7 +2,9 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 include "../dep/Dependencies.lua"
 
-group "core"
+
+
+group "LabCore/core"
     include "../Base"
     include "../Platform"
     include "../Sandbox"
@@ -10,19 +12,19 @@ group "core"
     include "../LabCore"
 group ""
 
-group "labcore-plugins"
+group "LabCore/labcore-plugins"
     include "../LabCore/plugins/labcore-3d"
     include "../LabCore/plugins/labcore-plt"
     include "../LabCore/plugins/labcore-scene"
     include "../LabCore/plugins/labcore-ssh"
 group ""
 
-group "projects"
+group "LabCore/projects"
     include "../projects/RP-Gui"
     include "../projects/RpfilterStudio"
 group ""
 
-group "dependencies"
+group "LabCore/dependencies"
     include "../dep/imgui"
     --include "dep/libssh"
     --include "dep/stb"
