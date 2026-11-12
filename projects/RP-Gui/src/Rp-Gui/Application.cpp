@@ -785,9 +785,6 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		auto copy = Engine::DynamicArray<glm::vec2>::create(plotdata.phasedata.getArray());
 
 		for (auto& item : copy) {
-			for (const auto& f : RpGui::context->activetransferfunctions[0].filters) {
-				item.y = item.y * filterMagnitude(item.x, f.getBiquadCoefficients());
-			}
 
 			//write item in db
 			item.y = glm::degrees(item.y);
@@ -798,7 +795,7 @@ PH_DLL_EXPORT PH_APPLICATION_UPDATE(applicationUpdate) {
 		Engine::DynamicArray<glm::vec2>::destroy(&copy);
 
 		if (plotdata.showfiltered) {
-			copy = Engine::DynamicArray<glm::vec2>::create(plotdata.data.getArray());
+			copy = Engine::DynamicArray<glm::vec2>::create(plotdata.phasedata.getArray());
 
 			for (auto& item : copy) {
 				for (const auto& f : RpGui::context->activetransferfunctions[0].filters) {
