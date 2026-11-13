@@ -9,7 +9,7 @@ asset:
   type: 0
   binpath: assets/pipelines/shaders/bin/PBRmaterial.phshaderbin
   srcpath: assets/pipelines/shaders/PBRmaterial.phshadersrc
-  userbuffer: !!binary "AAAAQAAAAEABAAAA"
+  userbuffer: !!binary "AAAAQAAAAEAAAIA/AQAAAA=="
   resources:
     - name: MaterialProperties
       binding: 0
@@ -25,7 +25,7 @@ asset:
       type: 1
       set: 1
       texture: 3808292401
-    - name: speculartexture
+    - name: roughtnesstexture
       binding: 3
       type: 1
       set: 1
