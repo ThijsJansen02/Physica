@@ -38,9 +38,9 @@ asset:
         Transform:
           rotXYZ: [0, -0, 0]
           scale: [1, 1, 1]
-          translation: [-3.440455, 6.492333, 1.4011955]
+          translation: [-0.35585064, 6.492333, 4.224489]
         Point Light:
-          postion: [-3.440455, 6.492333, 1.4011955]
+          postion: [-0.35585064, 6.492333, 4.224489]
           intensity: 300
           color: [1, 1, 1]
     - components:
