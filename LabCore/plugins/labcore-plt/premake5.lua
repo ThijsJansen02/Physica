@@ -50,7 +50,6 @@ project "LabCore-plt"
 	links
 	{
 		"yaml-cpp",
-		"assimp",
 		"LabCore",
 		"%{Library.platform}"
 	}

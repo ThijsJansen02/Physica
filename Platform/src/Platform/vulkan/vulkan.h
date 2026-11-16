@@ -139,6 +139,7 @@ namespace PH::Vulkan {
 
 	struct Framebuffer {
 		VkFramebuffer buffer;
+		Platform::GFX::RenderpassDescription renderpass;
 	};
 
 	struct Buffer {

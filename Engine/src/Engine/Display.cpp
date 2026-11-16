@@ -65,14 +65,13 @@ namespace PH::Engine {
 		texturecreate.width = width;
 		texturecreate.height = height;
 		texturecreate.data = nullptr;
-		texturecreate.usage = Platform::GFX::IMAGE_USAGE_SAMPLED_BIT | Platform::GFX::IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		texturecreate.usage = Platform::GFX::IMAGE_USAGE_SAMPLED_BIT | Platform::GFX::IMAGE_USAGE_COLOR_ATTACHMENT_BIT | Platform::GFX::IMAGE_USAGE_TRANSFER_DST_BIT;
 
 		PH::Platform::GFX::Texture attachments[1];
 		PH::Platform::GFX::TextureCreateInfo createinfos[] = { texturecreate };
 		Platform::GFX::createTextures(createinfos, attachments, 1);
 
 		display.colorattachment = attachments[0];
-		display.depthattachment = PH_GFX_NULL;
 
 		Platform::GFX::FramebufferCreateInfo fbcreate;
 		fbcreate.attachments = { attachments, ARRAY_LENGTH(attachments)};

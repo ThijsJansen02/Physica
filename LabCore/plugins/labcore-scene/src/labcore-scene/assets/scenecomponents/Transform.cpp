@@ -50,6 +50,7 @@ namespace PH::LabCore {
 	bool32 addTransform(entt::entity entity, Scene* scene) {
 		Transform r{};
 		r.transform = glm::mat4(1.0f);
+		r.scale = glm::vec3(1.0f);
 		scene->registry.emplace<Transform>(entity, r);
 		return true;
 	}

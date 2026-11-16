@@ -107,6 +107,95 @@ namespace PH::Vulkan {
 		endSingleTimeCommands(context, commandBuffer);
 	}
 
+	bool32 blitImageToImage(VulkanAppContext* context, const Platform::GFX::ImageToImageBlitInfo& info) {
+		
+		//blit image supposes now that src image is already in transfersrc layout and that dst image is in layout shader read only. This has to be changed in the future
+		VkImageMemoryBarrier barrier{};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+
+		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+		barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+		barrier.image = context->textureimages[info.dst].image;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		vkCmdPipelineBarrier(
+			context->commandbuffers[context->frameindex],
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
+		
+		VkImageBlit blit{};
+		blit.srcSubresource = {
+			VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1
+		};
+		blit.srcOffsets[0] = { (int)info.srcoffset.x, (int)info.srcoffset.y, 0 };
+		blit.srcOffsets[1] = { (int)info.srcextent.width + info.srcoffset.x, (int)info.srcextent.height + info.srcoffset.y, 1 };
+
+		blit.dstOffsets[0] = { (int)info.dstoffset.x, (int)info.dstoffset.y, 0 };
+		blit.dstOffsets[1] = { (int)info.dstextent.width + info.dstoffset.x, (int)info.dstextent.height + info.dstoffset.y, 1 };
+
+		blit.dstSubresource = {
+			VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1
+		};
+
+		vkCmdBlitImage(
+			context->commandbuffers[context->frameindex],
+			context->textureimages[info.src].image,
+			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			context->textureimages[info.dst].image,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			1,
+			&blit,
+			VK_FILTER_NEAREST //might want to make the filtering a parameter
+		);
+		
+		barrier = {};
+		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+		barrier.image = context->textureimages[info.dst].image;
+		barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrier.subresourceRange.baseMipLevel = 0;
+		barrier.subresourceRange.levelCount = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.subresourceRange.layerCount = 1;
+
+		vkCmdPipelineBarrier(
+			context->commandbuffers[context->frameindex],
+			VK_PIPELINE_STAGE_TRANSFER_BIT,
+			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			0,
+			0, nullptr,
+			0, nullptr,
+			1, &barrier
+		);
+
+		return true;
+	}
+
 	/// <summary>
 	/// creates the imageview for the standard textureimage
 	/// </summary>

@@ -51,6 +51,24 @@ namespace PH::LabCore {
 	}
 
 	void initRenderer() {
+
+		Engine::BatchRenderer2D::geometryrenderpass = Engine::BatchRenderer2D::createGeometryRenderpass();
+
+		Engine::BatchRenderer2D::CreateInfo ci{};
+		ci.instancebuffersize = 1024 * 1024;
+		ci.internalwidth = 2560;
+		ci.internalheight = 1080;
+
+		ci.quadshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/QuadShader.phshadersrc", "res/shaders/bin/QuadShader.phshaderbin", {nullptr, 0}, true, true);
+		ci.circleshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/CircleShader.phshadersrc", "res/shaders/bin/CircleShader.phshaderbin", { nullptr, 0 }, true, true);
+		ci.lineshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/LineShader.phshadersrc", "res/shaders/bin/LineShader.phshaderbin", { nullptr, 0 }, true, true);
+
+		ci.internalfb = true;
+		appcontext->batchrenderer = Engine::BatchRenderer2D::create(ci);
+		
+
+
+		//deprecated renderer
 		Engine::Renderer2D::InitInfo rendererinit{};
 		rendererinit.currentpipeline = appcontext->defaultgraphicspipeline2D;
 		rendererinit.instancebuffersize = RENDERER_2D_INSTANCE_BUFFER_SIZE;
@@ -87,14 +105,12 @@ namespace PH::LabCore {
 		}
 	}
 
-	//inits the plugins that are part of the project, in the future the project file should determine the installed plugins
-	void initPlugins() {
+	void loadPlugin(const char* dllname, const char* plugindir) {
 
 		plugininitfn plugininit_ = nullptr;
 		HMODULE applicationlib = NULL;
 
-		//load labcore-ssh plugin
-		applicationlib = LoadLibraryA("LabCore-ssh.dll");
+		applicationlib = LoadLibraryA(dllname);
 		if (applicationlib == nullptr) {
 			Engine::ERR << "failed to load plugin\n";
 			PH_DEBUG_BREAK();
@@ -106,73 +122,20 @@ namespace PH::LabCore {
 			}
 			else {
 				Engine::String pluginhome = Engine::String::create(appcontext->labcorehome.getC_Str());
-				pluginhome.append("/plugins/labcore-ssh/");
+				pluginhome.append(plugindir);
 				plugininit_(pluginhome.getC_Str());
 				Engine::String::destroy(&pluginhome);
 			}
 		}
+	}
 
-		//load labcore-scene plugin
-		applicationlib = LoadLibraryA("LabCore-scene.dll");
-		if (applicationlib == nullptr) {
-			Engine::ERR << "failed to load plugin\n";
-			PH_DEBUG_BREAK();
-		}
-		else {
-			plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
-			if (!plugininit_) {
-				Engine::ERR << "failed to load plugin init\n";
-			}
-			else {
-				Engine::String pluginhome = Engine::String::create(appcontext->labcorehome.getC_Str());
-				pluginhome.append("/plugins/labcore-scene/");
-				plugininit_(pluginhome.getC_Str());
-				Engine::String::destroy(&pluginhome);
-			}
-		}
+	//inits the plugins that are part of the project, in the future the project file should determine the installed plugins
+	void initPlugins() {
 
-		//load RPLab plugin
-		applicationlib = LoadLibraryA("RPLab.dll");
-		if (applicationlib == nullptr) {
-			Engine::ERR << "failed to load plugin\n";
-			PH_DEBUG_BREAK();
-		}
-		else {
-			plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
-			if (!plugininit_) {
-				Engine::ERR << "failed to load plugin init\n";
-			}
-			else {
-				Engine::String pluginhome = Engine::String::create(appcontext->labcorehome.getC_Str());
-				pluginhome.append("");
-				plugininit_(pluginhome.getC_Str());
-				Engine::String::destroy(&pluginhome);
-			}
-		}
-
-		//no need for labcore 3d in rpfilterstudio
-		/*
-		//load labcore-3D plugin
-		applicationlib = LoadLibraryA("LabCore-3D.dll");
-		if (applicationlib == nullptr) {
-			Engine::ERR << "failed to load plugin init\n";
-			PH_DEBUG_BREAK();
-		}
-		else {
-			plugininit_ = (plugininitfn)GetProcAddress(applicationlib, "init");
-			if (!plugininit_) {
-				Engine::ERR << "failed to load application update\n";
-			}
-			else {
-				Engine::String pluginhome = Engine::String::create(appcontext->labcorehome.getC_Str());
-				pluginhome.append("/plugins/labcore-3d/");
-				plugininit_(pluginhome.getC_Str());
-				Engine::String::destroy(&pluginhome);
-			}
-		}
-		*/
-
-		//set the working directoy back to labcore home
+		loadPlugin("LabCore-scene.dll", "plugins/labcore-scene/");
+		loadPlugin("LabCore-plt", "plugins/labcore-plt/");
+		loadPlugin("LabCore-ssh", "plugins/labcore-ssh/");
+		loadPlugin("RPLab.dll", "");
 		Platform::setCurrentDirectory(appcontext->labcorehome.getSubString());
 	}
 
@@ -460,6 +423,7 @@ namespace PH::LabCore {
 
 		//rendering should be done within begin and end frame with this renderer
 		Engine::Renderer2D::startFrame(appcontext->renderer2D.getContext());
+		appcontext->batchrenderer.beginFrame();
 
 		drawMenuBar();
 
@@ -470,13 +434,14 @@ namespace PH::LabCore {
 		}
 
 		//end the frame
+		appcontext->batchrenderer.endFrame();
 		Engine::Renderer2D::endFrame(appcontext->renderer2D.getContext());
 	}
 
 	void loadShaders() {
 
-		auto defaultquadvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_quadshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
-		auto defaultquadfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_quadshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
+		auto defaultquadvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/depc/default_quadshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
+		auto defaultquadfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/depc/default_quadshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
 
 		appcontext->defaultgraphicspipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(Engine::Display::defaultrenderpassdescription,
 			defaultquadvert.getArray(),
@@ -487,8 +452,8 @@ namespace PH::LabCore {
 		Engine::DynamicArray<uint8>::destroy(&defaultquadvert);
 		Engine::DynamicArray<uint8>::destroy(&defaultquadfrag);
 
-		auto defaultfontvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_fontshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
-		auto defaultfontfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/default_fontshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
+		auto defaultfontvert = Engine::Renderer2D::checkCompileBinaries("res/shaders/depc/default_fontshader.vert", Platform::GFX::SHADER_STAGE_VERTEX_BIT);
+		auto defaultfontfrag = Engine::Renderer2D::checkCompileBinaries("res/shaders/depc/default_fontshader.frag", Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
 
 		appcontext->defaultfontpipeline2D = Engine::Renderer2D::createGraphicsPipelineFromBinaries(Engine::Display::defaultrenderpassdescription,
 			defaultfontvert.getArray(),

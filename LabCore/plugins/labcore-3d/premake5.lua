@@ -55,7 +55,6 @@ project "LabCore-3D"
 	links
 	{
 		"yaml-cpp",
-		"assimp",
 		"LabCore",
 		"LabCore-scene",
 		"%{Library.platform}"

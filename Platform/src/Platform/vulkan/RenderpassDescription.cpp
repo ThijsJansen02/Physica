@@ -135,16 +135,24 @@ namespace PH::Vulkan {
 
 		VkCommandBuffer buffer = context->commandbuffers[context->frameindex];
 		VkFramebuffer vkframebuffer{};
+		VkRenderPass vkrenderpass{};
 
 		//if the framebuffer id == 0, then well use the swapchain framebuffers
-		if (begininfo->framebuffer == 0) {
+		if (begininfo->framebuffer == PH_GFX_NULL) {
 			vkframebuffer = context->swapchainframebuffers[context->imageindex];
+			vkrenderpass = context->renderpasses[context->finalrenderpass].renderpass;
 		}
 		else {
-			vkframebuffer = context->framebuffers[begininfo->framebuffer].buffer;
-		}
+			Vulkan::Framebuffer fb = context->framebuffers[begininfo->framebuffer];
+			vkframebuffer = fb.buffer;
 
-		VkRenderPass vkrenderpass = context->renderpasses[begininfo->description].renderpass;
+			if (begininfo->description == PH_GFX_NULL) {
+				vkrenderpass = context->renderpasses[fb.renderpass].renderpass;
+			}
+			else {
+				vkrenderpass = context->renderpasses[begininfo->description].renderpass;
+			}
+		}
 
 		VkRenderPassBeginInfo vkbegininfo{};
 		vkbegininfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -208,12 +216,15 @@ namespace PH::Vulkan {
 			framebuffercreate.layers = 1;
 
 			Framebuffer result;
+			result.renderpass = createinfo.renderpassdescription;
+
 			if (vkCreateFramebuffer(context->device, &framebuffercreate, nullptr, &result.buffer) != VK_SUCCESS) {
 				WARN << "failed to create frame buffer";
 				PH_DEBUG_BREAK();
 				framebuffers[i] = 0;
 				return false;
 			}
+
 			framebuffers[i] = context->framebuffers.add(result);
 		}
 

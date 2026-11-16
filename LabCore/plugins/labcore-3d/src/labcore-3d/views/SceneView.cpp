@@ -380,7 +380,7 @@ namespace PH::LabCore3D {
 		d.deserialize_ = (LabCore::ViewDeserializeFunction)deserializeSceneView;
 		d.serialize_ = (LabCore::ViewSerializeFunction)serializeSceneView;
 
-		d.name = Engine::String::create("Scene View");
+		d.name = Engine::String::create("Scene View 3D");
 		d.instancedatasize = sizeof(SceneView);
 
 		return d;

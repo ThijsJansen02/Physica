@@ -4,6 +4,7 @@
 #include <Engine/cppAPI/Rendering.hpp>
 #include <Engine/Events.h>
 #include <Engine/AssetLibrary.h>
+#include <Engine/BatchRenderer2D.h>
 #include "View.h"
 
 namespace PH::LabCore {
@@ -17,8 +18,11 @@ static const char* projectextension = ".lcproj";
 		PH::Platform::GFX::GraphicsPipeline defaultgraphicspipeline2D;
 		PH::Platform::GFX::GraphicsPipeline defaultfontpipeline2D;
 
-
+		//old deprecated rederer2D;
 		PH::Engine::Renderer2D::Wrapper renderer2D;
+
+		//new fully featured batchrenderer
+		PH::Engine::BatchRenderer2D batchrenderer;
 
 		//the available views in the application, these are registered by the application and can be used to create view instances
 		PH::Engine::ArrayList<ViewDescription> views;

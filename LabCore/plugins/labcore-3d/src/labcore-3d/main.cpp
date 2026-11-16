@@ -66,12 +66,6 @@ extern "C" {
 		PH::Engine::UUID lightingpipeid = 2983062809953302303;
 		PH::Engine::UUID sphereid = 328866994555156235;
 
-		//default deffered material
-		assetlib->deserializeAddAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultmaterialpipe.phpipe");
-
-		//default lightingpipe
-		assetlib->deserializeAddAsset<PH::LabCore3D::GraphicsPipeline>("res/pipelines/defaultlightingpipe.phpipe");
-
 		//meshes
 		PH::LabCore3D::Mesh* cube = PH::Engine::Allocator::push(PH::LabCore3D::createCubeMesh());
 		assetlib->addPersistentAsset(cube, cubeid, "cube mesh");

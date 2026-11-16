@@ -129,6 +129,8 @@ namespace PH::LabCore3D {
 		Platform::GFX::Framebuffer lightpassbuffer;
 		Platform::GFX::Texture lightpassattachment;
 
+		
+
 		Engine::DynamicGPUBuffer<MeshInstance> instancebuffer;
 		Engine::DynamicGPUBuffer<DefferedRenderer::SceneVariables> scenevariables;
 

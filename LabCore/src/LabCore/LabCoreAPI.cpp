@@ -21,7 +21,11 @@ namespace PH::LabCore {
 		return mp - region.bottomleft;
 	}
 
-	Engine::Renderer2D::Wrapper* getRenderer2D() {
+	Engine::BatchRenderer2D* getRenderer2D() {
+		return &appcontext->batchrenderer;
+	}
+
+	Engine::Renderer2D::Wrapper* getRenderer2D_depc() {
 		return &appcontext->renderer2D;
 	}
 

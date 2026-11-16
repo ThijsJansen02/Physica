@@ -106,7 +106,7 @@ namespace PH::Engine {
 		//setup the main display
 		Display display;
 		display.colorattachment = PH_GFX_NULL;
-		display.depthattachment = PH_GFX_NULL;
+		//display.depthattachment = PH_GFX_NULL;
 		display.viewport = { 0.0f, 0.0f };
 		display.framebuffersize = { 0, 0 };
 		display.renderpass = 0;

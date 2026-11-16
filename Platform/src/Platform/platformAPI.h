@@ -253,7 +253,7 @@ namespace PH::Platform {
 		struct FramebufferCreateInfo {
 
 			PH::Base::Array<Texture> attachments;
-			
+
 			uint32 height;
 			uint32 width;
 
@@ -277,6 +277,11 @@ namespace PH::Platform {
 			const char* chachedir;
 		};
 
+		struct PushConstantRange {
+			ShaderStageFlags shaderstages;
+			sizeptr offset;
+			sizeptr size;
+		};
 
 
 		struct GraphicsPipelineCreateinfo {
@@ -291,6 +296,8 @@ namespace PH::Platform {
 
 			CullModeFlags cullmode;
 			bool32 depthtest;
+
+			PH::Base::Array<PushConstantRange> pushconstantranges;
 
 			PH::Base::Array<VertexInputBindingDescription> vertexbindingdescriptions;
 			PH::Base::Array<VertexInputAttributeDescription> vertexattributedescriptions;
@@ -622,8 +629,23 @@ namespace PH::Platform {
 
 		PH_PLATFORM_API bool32 copyImageToBufferAsynchronous(const ImageToBufferCopyInfo& info);
 
+		struct ImageToImageBlitInfo {
+			GFX::Offset srcoffset;
+			GFX::Extent srcextent;
+
+			GFX::Offset dstoffset;
+			GFX::Extent dstextent;
+
+			GFX::Texture src;
+			GFX::Texture dst;
+		};
+
+		PH_PLATFORM_API bool32 blitImageToImage(const ImageToImageBlitInfo& info);
+
 		PH_PLATFORM_API bool32 destroyRenderpassDescriptions(GFX::RenderpassDescription* descriptions, uint32 count);
 		PH_PLATFORM_API bool32 destroyFrameBuffers(GFX::Framebuffer* framebuffers, uint32 count);
+
+		PH_PLATFORM_API bool32 pushConstants(Platform::GFX::GraphicsPipeline pipe, sizeptr offset, sizeptr size, void* constant, Platform::GFX::ShaderStageFlags shaderstages);
 		
 		extern PH_PLATFORM_API Intern::gfx_CreateFramebuffersFN* createFramebuffers;
 			   

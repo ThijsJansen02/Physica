@@ -1,0 +1,73 @@
+>>>VERTEX_SHADER
+
+#version 450
+
+//vertexbuffer attributes
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+
+//instancebuffer attributes
+layout(location = 2) in vec4 inRotScaleMat;
+layout(location = 3) in vec3 instanceTranslation;
+layout(location = 4) in vec4 instanceColor;
+layout(location = 5) in uint inTextureIndex;
+
+layout(location = 0) out VS_OUT {
+    vec2 UV;
+    vec4 fragcolor;
+
+    flat uint textureid;
+    flat uint objectid;
+} vs_out;
+
+layout( push_constant ) uniform Camera
+{
+	mat4 view;
+    mat4 proj;
+} camera;
+
+
+void main() {
+
+	mat2 rotscalematrix = mat2(inRotScaleMat);
+    vec4 vertpos_screenspace = camera.proj * camera.view * (vec4(rotscalematrix * inPosition.xy, inPosition.z, 1.0) + vec4(instanceTranslation, 0.0));
+    gl_Position = vertpos_screenspace;
+
+    vs_out.fragcolor = instanceColor;
+	vs_out.UV = inTexCoord;
+	vs_out.textureid = inTextureIndex;
+}
+
+>>>FRAGMENT_SHADER
+
+#version 450
+
+layout(location = 0) in VS_OUT {
+    vec2 UV;
+    vec4 fragcolor;
+
+    flat uint textureid;
+    flat uint objectid;
+} fs_in; 
+
+layout(location = 0) out vec4 outColor;
+
+//layout(set = 0, binding = 0) uniform sampler2D texSampler[32];
+
+void main() {	
+
+    // 1. Normalize UVs (centered at 0,0, aspect-ratio corrected)
+     vec2 uv = fs_in.UV * 2.0 - 1.0;
+
+    vec2 center = vec2(0.0, 0.0);
+
+    float radius = 0.99f;
+    float dist = length(uv - center) - radius;
+
+    float aa = fwidth(dist);
+    float mask = 1.0 - smoothstep(-aa, aa, dist);
+
+    outColor = vec4(fs_in.fragcolor.xyz, mask);
+}
+
+>>>END_OF_FILE

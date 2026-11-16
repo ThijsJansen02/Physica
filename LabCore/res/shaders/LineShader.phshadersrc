@@ -1,0 +1,99 @@
+>>>VERTEX_SHADER
+
+#version 450
+
+//vertexbuffer attributes
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+
+//instancebuffer attributes
+layout(location = 2) in vec4 inRotScaleMat;
+layout(location = 3) in vec3 instanceTranslation;
+layout(location = 4) in vec4 instanceColor;
+layout(location = 5) in uint inTextureIndex;
+
+layout(location = 0) out VS_OUT {
+    vec2 UV;
+    vec4 fragcolor;
+
+    float thickness;
+    float distance;
+
+    flat uint textureid;
+    flat uint objectid;
+} vs_out;
+
+layout( push_constant ) uniform Camera
+{
+	mat4 view;
+    mat4 proj;
+} camera;
+
+
+void main() {
+
+	mat2 rotscalematrix = mat2(inRotScaleMat);
+    vec4 vertpos_screenspace = camera.proj * camera.view * (vec4(rotscalematrix * inPosition.xy, inPosition.z, 1.0) + vec4(instanceTranslation, 0.0));
+    gl_Position = vertpos_screenspace;
+
+    float thickness = length(rotscalematrix[1].xy);
+    float distance = length(rotscalematrix[0].xy) - (2.0 * thickness);
+    
+    vs_out.UV = inTexCoord;
+    vs_out.fragcolor = instanceColor;
+    vs_out.thickness = thickness * 0.5;
+    vs_out.distance = distance;
+}
+
+>>>FRAGMENT_SHADER
+
+#version 450
+
+layout(location = 0) in VS_OUT {
+    vec2 UV;
+    vec4 fragcolor;
+
+    float thickness;
+    float distance;
+
+    flat uint textureid;
+    flat uint objectid;
+} fs_in; 
+
+layout(location = 0) out vec4 outColor;
+
+//layout(set = 0, binding = 0) uniform sampler2D texSampler[32];
+
+float lineSDF(vec2 p, vec2 a, vec2 b, float thickness)
+{
+    vec2 pa = p - a;
+    vec2 ba = b - a;
+
+    float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0);
+
+    return length(pa - ba * h) - thickness;
+}
+
+
+
+void main() {	
+    float distance = fs_in.distance;
+    float thickness = fs_in.thickness;
+
+    vec2 uv = fs_in.UV * 2.0 - 1.0;
+    vec2 corner = vec2(distance / 2.0 + thickness, thickness);
+
+    vec2 pos = uv * corner;
+
+    vec2 p1 = vec2(-distance / 2.0, 0.0);
+    vec2 p2 = vec2(distance / 2.0, 0.0);
+
+    float dist = lineSDF(pos, p1, p2, thickness);
+
+    float aa = fwidth(dist);
+    float alpha = smoothstep(aa, -aa, dist);
+
+    outColor = vec4(fs_in.fragcolor.xyz, alpha);
+}
+
+>>>END_OF_FILE

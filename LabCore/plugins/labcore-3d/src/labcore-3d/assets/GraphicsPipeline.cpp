@@ -10,8 +10,9 @@
 #include <Engine/AssetLibrary.h>
 #include "Texture.h"
 
-#include <shaderc/shaderc.hpp>
 #include <spirv_cross/spirv_cross.hpp>
+
+#include <Engine/shaders.h>
 
 namespace PH::LabCore3D {
 
@@ -68,125 +69,9 @@ namespace PH::LabCore3D {
 		return pipeline;
 	}
 
-	struct ShaderBinariesHeader {
-		sizeptr vertbegin;
-		sizeptr vertend;
-		sizeptr fragbegin;
-		sizeptr fragend;
-	};
+	
 
-	struct Binaries {
-		Engine::DynamicArray<uint8> vertsrc;
-		Engine::DynamicArray<uint8> fragsrc;
-	};
-
-	bool32 writeBinariesToDisk(const Binaries& b, const char* binpath) {
-
-		Base::Stream<Engine::Allocator> s = Base::Stream<Engine::Allocator>::create(b.fragsrc.getCapacity() + b.vertsrc.getCapacity() + sizeof(ShaderBinariesHeader));
-
-		ShaderBinariesHeader h;
-		h.vertbegin = sizeof(ShaderBinariesHeader);
-		h.vertend = h.vertbegin + b.vertsrc.getCapacity();
-		h.fragbegin = h.vertend;
-		h.fragend = h.fragbegin + b.fragsrc.getCapacity();
-
-		s << h << b.vertsrc.getArray() << b.fragsrc.getArray();
-
-		FileBuffer f;
-		f.data = s.raw();
-		f.size = s.getSize();
-
-		bool32 r = Platform::writeFile(f, binpath);
-		Base::Stream<Engine::Allocator>::destroy(&s);
-		return r;
-	}
-
-
-
-	//reloads the graphics pipeline from glsl source
-	bool32 loadBinariesFromGLSL(const char* path, Binaries* b) {
-
-		PH::Platform::FileBuffer f;
-
-		if (!PH::Platform::loadFile(&f, path)) {
-			Engine::WARN << "failed to load source for graphics pipeline: " << path;
-			return false;
-		}
-
-		PH::Base::SubString s((const char*)f.data);
-
-
-		//should add error check
-		s = s.getFrom(">>>VERTEX_SHADER");
-		auto vertsource = s.getTill(">>>FRAGMENT_SHADER");
-		auto vertsourcestr = Engine::String::create(vertsource);
-
-		s = s.getFrom(">>>FRAGMENT_SHADER");
-		auto fragsource = s.getTill(">>>END_OF_FILE");
-		auto fragsourcestr = Engine::String::create(fragsource);
-
-		//Engine::Renderer2D::checkCompileBinaries();
-
-		auto vertbin = Engine::Renderer2D::compileGLSLSourceToVulkanBinary(vertsourcestr.getC_Str(), PH::Platform::GFX::SHADER_STAGE_VERTEX_BIT);
-		auto fragbin = Engine::Renderer2D::compileGLSLSourceToVulkanBinary(fragsourcestr.getC_Str(), PH::Platform::GFX::SHADER_STAGE_FRAGMENT_BIT);
-
-		if (vertbin.empty() || fragbin.empty()) {
-			return false;
-		}
-
-		b->vertsrc = vertbin;
-		b->fragsrc = fragbin;
-
-		return true;
-	}
-
-
-	//loads binarie files from disk
-	bool32 loadBinariesFromDisk(const char* path, Binaries* binaries) {
-
-		Platform::FileBuffer f;
-		if (!Platform::loadFile(&f, path)) {
-			return false;
-		}
-
-		uint8* dataptr = (uint8*)f.data;
-
-		ShaderBinariesHeader* h = (ShaderBinariesHeader*)dataptr;
-
-		Binaries b;
-		if (h->vertbegin != h->vertend) {
-			b.vertsrc = Engine::DynamicArray<uint8>::create(Base::Array<uint8>{ dataptr + h->vertbegin, h->vertend - h->vertbegin });
-		}
-
-		if (h->fragbegin != h->fragend) {
-			b.fragsrc = Engine::DynamicArray<uint8>::create(Base::Array<uint8>{ dataptr + h->fragbegin, h->fragend - h->fragbegin });
-		}
-
-		//unload file
-		Platform::unloadFile(&f);
-		*binaries = b;
-
-		return true;
-	}
-
-	//loads the graphics pipeline from binaries if they exist, and reloads them from source if not
-	bool32 loadBinaries(Binaries* b, const char* srcpath, const char* binpath) {
-
-		//load binaries from disk if existent
-		if (!loadBinariesFromDisk(binpath, b)) {
-			if (!loadBinariesFromGLSL(srcpath, b)) {
-				Engine::WARN << "failed to load graphics pipeline!\n";
-				return false;
-			}
-
-			if (binpath) {
-				writeBinariesToDisk(*b, binpath);
-			}
-		}
-		return true;
-	}
-
-	GFX::GraphicsPipeline createDefferedGeometryPipeline(const Binaries& b, GFX::DescriptorSetLayout userlayout) {
+	GFX::GraphicsPipeline createDefferedGeometryPipeline(const Engine::Binaries& b, GFX::DescriptorSetLayout userlayout) {
 
 		GFX::DescriptorSetLayout layouts[2] = { DefferedRenderer::scenedescriptorlayout, userlayout };
 		GFX::GraphicsPipeline p = create3DGraphicsPipelineFromBinaries(DefferedRenderer::geometryrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), { layouts, 2 }, false);
@@ -200,7 +85,7 @@ namespace PH::LabCore3D {
 	}
 
 	//lighting pipeline should be suitable for the 2d renderer
-	GFX::GraphicsPipeline createDefferedLightingPipeline(const Binaries& b, GFX::DescriptorSetLayout userlayout) {
+	GFX::GraphicsPipeline createDefferedLightingPipeline(const Engine::Binaries& b, GFX::DescriptorSetLayout userlayout) {
 
 		//the lighting pipe is made out of a renderer2d graphicspipe with a custom renderpass
 
@@ -217,7 +102,7 @@ namespace PH::LabCore3D {
 		//GFX::GraphicsPipeline p = create3DGraphicsPipelineFromBinaries(DefferedRenderer::lightingrenderpass, b.vertsrc.getArray(), b.fragsrc.getArray(), );
 	}
 
-	GFX::GraphicsPipeline createToneMappingPipeline(const Binaries& b, GFX::DescriptorSetLayout userlayout) {
+	GFX::GraphicsPipeline createToneMappingPipeline(const Engine::Binaries& b, GFX::DescriptorSetLayout userlayout) {
 		GFX::DescriptorSetLayout layouts[1] = { userlayout };
 		GFX::GraphicsPipeline p = Engine::Renderer2D::createGraphicsPipelineFromBinaries(Engine::Display::defaultrenderpassdescription, b.vertsrc.getArray(), b.fragsrc.getArray(), { layouts, 1 });
 		if (p == PH_GFX_NULL) {
@@ -227,7 +112,7 @@ namespace PH::LabCore3D {
 	}
 
 	//builds the graphics pipeline based on the type and the binaries
-	GFX::GraphicsPipeline buildGraphicsPipeline(PipelineType type, const Binaries& binaries, GFX::DescriptorSetLayout userlayout) {
+	GFX::GraphicsPipeline buildGraphicsPipeline(PipelineType type, const Engine::Binaries& binaries, GFX::DescriptorSetLayout userlayout) {
 		switch (type) {
 		case LC_PIPELINE_TYPE_3D_DEFFERED_MATERIAL:
 			return createDefferedGeometryPipeline(binaries, userlayout);
@@ -241,7 +126,7 @@ namespace PH::LabCore3D {
 		return PH_GFX_NULL;
 	}
 
-	void releaseBinaries(Binaries* b) {
+	void releaseBinaries(Engine::Binaries* b) {
 		if (!b->fragsrc.empty()) {
 			Engine::DynamicArray<uint8>::destroy(&b->fragsrc);
 		}
@@ -251,7 +136,7 @@ namespace PH::LabCore3D {
 		}
 	}
 
-	Engine::ArrayList<ShaderResource> reflectOnBinaries(const Binaries& b, uint32 targetset, const char* debugsrcpath = "") {
+	Engine::ArrayList<ShaderResource> reflectOnBinaries(const Engine::Binaries& b, uint32 targetset, const char* debugsrcpath = "") {
 
 
 		Engine::ArrayList<ShaderResource> result = Engine::ArrayList<ShaderResource>::create(1);
@@ -541,7 +426,7 @@ namespace PH::LabCore3D {
 		return true;
 	}
 
-	bool32 reloadGraphicsPipelineFromBinaries(GraphicsPipeline* pipe, const Binaries& b, uint8* userbufferdata = nullptr) {
+	bool32 reloadGraphicsPipelineFromBinaries(GraphicsPipeline* pipe, const Engine::Binaries& b, uint8* userbufferdata = nullptr) {
 
 		auto res = reflectOnBinaries(b, 1, pipe->srcpath.getC_Str());
 		GFX::DescriptorSetLayout userlayout = createDescriptorSetLayoutForResources(res.getArray(), 1);
@@ -625,7 +510,7 @@ namespace PH::LabCore3D {
 		pl.type = type;
 		pl.isvalid = false;
 
-		Binaries b;
+		Engine::Binaries b;
 		if (loadBinaries(&b, sourcepath, binpath) < 1) {
 			Engine::WARN << "failed to load binaries for pipeline: " << sourcepath;
 			return pl;
@@ -651,8 +536,8 @@ namespace PH::LabCore3D {
 	}
 
 	bool32 reloadGraphicsPipelineFromGLSL(GraphicsPipeline* pipe) {
-		Binaries b;
-		if (!loadBinariesFromGLSL(pipe->srcpath.getC_Str(), &b)) {
+		Engine::Binaries b;
+		if (!compileBinariesFromGLSL(pipe->srcpath.getC_Str(), &b)) {
 			Engine::WARN << "failed to load binaries\n";
 			return false;
 		}
@@ -662,7 +547,6 @@ namespace PH::LabCore3D {
 		}
 
 		reloadGraphicsPipelineFromBinaries(pipe, b);
-
 		releaseBinaries(&b);
 	}
 

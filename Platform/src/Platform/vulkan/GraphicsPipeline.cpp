@@ -232,7 +232,7 @@ namespace PH::Vulkan {
 
 			for (uint32 i = 0; i < rp.subpasses[targetsubpass].colorattachmentcount; i++) {
 				VkPipelineColorBlendAttachmentState colorblendattachment{};
-				colorblendattachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+				colorblendattachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT; // | VK_COLOR_COMPONENT_A_BIT;
 				colorblendattachment.blendEnable = createinfo.blend ? VK_TRUE : VK_FALSE;
 				colorblendattachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
 				colorblendattachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -256,6 +256,14 @@ namespace PH::Vulkan {
 			colorblending.blendConstants[2] = 0.0f; // Optional
 			colorblending.blendConstants[3] = 0.0f; // Optional
 
+			auto pushconstantranges = Base::ArrayList<VkPushConstantRange, ArenaAllocator>::create(createinfo.pushconstantranges.count);
+			for (const auto& range : createinfo.pushconstantranges) {
+				VkPushConstantRange r{};
+				r.offset = range.offset;
+				r.size = range.size;
+				r.stageFlags = convertShaderStageFlags(range.shaderstages);
+				pushconstantranges.pushBack(r);
+			}
 
 			//convert from platform level ids to an array of vulkan structs
 			auto vkdescriptorsetlayouts = Base::ArrayList<VkDescriptorSetLayout, ArenaAllocator>::create(createinfo.layouts.count);
@@ -270,8 +278,8 @@ namespace PH::Vulkan {
 			pipelinelayoutinfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 			pipelinelayoutinfo.setLayoutCount = vkdescriptorsetlayouts.getCount(); // Optional
 			pipelinelayoutinfo.pSetLayouts = vkdescriptorsetlayouts.raw(); // Optional
-			pipelinelayoutinfo.pushConstantRangeCount = 0; // Optional
-			pipelinelayoutinfo.pPushConstantRanges = nullptr; // Optional
+			pipelinelayoutinfo.pushConstantRangeCount = pushconstantranges.getCount();
+			pipelinelayoutinfo.pPushConstantRanges = pushconstantranges.raw();
 
 			if (vkCreatePipelineLayout(context->device, &pipelinelayoutinfo, nullptr, &pipelinelayout) != VK_SUCCESS) {
 				ERR << "failed to create pipeline layout! count = " << count << "\n";
@@ -345,12 +353,17 @@ namespace PH::Vulkan {
 
 		VkCommandBuffer vkbuffer = context->commandbuffers[context->frameindex];
 		VkPipeline vkpipeline = context->graphicspipelines[pipeline].vkpipeline;
-		vkCmdBindPipeline(vkbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkpipeline);
+			vkCmdBindPipeline(vkbuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkpipeline);
 		return true;
 	}
 
 	PH_GFX_BIND_GRAPHICS_PIPELINE(bindGraphicsPipeline) {
 		return bindGraphicsPipeline(context_s, pipeline);
+	}
+
+	bool32 pushConstant(VulkanAppContext* context, Platform::GFX::GraphicsPipeline pipe, sizeptr offset, sizeptr size, void* constant, Platform::GFX::ShaderStageFlags shaderstages) {
+		vkCmdPushConstants(context->commandbuffers[context->frameindex], context->graphicspipelines[pipe].layout, convertShaderStageFlags(shaderstages), offset, size, constant);
+		return true;
 	}
 
 

@@ -75,14 +75,16 @@ namespace PH::LabCore3D {
 		DefferedRenderer* renderer = &LabCore3D::renderer;
 
 		for (auto ent : view) {
-			
 			auto [pl, tf] = view.get<PointLight, Transform>(ent);
+			
 			pl.light.position = glm::vec3(tf.transform[3]);
-
-			glm::mat4 transform = glm::translate(glm::mat4(1.0f), pl.light.position) * glm::scale(glm::mat4(1.0f), { 0.1f, 0.1f, 0.1f });
-
 			renderer->pushLight(pl.light);
-			renderer->drawMesh(cubemesh, pipe, transform, entt::to_integral(ent));
+			
+			//if there is a cubemesh and a lightbox shader
+			if (cubemesh && pipe) {
+				glm::mat4 transform = glm::translate(glm::mat4(1.0f), pl.light.position) * glm::scale(glm::mat4(1.0f), { 0.1f, 0.1f, 0.1f });
+				renderer->drawMesh(cubemesh, pipe, transform, entt::to_integral(ent));
+			}
 		}
 
 		return true;

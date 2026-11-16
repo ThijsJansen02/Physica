@@ -479,7 +479,7 @@ namespace PH::LabCore3D {
 
 		beginInternalRenderpass(this, lightingrenderpass, lightpassbuffer);
 
-		auto* renderer2d = LabCore::getRenderer2D();
+		auto* renderer2d = LabCore::getRenderer2D_depc();
 		renderer2d->begin();
 
 		renderer2d->pushProjection(glm::mat4(1.0f));
@@ -503,7 +503,7 @@ namespace PH::LabCore3D {
 
 
 	void DefferedRenderer::output(Engine::Display* target, GraphicsPipeline* tonemap, OutputSource source) {
-		auto* renderer2d = LabCore::getRenderer2D();
+		auto* renderer2d = LabCore::getRenderer2D_depc();
 
 		beginInternalRenderpass(this, target->renderpass, target->fb);
 

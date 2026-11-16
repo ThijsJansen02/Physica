@@ -593,8 +593,11 @@ namespace PH::Engine {
 		template<typename Asset>
 		AssetIdentifier* getAssetIdentifierByReference(const char* reference) {
 			auto* pool = getAssetPool<Asset>();
-			AssetIdentifier* asset = *pool->assetreferences.get_last(Base::SubString(reference));
-			return asset;
+			AssetIdentifier** assetptr = pool->assetreferences.get_last(Base::SubString(reference));
+			if (assetptr) {
+				return *assetptr;
+			}
+			return nullptr;
 		}
 		
 

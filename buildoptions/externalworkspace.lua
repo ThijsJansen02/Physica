@@ -2,7 +2,10 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 include "../dep/Dependencies.lua"
 
-
+print("Working directory: " .. os.getcwd())
+print("Main script: " .. _MAIN_SCRIPT)
+print("Main script dir: " .. _MAIN_SCRIPT_DIR)
+print("Platform path: " .. path.getabsolute("../Platform"))
 
 group "LabCore/core"
     include "../Base"

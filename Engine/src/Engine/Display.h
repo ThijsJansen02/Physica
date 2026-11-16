@@ -4,14 +4,12 @@
 namespace PH::Engine {
 
 	/// <summary>
-	/// holds the framebuffer and colorattachment for a dispay... 
-	/// might make it more dynamice in the future to hold multiple colorattachments and depthattachment
+	/// holds the framebuffer and colorattachment for a dispay
 	/// </summary>
 	struct Display {
 
 		PH::Platform::GFX::Framebuffer fb;
 		PH::Platform::GFX::Texture colorattachment;
-		PH::Platform::GFX::Texture depthattachment;
 
 		glm::vec4 clearcolor;
 

@@ -3,6 +3,7 @@
 
 #include <Engine/AssetLibrary.h>
 #include <Engine/cppAPI/Rendering.hpp>
+#include <Engine/BatchRenderer2D.h>
 
 #ifdef LC_PLUGIN_PYTHON
 #include <pybind11/pybind11.h>
@@ -34,7 +35,10 @@ namespace PH::LabCore {
 	//returns the mouseposition relative to the view that is calling the function, should be called from within a viewfunction
 	PH_LABCORE_API glm::vec2 getViewMousePos();
 
-	PH_LABCORE_API Engine::Renderer2D::Wrapper* getRenderer2D();
+	//deprecated 2d renderer
+	PH_LABCORE_API Engine::Renderer2D::Wrapper* getRenderer2D_depc();
+
+	PH_LABCORE_API Engine::BatchRenderer2D* getRenderer2D();
 
 	PH_LABCORE_API Engine::AssetLibrary* getAssetLibrary();
 

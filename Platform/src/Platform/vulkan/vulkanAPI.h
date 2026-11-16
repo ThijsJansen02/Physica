@@ -71,7 +71,9 @@ namespace PH::Vulkan {
 	bool32 postDestroyFrameBuffers(VulkanAppContext* context, PH::Platform::GFX::Framebuffer* framebuffers, uint32 count);
 	bool32 copyBufferAsynchronous(VulkanAppContext* context, Platform::GFX::Buffer srcbuffer, Platform::GFX::Buffer dstbuffer, sizeptr size, sizeptr srcoffset, sizeptr dstoffset);
 	bool32 copyImageToBufferAsynchrounous(VulkanAppContext* context, const Platform::GFX::ImageToBufferCopyInfo& info);
+	bool32 blitImageToImage(VulkanAppContext* context, const Platform::GFX::ImageToImageBlitInfo& info);
 
+	bool32 pushConstant(VulkanAppContext* context, Platform::GFX::GraphicsPipeline pipe, sizeptr offset, sizeptr size, void* constant, Platform::GFX::ShaderStageFlags shaderstages);
 
 	PH_GFX_DRAW(draw);
 	PH_GFX_SET_VIEWPORTS(setViewports);

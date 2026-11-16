@@ -79,6 +79,14 @@ namespace PH::Platform {
 		PH_PLATFORM_API bool32 copyImageToBufferAsynchronous(const ImageToBufferCopyInfo& info) {
 			return Vulkan::copyImageToBufferAsynchrounous(Vulkan::context_s, info);
 		}
+
+		bool32 blitImageToImage(const ImageToImageBlitInfo& info) {
+			return Vulkan::blitImageToImage(Vulkan::context_s, info);
+		}
+
+		bool32 pushConstants(Platform::GFX::GraphicsPipeline pipe, sizeptr offset, sizeptr size, void* constant, Platform::GFX::ShaderStageFlags shaderstages) {
+			return Vulkan::pushConstant(Vulkan::context_s, pipe, offset, size, constant, shaderstages);
+		}
 	}
 
 	void getCurrentDirectory(char* buffer, sizeptr maxsize) {
