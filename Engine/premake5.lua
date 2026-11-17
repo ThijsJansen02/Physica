@@ -42,7 +42,7 @@ project "Engine"
 		"Base",
 		"Imgui",
 		"yaml-cpp",
-		"%{Library.platform}"
+		"Platform"
 	}
 
 

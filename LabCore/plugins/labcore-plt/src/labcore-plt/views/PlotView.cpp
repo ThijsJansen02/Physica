@@ -44,8 +44,8 @@ namespace PH::LabCorePLT {
 
 		if(ImGui::Begin("render stats")) {
 			ImGui::Text("FPS: %f", 1.0f / Engine::getTimeStep());
-			ImGui::End();
 		}
+		ImGui::End();
 
 		return true;
 	}

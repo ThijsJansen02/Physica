@@ -106,7 +106,7 @@ namespace PH::LabCoreSSH {
 					LabCoreSSH::RemoteCommand rc{};
 					rc.type = TYPE_SFTP_WRITE;
 					rc.sftpwrite.callback_ = nullptr;
-					rc.sftpwrite.data = Engine::DynamicArray<uint8>::create(f.size, (uint8)f.data);
+					rc.sftpwrite.data = Engine::DynamicArray<uint8>::create(Base::Array<uint8>{ (uint8*)f.data, f.size });
 					rc.sftpwrite.path = Engine::String::create(dst.getC_Str());
 					
 					LabCoreSSH::sendCommand(targetconnection, rc);

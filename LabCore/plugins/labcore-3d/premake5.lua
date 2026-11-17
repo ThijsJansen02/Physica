@@ -57,7 +57,7 @@ project "LabCore-3D"
 		"yaml-cpp",
 		"LabCore",
 		"LabCore-scene",
-		"%{Library.platform}"
+		"Platform"
 	}
 
 	libdirs {

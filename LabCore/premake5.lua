@@ -58,7 +58,7 @@ project "LabCore"
 	links
 	{
 		"base",
-		"Platform",
+		"%{Library.platform}",
 		"Engine"
 	}
 

@@ -99,7 +99,7 @@ namespace PH::LabCoreSSH {
 				Engine::String::destroy(&r.shellexecresult.err);
 			}
 
-			if (r.type == TYPE_SSH_EXEC) {
+			if (r.type == TYPE_SFTP_WRITE) {
 				if (r.sftpwrite.callback_) {
 					r.sftpwrite.callback_(&r.sftpwrite);
 				}
@@ -306,7 +306,7 @@ namespace PH::LabCoreSSH {
 						continue;
 					}
 					constexpr int remotefilepermissions = 0644;
-					sftp_file remotefile = sftp_open(sftp, work.sftpwrite.path.getC_Str(), O_WRONLY | O_CREAT, 0644);
+					sftp_file remotefile = sftp_open(sftp, work.sftpwrite.path.getC_Str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
 
 					if (!remotefile) {
 						Engine::ERR << "Could not open remote file: "
