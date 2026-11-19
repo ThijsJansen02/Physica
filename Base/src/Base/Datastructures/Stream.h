@@ -72,6 +72,10 @@ namespace PH::Base {
 			return m_Writeptr;
 		}
 
+		Base::Array<uint8> getArray() {
+			return { (uint8*)m_Data, m_Writeptr };
+		}
+
 		template<typename Allocator> 
 		PH::Base::String<Allocator> createString() {
 			return PH::Base::String<Allocator>::create((char*)m_Data);

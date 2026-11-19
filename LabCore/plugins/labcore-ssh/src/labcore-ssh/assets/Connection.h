@@ -21,8 +21,9 @@ namespace PH::LabCoreSSH {
 
 	struct SFTPwrite;
 	struct SSHshellExec;
+	struct SFTPwriteResult;
 
-	typedef void (*SFTPwriteCallback)(SFTPwrite* write);
+	typedef void (*SFTPwriteCallback)(SFTPwrite* write, SFTPwriteResult* result);
 	typedef void (*SSHshellExecCallback)(SSHshellExec* exec, Base::SubString output, Base::SubString err);
 
 	//writes the data on the remote at the specified path
@@ -39,6 +40,8 @@ namespace PH::LabCoreSSH {
 	};
 
 	struct RemoteCommand {
+		Engine::UUID id;
+
 		CommandType type;
 		union {
 			SFTPwrite sftpwrite;
@@ -47,7 +50,7 @@ namespace PH::LabCoreSSH {
 	};
 
 	struct SFTPwriteResult {
-		uint32 resultcode;
+		bool32 writesucces;
 	};
 
 	struct SSHshellExecResult {
@@ -62,10 +65,7 @@ namespace PH::LabCoreSSH {
 			SFTPwriteResult sftpwriteresult;
 		};
 
-		union {
-			SSHshellExec shellexec;
-			SFTPwrite sftpwrite;
-		};
+		RemoteCommand command;
 	};
 
 	struct Connection : Engine::AssetBase {
@@ -92,6 +92,18 @@ namespace PH::LabCoreSSH {
 	Engine::AssetDescription createConnectionAssetdescription();
 	PH::bool32 pollOpenConnectionResultsCallback(Engine::AssetLibrary* assets);
 	bool32 FileTransferPopupCallBack(Engine::AssetLibrary* lib);
+
+	//uploads a file and waits for the file to be uploaded
+	LC_SSH_API bool32 uploadFile_synchronous(Connection* conn, const char* src, const char* dst);
+
+	//uploads a file and waits for the file to be uploaded
+	LC_SSH_API bool32 uploadFile(Connection* conn, const char* src, const char* dst, SFTPwriteCallback callback);
+
+	//sends a shell command to the connection and waits for response
+	LC_SSH_API Engine::String sendShellCommand_synchronous(Connection* conn, const char* command, sizeptr timeout_ms = 100);
+
+	//sends a shell command to the connection and executes callback when a result arrives
+	LC_SSH_API void sendShellCommand(Connection* conn, const char* command, SSHshellExecCallback callback);
 
 	//creates a connection asset but does not open the connection, call openConnection to open the ssh connection
 	LC_SSH_API Connection createConnection(const char* remoteip);
