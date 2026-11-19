@@ -54,10 +54,120 @@ namespace PH::LabCoreSSH {
 		return true;
 	}
 
+	void resolveRemoteResult(RemoteResult& r) {
+		if (r.type == TYPE_SSH_EXEC) {
+			if (r.command.shellexec.callback_) {
+				r.command.shellexec.callback_(&r.command.shellexec, r.shellexecresult.output.getSubString(), r.shellexecresult.err.getSubString());
+			}
+
+			//destroy results
+			Engine::String::destroy(&r.command.shellexec.command);
+			Engine::String::destroy(&r.shellexecresult.output);
+			Engine::String::destroy(&r.shellexecresult.err);
+		}
+
+		if (r.type == TYPE_SFTP_WRITE) {
+			if (r.command.sftpwrite.callback_) {
+				r.command.sftpwrite.callback_(&r.command.sftpwrite, &r.sftpwriteresult);
+			}
+
+			//destroy data
+			Engine::DynamicArray<uint8>::destroy(&r.command.sftpwrite.data);
+			Engine::String::destroy(&r.command.sftpwrite.path);
+		}
+	}
+
 	void sendCommand(Connection* connection, const RemoteCommand& command) {
 		connection->outqueue.push(command);
 		ReleaseSemaphore(connection->semaphore, 1, nullptr);
 	}
+
+	//sends a command and waits for the response
+	RemoteResult sendBlockingCommand(Connection* connection, const RemoteCommand& command, sizeptr timeout) {
+		RemoteCommand c = command;
+		c.id = Engine::createRandomUUID();
+		sizeptr t = 0;
+
+		sendCommand(connection, c);
+		sizeptr sleepgranularity = 1;
+
+		while (true) {
+			while (connection->inqueue.hasWork()) {
+				RemoteResult r = *connection->inqueue.pop();
+				if (r.command.id == c.id) {
+					return r;
+				}
+				else {
+					resolveRemoteResult(r);
+				}
+			}
+
+			t += sleepgranularity;
+			Sleep(sleepgranularity);
+			if (t > timeout) {
+				break;
+			}
+		}
+		return {};
+	}
+
+	//uploads a file and waits for the file to be uploaded
+	bool32 uploadFile_synchronous(Connection* conn, const char* src, const char* dst) {
+		Platform::FileBuffer f;
+		if(!Platform::loadFile(&f, src)) {
+			return false;
+		}
+
+		RemoteCommand c{};
+		c.type = CommandType::TYPE_SFTP_WRITE;
+		c.sftpwrite.callback_ = nullptr;
+		c.sftpwrite.data = Engine::DynamicArray<uint8>::create({ (uint8*)f.data, f.size });
+		c.sftpwrite.path = Engine::String::create(dst);
+
+		auto r = sendBlockingCommand(conn, c, 1000);
+	
+		return r.sftpwriteresult.writesucces;
+	}
+
+	//uploads a file and waits for the file to be uploaded
+	bool32 uploadFile(Connection* conn, const char* src, const char* dst, SFTPwriteCallback callback) {
+		Platform::FileBuffer f;
+		if (!Platform::loadFile(&f, src)) {
+			return false;
+		}
+
+		RemoteCommand c{};
+		c.type = CommandType::TYPE_SFTP_WRITE;
+		c.sftpwrite.callback_ = callback;
+		c.sftpwrite.data = Engine::DynamicArray<uint8>::create({ (uint8*)f.data, f.size });
+		c.sftpwrite.path = Engine::String::create(dst);
+
+		sendCommand(conn, c);
+		return true;
+	}
+
+	Engine::String sendShellCommand_synchronous(Connection* conn, const char* command, sizeptr timeout_ms) {
+		RemoteCommand c{};
+		c.type = CommandType::TYPE_SSH_EXEC;
+		c.shellexec.callback_ = nullptr;
+		c.shellexec.command = Engine::String::create(command);
+		
+		auto r = sendBlockingCommand(conn, c, timeout_ms);
+		Engine::String rstr = Engine::String::create(r.shellexecresult.output.getSubString()).append("\nERR: ").append(r.shellexecresult.err.getSubString()).append("\n");
+		resolveRemoteResult(r);
+		return rstr;
+	}
+
+	void sendShellCommand(Connection* conn, const char* command, SSHshellExecCallback callback) {
+		RemoteCommand c{};
+		c.type = CommandType::TYPE_SSH_EXEC;
+		c.shellexec.callback_ = callback;
+		c.shellexec.command = Engine::String::create(command);
+
+		sendCommand(conn, c);
+	}
+
+	
 
 	void connectionDeserialize(YAML::Node in, Connection* connect) {
 		if (in["remoteIP"]) {
@@ -83,29 +193,13 @@ namespace PH::LabCoreSSH {
 		//add destructors for the queues;
 	}
 
+	
+
 	void pollInQueue(Connection* connection) {
 
 		while (connection->inqueue.hasWork()) {
 			RemoteResult r = *connection->inqueue.pop();
-
-			if (r.type == TYPE_SSH_EXEC) {
-				if (r.shellexec.callback_) {
-					r.shellexec.callback_(&r.shellexec, r.shellexecresult.output.getSubString(), r.shellexecresult.err.getSubString());
-				}
-
-				//destroy results
-				Engine::String::destroy(&r.shellexec.command);
-				Engine::String::destroy(&r.shellexecresult.output);
-				Engine::String::destroy(&r.shellexecresult.err);
-			}
-
-			if (r.type == TYPE_SFTP_WRITE) {
-				if (r.sftpwrite.callback_) {
-					r.sftpwrite.callback_(&r.sftpwrite);
-				}
-
-				Engine::String::destroy(&r.sftpwrite.path);
-			}
+			resolveRemoteResult(r);
 		}
 	}
 
@@ -216,7 +310,7 @@ namespace PH::LabCoreSSH {
 					
 					RemoteResult r{};
 					r.type = TYPE_SSH_EXEC;
-					r.shellexec = work.shellexec;
+					r.command = work;
 					r.shellexecresult.output = Engine::String::create("");
 					r.shellexecresult.err = Engine::String::create("");
 
@@ -253,7 +347,7 @@ namespace PH::LabCoreSSH {
 
 					while (nbytes > 0) {
 						buffer[nbytes - 1] = 0;
-						Engine::INFO << buffer;
+						Engine::INFO << "SSH: " << buffer << "\n";
 
 						r.shellexecresult.output.append(buffer);
 
@@ -332,8 +426,8 @@ namespace PH::LabCoreSSH {
 
 					RemoteResult r{};
 					r.type = LabCoreSSH::CommandType::TYPE_SFTP_WRITE;
-					r.sftpwriteresult.resultcode = 1;
-					r.sftpwrite = work.sftpwrite;
+					r.sftpwriteresult.writesucces = true;
+					r.command = work;
 
 					info->inqueue.push(r);
 				}
