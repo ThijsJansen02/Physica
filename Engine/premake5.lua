@@ -27,6 +27,8 @@ project "Engine"
 		"%{prj.location}/dep/include",
 		"%{IncludeDir.vulkanSDK}",
 		"%{IncludeDir.imguizmo}",
+		"%{IncludeDir.MSDFgen_atlas}",	
+		"%{IncludeDir.MSDFgen}",	
 		"%{IncludeDir.engine}"
 	}
 
@@ -42,7 +44,8 @@ project "Engine"
 		"Base",
 		"Imgui",
 		"yaml-cpp",
-		"Platform"
+		"Platform",
+		"msdf-atlas-gen"
 	}
 
 

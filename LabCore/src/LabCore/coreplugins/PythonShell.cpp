@@ -98,7 +98,7 @@ namespace PH::LabCore {
 		*shell = {};
 
 		shell->display = Engine::createImGuiDisplay(1920, 1080);
-		shell->font = appcontext->assets.getAssetByReference<Engine::Font>("defaultfont");
+		shell->font = appcontext->assets.getLoadedAssetByReference<Engine::Font>("defaultfont");
 
 		shell->textlines = Engine::ArrayList<ShellMessage>::create();
 
@@ -115,113 +115,12 @@ namespace PH::LabCore {
 
 	Engine::Box2D calcCursorBox(pythonShellInstance* shell) {
 
-		auto* lastline = &shell->textlines.getLast();
-
-		real32 lengthtillcursor = Engine::getTextLength(shell->font, Base::SubString::create(shell->current.message.getC_Str(), shell->cursorposition), 1.0f);
-
-		Engine::Box2D box;
-		box.bottomleft = {lengthtillcursor, -1.0f * shell->textlines.getCount() * shell->font->pixelheight - 4.0f };
-		box.topright = { lengthtillcursor + 1.0f, -1.0f * (shell->textlines.getCount() - 1) * shell->font->pixelheight - 4.0f };
-		return box;
+		return {};
 	}
 
 
 	bool32 pythonShellDraw(pythonShellInstance* shell) {
 		
-		//physica draw part
-		Engine::beginRenderPass(shell->display);
-
-		renderer2D->begin();
-
-		//set the projection and view matrices for the renderer2D wrapper, this is going to be used to draw the plot and the background of the plot, this is going to be set to the size of the display, so that we can draw the plot and the background of the plot in the correct position and size
-		glm::mat4 projection = glm::ortho(0.0f, (real32)shell->display.viewport.x, 0.0f, -(real32)shell->display.viewport.y);
-		renderer2D->pushProjection(projection);
-		renderer2D->pushView(glm::mat4(1.0f));
-
-		
-		renderer2D->pushGraphicsPipeline(LabCore::appcontext->defaultgraphicspipeline2D, { nullptr, 0 });
-
-		renderer2D->drawColoredBox2D(shell->cursorbox, glm::vec4(1.0f));
-
-		real32 textpadding = 30.0f;
-		real32 leftpadding = 5.0f;
-
-		renderer2D->pushGraphicsPipeline(LabCore::appcontext->defaultfontpipeline2D, { &shell->font->cdata, 1 });
-		renderer2D->pushTexture(shell->font->atlas);
-
-		glm::vec2 drawptr = {leftpadding, -shell->font->pixelheight};
-
-		sizeptr consolemsgcount = 0;
-		for (auto& msg : shell->textlines) {
-
-			drawptr.x = leftpadding;
-
-			//draw message id
-			if (msg.source == CONSOLE) {
-				char buffer[16];
-				sprintf_s(buffer, 16, "[%u]: ", consolemsgcount++);
-				Engine::drawText(shell->font, buffer, drawptr, 1.0f, msg.color, renderer2D->getContext());
-			}
-
-			drawptr.x += textpadding;
-
-			glm::vec2 nextpos = Engine::drawText(shell->font, msg.message.getC_Str(), drawptr, 1.0f, msg.color, renderer2D->getContext());
-			drawptr.y = nextpos.y - shell->font->pixelheight;
-		}
-		
-		//drawing the current edited item
-		drawptr.x = leftpadding;
-		char buffer[16];
-		sprintf_s(buffer, 16, "[%u]: ", consolemsgcount++);
-		Engine::drawText(shell->font, buffer, drawptr, 1.0f, glm::vec4(1.0f), renderer2D->getContext());
-		drawptr.x += textpadding;
-
-		glm::vec2 cursorpos = Engine::getCharPosition(shell->font, shell->current.message.getSubString(), 1.0f, shell->cursorposition) + drawptr;
-		shell->cursorbox.bottomleft = cursorpos;
-
-		real32 pixelheight = shell->font->pixelheight;
-		shell->cursorbox.topright = cursorpos + glm::vec2(1.0f, pixelheight - 4);
-		shell->cursorbox.bottom -= 4;
-
-		glm::vec2 nextpos = Engine::drawText(shell->font, shell->current.message.getC_Str(), drawptr, 1.0f, shell->current.color, renderer2D->getContext());
-		drawptr.y = nextpos.y - shell->font->pixelheight;
-
-		renderer2D->end();	
-
-		Engine::endRenderPass(shell->display);
-		
-		if(ImGui::BeginMenuBar()) {
-			if (ImGui::BeginMenu("shell")) {
-
-				if (ImGui::MenuItem("clear shell")) {
-					for (auto& line : shell->textlines) {
-						Engine::String::destroy(&line.message);
-					}
-
-					shell->textlines.clear();
-					shell->current.message.set("");
-					shell->cursorposition = 0;
-
-					shell->messageretrieveptr = 0;
-				}
-
-				ImGui::EndMenu();
-			}
-			ImGui::EndMenuBar();
-		}
-
-		//imgui draw part
-		real32 titlebarheight = ImGui::GetFrameHeight();
-		ImVec2 displaysize = ImGui::GetContentRegionAvail();
-		shell->display.viewport = { displaysize.x, displaysize.y };
-		ImGui::Image(
-			shell->display.imguitexture,
-			displaysize,
-			{ 0.0f, 0.0f }, //bottom left uv
-			{ displaysize.x / shell->display.framebuffersize.x, displaysize.y / shell->display.framebuffersize.y } //top right UV
-		);
-	
-
 		return true;
 	}
 

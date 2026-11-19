@@ -8,11 +8,13 @@
 #include <Engine/Rendering.h>
 
 #include <Engine/AssetLibrary.h>
-#include "Texture.h"
+#include <Engine/coreassets/Texture.h>
 
 #include <spirv_cross/spirv_cross.hpp>
 
 #include <Engine/shaders.h>
+
+#include <LabCore/LabCoreAPI.h>
 
 namespace PH::LabCore3D {
 
@@ -326,7 +328,7 @@ namespace PH::LabCore3D {
 						continue;
 					}
 					
-					Texture* tex = (Texture*)res.texture->assetdata;
+					Engine::Texture* tex = (Engine::Texture*)res.texture->assetdata;
 					if (tex->texture == PH_GFX_NULL) {
 						result = false;
 						continue;
@@ -586,7 +588,7 @@ namespace PH::LabCore3D {
 					Engine::AssetID texid = res["texture"].as<Engine::AssetID>();
 
 					//might want to add the asset library as a parameter, on the other hand, this is all in labcore space
-					sr.texture = LabCore::getAssetLibrary()->getLoadedAssetIdentifier<LabCore3D::Texture>(texid);
+					sr.texture = LabCore::getAssetLibrary()->getLoadedAssetIdentifier<Engine::Texture>(texid);
 					if (sr.texture) {
 						if (sr.texture->status != Engine::LOADED) {
 							Engine::WARN << "deserialized a texture that cant be loaded yet!\n";

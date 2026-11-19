@@ -2,19 +2,34 @@
 #include <Platform/platformAPI.h>
 #include <Engine/AssetDescription.h>
 
-#ifndef STB_TRUETYPE_INCLUDE
-#define STB_TRUETYPE_INCLUDE
-#include <stb/stb_truetype.h>
-#endif
-
+#include <Engine/coreassets/Texture.h>
 #include <Engine/Rendering.h>
-
 
 namespace PH::Engine {
 
 //random hardcoded UUID for the font asset description
 #define PH_ASSET_FONT 8122762271555803
 
+	
+	/*
+	struct Glyph {
+		int index;
+		unicode_t codepoint;
+		double geometryScale;
+		msdfgen::Shape shape;
+		msdfgen::Shape::Bounds bounds;
+		double advance;
+		struct {
+			struct {
+				int x, y, w, h;
+			} rect;
+			double range;
+			double scale;
+			glm::vec2 translate;
+		} box;
+	};
+
+	*/
 
 	struct Font : public AssetBase {
 
@@ -23,20 +38,22 @@ namespace PH::Engine {
 			return PH_ASSET_FONT;
 		}
 
-		Platform::GFX::Texture atlas;
-		stbtt_bakedchar cdata_cpu[96];
-		Platform::GFX::DescriptorSet cdata;
-		Platform::GFX::Buffer cdatabuffer;
+		Engine::Texture atlas;
 
-		uint32 bitmapwidth;
-		real32 pixelheight;
+		Engine::String source;
+
+		//Engine::ArrayList<Glyph> glyphs;
+
+
+		uint32 atlaswidth;
+		real32 atlasheight;
 
 		static Platform::GFX::DescriptorSetLayout descriptorsetlayout;
 	};
 
 	void serializeFont(const char* filepath, Font* font);
 	void deserializeFont(const char* filepath, Font* font);
-	Font createFont(const char* ttfpath, uint32 bitmapwidth, real32 pixelheight);
+	Font createFont(const char* ttf, float fontsize);
 
 	AssetDescription createFontDescription();
 

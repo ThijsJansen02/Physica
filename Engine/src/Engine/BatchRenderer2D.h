@@ -61,6 +61,9 @@ namespace PH::Engine {
 		static Platform::GFX::RenderpassDescription geometryrenderpass;
 		static Platform::GFX::RenderpassDescription createGeometryRenderpass();
 
+		static Platform::GFX::DescriptorSetLayout globaldescriptorsetlayout;
+		static Platform::GFX::DescriptorSetLayout createGlobalDescriptorsetLayout();
+
 		//have to be called at the begin of the frame and at the end of the frame
 		void beginFrame();
 		void endFrame();
@@ -76,8 +79,12 @@ namespace PH::Engine {
 
 		void drawQuad(const glm::vec3& position, const glm::mat2& rotscale, const glm::vec4& color, uint32 matindex, uint32 objectid);
 		void drawRectangle(const glm::vec3& position, real32 rotation, const glm::vec2& scale, const glm::vec4 color = glm::vec4(1.0f));
+		void drawRectangle(const glm::vec3& position, real32 rotation, const glm::vec2& scale, PH::Platform::GFX::Texture texture, const glm::vec4 color = glm::vec4(1.0f));
 		void drawCircle(const glm::vec3& position, real32 rotation, const glm::vec2& radius, const glm::vec4 color = glm::vec4(1.0f));
 		void drawLine(const glm::vec2& v1, const glm::vec2& v2, real32 depth, real32 thickness, const glm::vec4& color = glm::vec4(1.0f));
+
+		void pushPipeline(PH::Platform::GFX::GraphicsPipeline pipe);
+		uint32 pushTexture(PH::Platform::GFX::Texture texture);
 
 		void pushView(const glm::mat4& view);
 		void pushPojection(const glm::mat4& projection);
@@ -120,6 +127,11 @@ namespace PH::Engine {
 		static BatchRenderer2D create(const CreateInfo& create);
 
 		PH::Platform::GFX::Viewport viewport;
+
+		Engine::ArrayList<Platform::GFX::Texture> textures;
+		PH::Platform::GFX::Texture nulltexture;
+		PH::Platform::GFX::DescriptorSet globaldescriptorset;
+
 
 		Engine::StaticGPUBuffer<QuadVertex> quadvertexbuffer;
 		Engine::StaticGPUBuffer<uint32> quadindexbuffer;

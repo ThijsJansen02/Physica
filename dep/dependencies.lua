@@ -21,6 +21,9 @@ IncludeDir["labcore"] = "%{PhysicaLocation}/LabCore/src"
 IncludeDir["labcore_scene"] = "%{PhysicaLocation}/LabCore/plugins/labcore-scene/src"
 IncludeDir["labcore_ssh"] = "%{PhysicaLocation}/LabCore/plugins/labcore-ssh/src"
 IncludeDir["labcore_3d"] = "%{PhysicaLocation}/LabCore/plugins/labcore-3d/src"
+IncludeDir["MSDFgen_atlas"] = "%{PhysicaLocation}/dep/msdf-atlasgen"
+IncludeDir["MSDFgen"] = "%{PhysicaLocation}/dep/msdf-atlasgen/msdfgen"
+
 
 --IncludeDir["cpython"] = "C:/Users/Thijs/AppData/Local/Programs/Python/Python314/include"
 IncludeDir["cpython"] = "%{PhysicaLocation}/dep/embeddedpython/include"

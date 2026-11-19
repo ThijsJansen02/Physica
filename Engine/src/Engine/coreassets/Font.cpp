@@ -1,15 +1,113 @@
-#define STB_TRUETYPE_INCLUDE
-#define STB_TRUETYPE_IMPLEMENTATION
-#include <stb_/stb/stb_truetype.h>
-
 #include "Font.h"
+
+
+#undef INFINITE
+#include <msdf-atlas-gen/msdf-atlas-gen.h>
+#include <Engine/coreassets/Texture.h>
 
 
 #include <Engine/Rendering.h>
 
 namespace PH::Engine {
 
+	using namespace msdf_atlas;
+
 	Platform::GFX::DescriptorSetLayout Font::descriptorsetlayout = PH_GFX_NULL;
+
+	Font loadMSDFatlas(const char* source) {
+
+		Font result{};
+
+		// Initialize instance of FreeType library
+		if (msdfgen::FreetypeHandle* ft = msdfgen::initializeFreetype()) {
+			// Load font file using in house file loader
+
+			PH::Platform::FileBuffer f;
+			if (!PH::Platform::loadFile(&f, source)) {
+				return {};
+			}
+
+			if (msdfgen::FontHandle* font = msdfgen::loadFontData(ft, (msdfgen::byte*)f.data, f.size)) {
+				// Storage for glyph geometry and their coordinates in the atlas
+				std::vector<GlyphGeometry> glyphs;
+				// FontGeometry is a helper class that loads a set of glyphs from a single font.
+				// It can also be used to get additional font metrics, kerning information, etc.
+				FontGeometry fontGeometry(&glyphs);
+				// Load a set of character glyphs:
+				// The second argument can be ignored unless you mix different font sizes in one atlas.
+				// In the last argument, you can specify a charset other than ASCII.
+				// To load specific glyph indices, use loadGlyphs instead.
+				fontGeometry.loadCharset(font, 1.0, Charset::ASCII);
+				// Apply MSDF edge coloring. See edge-coloring.h for other coloring strategies.
+				const double maxCornerAngle = 3.0;
+				for (GlyphGeometry& glyph : glyphs)
+					glyph.edgeColoring(&msdfgen::edgeColoringInkTrap, maxCornerAngle, 0);
+				// TightAtlasPacker class computes the layout of the atlas.
+				TightAtlasPacker packer;
+				// Set atlas parameters:
+				// setDimensions or setDimensionsConstraint to find the best value
+				packer.setDimensionsConstraint(TightAtlasPacker::DimensionsConstraint::SQUARE);
+				// setScale for a fixed size or setMinimumScale to use the largest that fits
+				packer.setMinimumScale(24.0);
+				// setPixelRange or setUnitRange
+				packer.setPixelRange(2.0);
+				packer.setMiterLimit(1.0);
+				// Compute atlas layout - pack glyphs
+				packer.pack(glyphs.data(), glyphs.size());
+				// Get final atlas dimensions
+				int width = 0, height = 0;
+				packer.getDimensions(width, height);
+				// The ImmediateAtlasGenerator class facilitates the generation of the atlas bitmap.
+				ImmediateAtlasGenerator<
+					float, // pixel type of buffer for individual glyphs depends on generator function
+					4, // number of atlas color channels
+					mtsdfGenerator, // function to generate bitmaps for individual glyphs
+					BitmapAtlasStorage<byte, 4> // class that stores the atlas bitmap
+					// For example, a custom atlas storage class that stores it in VRAM can be used.
+				> generator(width, height);
+				// GeneratorAttributes can be modified to change the generator's default settings.
+				GeneratorAttributes attributes;
+				generator.setAttributes(attributes);
+				generator.setThreadCount(4);
+				// Generate atlas bitmap
+				generator.generate(glyphs.data(), glyphs.size());
+				// The atlas bitmap can now be retrieved via atlasStorage as a BitmapConstRef.
+				// The glyphs array (or fontGeometry) contains positioning data for typesetting text.
+
+				msdfgen::BitmapConstRef<byte, 4> bitmap = generator.atlasStorage();
+
+
+				result.atlas = Engine::createTexture(Base::Array<uint8>{(uint8*)bitmap.pixels, (sizeptr)bitmap.width * (sizeptr)bitmap.height }, (uint32)bitmap.width, (uint32)bitmap.height, Platform::GFX::FORMAT_R8G8B8A8_UNORM);
+				//result.glyphs = Engine::ArrayList<Engine::Glyph>::create({ (Engine::Glyph*)&glyphs[0], glyphs.size() });
+
+				// Cleanup
+				msdfgen::destroyFont(font);
+			}
+			msdfgen::deinitializeFreetype(ft);
+		}
+		return result;
+	}
+
+	Font createFont(const char* ttf, float fontsize) {
+
+		Font r = loadMSDFatlas(ttf);
+
+		return r;
+	}
+
+	glm::vec2 drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color, Engine::Renderer2D::Context* context) {
+		return { 0, 0 };
+
+	}
+
+	//returns the length in pixels of the given text;
+	real32 getTextLength(Font* font, Base::SubString textstring, real32 scale) {
+		return 0;
+	}
+	glm::vec2 getCharPosition(Font* font, Base::SubString textstring, real32 scale, uint32 position) {
+		return { 0, 0 };
+	}
+
 
 	Platform::GFX::DescriptorSetLayout createFontDescriptorSetLayout() {
 
@@ -49,212 +147,4 @@ namespace PH::Engine {
 		glm::vec2 topright;
 	};
 
-	Font createFont(const char* ttfpath, uint32 bitmapwidth, real32 pixelheight) {
-
-		Font result = {};
-
-		const uint32 charcount = 96;
-		PH::Platform::FileBuffer ttf_buffer;
-
-		if (!PH::Platform::loadFile(&ttf_buffer, ttfpath)) {
-			PH::Engine::WARN << "Failed to load font file at path " << ttfpath << "\n";
-			return result;
-		}
-
-		uint32 fontbitmapwidth = bitmapwidth;
-
-		uint8* bitmap = (uint8*)Engine::Allocator::alloc(fontbitmapwidth * fontbitmapwidth);
-
-		stbtt_BakeFontBitmap((const unsigned char*)ttf_buffer.data, 0, pixelheight, (unsigned char*)bitmap, fontbitmapwidth, fontbitmapwidth, 32, charcount, result.cdata_cpu); // no guarantee this fits!
-
-		PH::Platform::unloadFile(&ttf_buffer);
-
-		//create the texture for the font atlas
-		PH::Platform::GFX::TextureCreateInfo textureinfo{};
-		textureinfo.data = bitmap;
-		textureinfo.format = PH::Platform::GFX::FORMAT_R8_UNORM;
-		textureinfo.usage = PH::Platform::GFX::IMAGE_USAGE_SAMPLED_BIT;
-		textureinfo.viewtype = PH::Platform::GFX::IMAGE_VIEW_TYPE_2D;
-		textureinfo.ArrayLayers = 1;
-		textureinfo.width = fontbitmapwidth;
-		textureinfo.height = fontbitmapwidth;
-
-		PH::Platform::GFX::createTextures(&textureinfo, &result.atlas, 1);
-
-		Engine::ArrayList<UVcoords> evs = Engine::ArrayList<UVcoords>::create(charcount);
-
-		for (auto& c : result.cdata_cpu) {
-			UVcoords coords{};
-			coords.bottomleft = glm::vec2{ c.x0, c.y1 } / (real32)bitmapwidth;
-			coords.topright = glm::vec2{ c.x1, c.y0 } / (real32)bitmapwidth;
-
-			evs.pushBack(coords);
-		}
-
-		PH::Platform::GFX::DescriptorSetCreateinfo descriptorcreate{};
-		descriptorcreate.dynamic = false;
-		descriptorcreate.layout = Font::descriptorsetlayout;
-
-		PH::Platform::GFX::createDescriptorSets(&descriptorcreate, &result.cdata, 1);
-
-		PH::Platform::GFX::BufferCreateinfo buffercreate{};
-		buffercreate.bufferusage = PH::Platform::GFX::BufferUsageFlagBits::BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-		buffercreate.data = evs.raw();
-		buffercreate.dynamic = false;
-		buffercreate.memoryproperties = Platform::GFX::MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-		buffercreate.size = evs.getCount() * sizeof(UVcoords);
-
-		PH::Platform::GFX::createBuffers(&buffercreate, &result.cdatabuffer, 1);
-
-		//writing the font data into the set
-		PH::Platform::GFX::DescriptorBufferInfo bufferinfo{};
-		bufferinfo.buffer = result.cdatabuffer;
-		bufferinfo.offset = 0;
-		bufferinfo.range = evs.getCount() * sizeof(UVcoords);
-
-		PH::Platform::GFX::DescriptorWrite write{};
-		write.dstset = result.cdata;
-		write.arrayelement = 0;
-		write.descriptorcount = 1;
-		write.dynamicwrite = false;
-		write.dstbinding = 0;
-		write.type = PH::Platform::GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		write.descriptorinfo = &bufferinfo;
-
-		PH::Platform::GFX::updateDescriptorSets(&write, 1);
-
-		evs.release();
-		Engine::Allocator::dealloc(bitmap);
-
-		result.bitmapwidth = bitmapwidth;
-		result.pixelheight = pixelheight;
-
-		return result;
-	}
-
-	void drawFromBottomLeft(glm::vec3 position, glm::vec2 size, glm::vec4 color, uint32 id, Engine::Renderer2D::Context* context) {
-
-		glm::vec3 middle = glm::vec3(glm::vec2(position) + (size / 2.0f), position.z);
-
-		Engine::Renderer2D::drawQuadWithID(
-			middle,
-			size,
-			color,
-			id,
-			context
-		);
-	}
-
-	real32 tabsize = 15.0f;
-
-	real32 getTextLength(Font* font, Base::SubString textstring, real32 scale) {
-		real32 x = 0.0f;
-		real32 y = 0.0f;
-
-		real32 length = 0.0f;
-		const char* text = textstring.getC_Str();
-
-		while (*text && text != textstring.getEndPtr()) {
-			if (*text >= 32 && *text < 128) {
-				if (*text == '\n') {
-					y += font->pixelheight;
-					x = 0.0f;
-				}
-
-				if (*text == '\t') {
-					x += tabsize;
-				}
-
-				stbtt_aligned_quad q;
-				stbtt_GetBakedQuad(font->cdata_cpu, font->bitmapwidth, font->bitmapwidth, *text - 32, &x, &y, &q, 1);//1=opengl & d3d10+,0=d3d9
-
-				glm::vec2 bottomleft = scale * glm::vec2{ q.x0, -q.y1 };
-				glm::vec2 topright = scale * glm::vec2{ q.x1, -q.y0 };
-
-				glm::vec2 size = topright - bottomleft;
-
-				length = topright.x;
-			}
-			++text;
-		}
-		return length;
-	}
-
-	glm::vec2 drawText(Font* font, const char* text, glm::vec2 position, real32 scale, const glm::vec4& color, Engine::Renderer2D::Context* context) {
-
-		real32 x = 0.0f;
-		real32 y = 0.0f;
-
-		real32 length = 0.0f;
-
-		while (*text) {
-			if (*text == '\n') {
-				y += font->pixelheight;
-				x = 0.0f;
-			}
-
-			if (*text == '\t') {
-				x += tabsize;
-			}
-
-			if (*text >= 32 && *text < 128) {
-				stbtt_aligned_quad q;
-				stbtt_GetBakedQuad(font->cdata_cpu, font->bitmapwidth, font->bitmapwidth, *text - 32, &x, &y, &q, 1);//1=opengl & d3d10+,0=d3d9
-
-				glm::vec2 bottomleft = scale * glm::vec2{ q.x0, -q.y1 };
-				glm::vec2 topright = scale * glm::vec2{ q.x1, -q.y0 };
-
-				glm::vec2 size = topright - bottomleft;
-
-				drawFromBottomLeft(
-					glm::vec3(bottomleft + glm::vec2(position.x, position.y), 0.0f),
-					size,
-					color,
-					*text - 32,
-					context
-				);
-
-				if (topright.x > length) {
-					length = topright.x;
-				}
-			}
-			++text;
-		}
-
-		return { position.x + length, position.y - y };
-	}
-
-	glm::vec2 getCharPosition(Font* font, Base::SubString textstring, real32 scale, uint32 position) {
-		real32 x = 0.0f;
-		real32 y = 0.0f;
-
-		real32 length = 0.0f;
-		const char* text = textstring.getC_Str();
-
-		while (*text && text != textstring.getEndPtr() && text != textstring.getC_Str() + position) {
-			if (*text == '\n') {
-				y += font->pixelheight;
-				x = 0.0f;
-			}
-
-			if (*text == '\t') {
-				x += tabsize;
-			}
-			if (*text >= 32 && *text < 128) {
-
-				stbtt_aligned_quad q;
-				stbtt_GetBakedQuad(font->cdata_cpu, font->bitmapwidth, font->bitmapwidth, *text - 32, &x, &y, &q, 1);//1=opengl & d3d10+,0=d3d9
-
-				glm::vec2 bottomleft = scale * glm::vec2{ q.x0, -q.y1 };
-				glm::vec2 topright = scale * glm::vec2{ q.x1, -q.y0 };
-
-				glm::vec2 size = topright - bottomleft;
-
-				length = topright.x;
-			}
-			++text;
-		}
-
-		return glm::vec2{ x, -y };
-	}
 }

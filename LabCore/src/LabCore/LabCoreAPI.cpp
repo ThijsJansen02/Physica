@@ -49,6 +49,10 @@ namespace PH::LabCore {
 		return appcontext->projectdir.getSubString();
 	}
 
+	Base::SubString getHomeDirectory() {
+		return appcontext->labcorehome.getSubString();
+	}
+
 	void addImportAssetCallback(const char* extension, importAssetCallback callback) {
 		appcontext->importcallbacks.add(extension, callback);
 	}

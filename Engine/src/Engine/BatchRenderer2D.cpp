@@ -12,8 +12,33 @@ namespace PH::Engine {
 			{ 0.0f, 0.0f, 0.0f, 1.0f });
 	}
 
+#define MAX_TEXTURE_COUNT 32
+
+	Platform::GFX::DescriptorSetLayout BatchRenderer2D::globaldescriptorsetlayout = PH_GFX_NULL;
+	Platform::GFX::DescriptorSetLayout BatchRenderer2D::createGlobalDescriptorsetLayout() {
+
+		GFX::DescriptorBinding texturebinding;
+		texturebinding.binding = 0;
+		texturebinding.descriptorcount = MAX_TEXTURE_COUNT;
+		texturebinding.shaderstages = GFX::SHADER_STAGE_FRAGMENT_BIT;
+		texturebinding.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+		GFX::DescriptorSetLayoutCreateinfo i{};
+		i.bindings = { &texturebinding, 1 };
+
+		GFX::DescriptorSetLayout r;
+
+		if (!GFX::createDescriptorSetLayouts(&i, &r, 1)) {
+			return PH_GFX_NULL;
+		}
+
+		return r;
+	}
+
 	Platform::GFX::RenderpassDescription BatchRenderer2D::geometryrenderpass = PH_GFX_NULL;
 	Platform::GFX::RenderpassDescription BatchRenderer2D::createGeometryRenderpass() {
+
+
 
 		Platform::GFX::RenderpassDescription renderpass;
 
@@ -86,6 +111,8 @@ namespace PH::Engine {
 	//begins a new instance
 	void BatchRenderer2D::begin() {
 		instance_begin = instance_end;
+		textures.clear();
+		textures.pushBack(nulltexture);
 	}
 
 	void BatchRenderer2D::end() {
@@ -138,15 +165,18 @@ namespace PH::Engine {
 		camera.projection = invertY() * proj;
 	}
 
-	void BatchRenderer2D::drawRectangle(const glm::vec3& position, real32 rotation, const glm::vec2& size, const glm::vec4 color) {
-
-		if (currentpipeline != quadshader) {
+	void BatchRenderer2D::pushPipeline(GFX::GraphicsPipeline pipe) {
+		if (currentpipeline != pipe) {
 			end();
 			flush();
 			begin();
 		}
+		currentpipeline = pipe;
+	}
 
-		currentpipeline = quadshader;
+	void BatchRenderer2D::drawRectangle(const glm::vec3& position, real32 rotation, const glm::vec2& size, const glm::vec4 color) {
+
+		pushPipeline(quadshader);
 
 		real32 cosp = cosf(rotation);
 		real32 sinp = sinf(rotation);
@@ -156,14 +186,34 @@ namespace PH::Engine {
 		drawQuad(position, scalerot, color, 0, 0);
 	}
 
-	void BatchRenderer2D::drawCircle(const glm::vec3& position, real32 rotation, const glm::vec2& radius, const glm::vec4 color) {
-		if (currentpipeline != circleshader) {
-			end();
-			flush();
-			begin();
+	uint32 BatchRenderer2D::pushTexture(GFX::Texture texture) {
+
+		for (int32 i = ((int32)textures.getCount() - 1); i >= 0; i--) {
+			if (textures[i] == texture) {
+				return i;
+			}
 		}
 
-		currentpipeline = circleshader;
+		textures.pushBack(texture);
+		PH_DEBUG_ASSERT(textures.getCount() <= MAX_TEXTURE_COUNT, "to much destinct textures used!");
+		return textures.getCount() - 1;
+	}
+
+	void BatchRenderer2D::drawRectangle(const glm::vec3& position, real32 rotation, const glm::vec2& scale, GFX::Texture texture, const glm::vec4 color) {
+
+		uint32 i = pushTexture(texture);
+
+		real32 cosp = cosf(rotation);
+		real32 sinp = sinf(rotation);
+
+		glm::mat2 scalerot = glm::mat2{ {scale.x, 0.0f}, {0.0f, scale.y} } * glm::mat2({ cosp, sinp }, { -sinp, cosp });
+
+		drawQuad(position, scalerot, color, i, 0);
+	}
+
+	void BatchRenderer2D::drawCircle(const glm::vec3& position, real32 rotation, const glm::vec2& radius, const glm::vec4 color) {
+		
+		pushPipeline(circleshader);
 
 		real32 cosp = cosf(rotation);
 		real32 sinp = sinf(rotation);
@@ -174,13 +224,8 @@ namespace PH::Engine {
 	}
 
 	void BatchRenderer2D::drawLine(const glm::vec2& v1, const glm::vec2& v2, real32 depth, real32 thickness, const glm::vec4& color) {
-		if (currentpipeline != lineshader) {
-			end();
-			flush();
-			begin();
-		}
-
-		currentpipeline = lineshader;
+		
+		pushPipeline(lineshader);
 
 		glm::vec2 midpoint = (v1 + v2) / 2.0f;
 		glm::vec2 v1v2 = v2 - v1;
@@ -205,6 +250,28 @@ namespace PH::Engine {
 		instancebuffer[instance_end++] = inst;
 	}
 
+	void updateGlobalDescriptorset(GFX::DescriptorSet set, Base::Array<GFX::Texture> textures) {
+		Engine::ArrayList<GFX::DescriptorImageInfo> writes = Engine::ArrayList<GFX::DescriptorImageInfo>::create();
+		for (auto t : textures) {
+			GFX::DescriptorImageInfo ii;
+			ii.texture = t;
+			writes.push(ii);
+		}
+
+		GFX::DescriptorWrite wr;
+		wr.arrayelement = 0;
+		wr.descriptorcount = writes.getCount();
+		wr.descriptorinfo = writes.raw();
+		wr.dstbinding = 0;
+		wr.dstset = set;
+		wr.dynamicwrite = true;
+		wr.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		
+		GFX::updateDescriptorSets(&wr, 1);
+
+		Engine::ArrayList<GFX::DescriptorImageInfo>::destroy(&writes);
+	}
+
 	//can be called manually when the user wants to flush the geometry to the fb, is called in endgeometrypass
 	void BatchRenderer2D::flush() {
 
@@ -217,6 +284,8 @@ namespace PH::Engine {
 
 		GFX::bindGraphicsPipeline(currentpipeline);
 
+		updateGlobalDescriptorset(globaldescriptorset, textures.getArray());
+		GFX::bindDescriptorSets(&globaldescriptorset, 0, 1);
 
 		sizeptr indexcount = 6;
 		sizeptr firstindex = 0;
@@ -310,7 +379,7 @@ namespace PH::Engine {
 		GFX::GraphicsPipeline p = Engine::createGraphicsPipelineFromBinaries(
 			geometryrenderpass,
 			b,
-			{ nullptr, 0 },
+			{ &globaldescriptorsetlayout, 1 },
 			{ (GFX::VertexInputAttributeDescription*)quadvertexinputattributes, ARRAY_LENGTH(quadvertexinputattributes) },
 			{ (GFX::VertexInputBindingDescription*)quadvertexbindingdescription, ARRAY_LENGTH(quadvertexbindingdescription) },
 			{ &pcr, 1},
@@ -340,6 +409,58 @@ namespace PH::Engine {
 	StaticGPUBuffer<uint32> createIndexBuffer() {
 		return StaticGPUBuffer<uint32>::create({ quadindices, ARRAY_LENGTH(quadindices) }, GFX::BUFFER_USAGE_INDEX_BUFFER_BIT);
 	}
+	
+	GFX::Texture createNullTexture() {
+		GFX::TextureCreateInfo ti{};
+		uint32 data = 0xFFFFFFFF;
+
+		ti.ArrayLayers = 1;
+		ti.data = &data;
+		ti.width = 1;
+		ti.height = 1;
+		ti.format = GFX::FORMAT_R8G8B8A8_UNORM;
+		ti.viewtype = GFX::IMAGE_VIEW_TYPE_2D;
+		ti.usage = GFX::IMAGE_USAGE_SAMPLED_BIT;
+		
+		GFX::Texture r;
+
+		if (!GFX::createTextures(&ti, &r, 1)) {
+			return PH_GFX_NULL;
+		}
+
+		return r;
+	}
+
+	GFX::DescriptorSet createGlobalDescriptorSet(GFX::DescriptorSetLayout globallayout, GFX::Texture nulltexture) {
+		GFX::DescriptorSetCreateinfo ci{};
+		ci.dynamic = true;
+		ci.layout = globallayout;
+
+		GFX::DescriptorSet r = PH_GFX_NULL;
+
+		if (!GFX::createDescriptorSets(&ci, &r, 1)) {
+			Engine::WARN << "failed to create global descriptorset!\n";
+			return PH_GFX_NULL;
+		}
+
+		GFX::DescriptorImageInfo iis[MAX_TEXTURE_COUNT];
+		for (uint32 i = 0; i < MAX_TEXTURE_COUNT; i++) {
+			iis[i].texture = nulltexture;
+		}
+		
+		GFX::DescriptorWrite wr;
+		wr.arrayelement = 0;
+		wr.descriptorcount = MAX_TEXTURE_COUNT;
+		wr.dstbinding = 0;
+		wr.dstset = r;
+		wr.dynamicwrite = false;
+		wr.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		wr.descriptorinfo = iis;
+
+		GFX::updateDescriptorSets(&wr, 1);
+
+		return r;
+	}
 
 	BatchRenderer2D BatchRenderer2D::create(const CreateInfo& create) {
 		
@@ -352,6 +473,11 @@ namespace PH::Engine {
 
 		r.quadindexbuffer = createIndexBuffer();
 		r.quadvertexbuffer = createVertexBuffer();
+
+		r.nulltexture = createNullTexture();
+		r.globaldescriptorset = createGlobalDescriptorSet(r.globaldescriptorsetlayout, r.nulltexture);
+
+		r.textures = Engine::ArrayList<GFX::Texture>::create(1);
 
 		r.instancebuffer = DynamicGPUBuffer<ColoredQuadInstance>::create(create.instancebuffersize, GFX::BUFFER_USAGE_VERTEX_BUFFER_BIT);
 

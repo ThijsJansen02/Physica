@@ -26,3 +26,6 @@
 [submodule "dep/ImGuizmo_/ImGuizmo"]
 	path = dep/ImGuizmo_/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo.git
+[submodule "dep/msdf-atlasgen"]
+	path = dep/msdf-atlasgen
+	url = https://github.com/TheCherno/msdf-atlas-gen.git

@@ -15,9 +15,11 @@
 
 #include <labcore-scene/assets/Scene.h>
 
-#include "assets/Texture.h"
+#include <Engine/coreassets/Texture.h>
 #include "assets/scenecomponents/PointLight.h"
 #include "assets/scenecomponents/MeshRender.h"
+
+#include "importers/TextureImport.h"
 
 
 //include after imgui
@@ -59,7 +61,6 @@ extern "C" {
 		PH::Engine::AssetLibrary* assetlib = PH::LabCore::getAssetLibrary();
 		assetlib->addAssetType(PH::LabCore3D::createGraphicsPipelineDescription());
 		assetlib->addAssetType(PH::LabCore3D::createMeshAssetDescription());
-		assetlib->addAssetType(PH::LabCore3D::createTextureAssetDescription());
 
 		PH::Engine::UUID pipeid = 16439805985763607426;
 		PH::Engine::UUID cubeid = 9808924416449029863;

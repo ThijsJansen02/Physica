@@ -3,6 +3,9 @@
 #include "PlotView.h"
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/imgui/extensions.h>
+#include <Engine/coreassets/Font.h>
+
+using namespace PH::Platform;
 
 namespace PH::LabCorePLT {
 
@@ -27,9 +30,12 @@ namespace PH::LabCorePLT {
 
 		renderer->drawLine({ 100.0f, 100.0f }, { 500.0f, 100.0f }, 0.5f, 15.0f);
 		renderer->drawCircle({ 100.0f, 100.0f, 1.0f }, 0.0f, { 10.0f, 10.0f }, { 1.0f, 0.0f, 1.0f, 1.0f });
-		renderer->drawCircle({ 700.0f, 500.0f, 1.0f }, 0.0f, { 10.0f, 10.0f }, { 0.0f, 1.0f, 0.0f, 1.0f });
-		renderer->drawRectangle({ 100.0, 200.0, 2.0 }, 0.0, { 15.0f, 15.0f }, {1.0f, 0.0, 0.0, 1.0});
-                                                                            
+		renderer->drawCircle({ 700.0f, 500.0f, 1.0f }, 0.0f, { 100.0f, 100.0f }, { 0.0f, 1.0f, 0.0f, 1.0f });
+		renderer->drawRectangle({ 100.0, 200.0, 2.0 }, 0.0, { 100.0f, 100.0f }, {1.0f, 0.0, 0.0, 1.0});
+		
+		auto* font = LabCore::getAssetLibrary()->getLoadedAssetByReference<Engine::Font>("defaultfont");
+
+		renderer->drawRectangle({ 400.0f, 400.0f, 3.0f }, 0.0f, { 280, 280}, font->atlas.texture);
 
 		renderer->endGeometryPass();
 		renderer->output(&view->display);
@@ -57,8 +63,13 @@ namespace PH::LabCorePLT {
 	}
 
 	static PH::bool32 instantiateView(View* view) {
+		Platform::setCurrentDirectory(LabCore::getHomeDirectory());
+
 		view->display = Engine::createImGuiDisplay(2560, 1080);
+		view->texture = Engine::createTexture("res/textures/checkerboard.jpg", GFX::FORMAT_R8G8B8A8_SRGB);
 		return true;
+
+		Platform::setCurrentDirectory(LabCore::getCurrentProjectDir());
 	}
 
 	static PH::bool32 destroyView(View* data) {

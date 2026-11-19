@@ -8,6 +8,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
 
+#include <Engine/coreassets/Texture.h>
+
 namespace py = pybind11;
 
 typedef void(*plugininitfn)(const char* plugindir);
@@ -53,6 +55,7 @@ namespace PH::LabCore {
 	void initRenderer() {
 
 		Engine::BatchRenderer2D::geometryrenderpass = Engine::BatchRenderer2D::createGeometryRenderpass();
+		Engine::BatchRenderer2D::globaldescriptorsetlayout = Engine::BatchRenderer2D::createGlobalDescriptorsetLayout();
 
 		Engine::BatchRenderer2D::CreateInfo ci{};
 		ci.instancebuffersize = 1024 * 1024;
@@ -87,10 +90,13 @@ namespace PH::LabCore {
 		//create asset library and add font asset
 		appcontext->assets = Engine::AssetLibrary::createAssetLibrary();
 		appcontext->assets.addAssetType(Engine::createFontDescription());
+		appcontext->assets.addAssetType(Engine::createTextureAssetDescription());
 
 		//statically adding a font to the asset library. application should always have a font available to draw text with, this is going to be used for the python shell and for the view instances
-		Engine::Font* font = Engine::Allocator::push(Engine::createFont("c:/windows/fonts/Arial.ttf", 512, 16));
+		Engine::Font* font = Engine::Allocator::push(Engine::createFont("c:/windows/fonts/Arial.ttf", 24));
 		auto identifier = appcontext->assets.addPersistentAsset<Engine::Font>(font, 683249087875, "defaultfont");
+		
+
 	}
 
 	void initPyLabCore() {
