@@ -499,17 +499,52 @@ void drawRpConnectionGui(void* function, RpGui::Context* context, int32& id) {
 			ImGui::EndCombo();
 		}
 
-		Parameters params = f.getParameters();
-		if (f.type == FilterType::COMPLEX)
+		// Draw input sliders
+		switch (f.type)
 		{
+		case LOWPASS:
+		case HIGHPASS:
+			if (DragDouble("Cutoff Frequency", (double*)&f.cutoffFrequency, f.cutoffFrequency * dragSpeed)) b_dirty = true;
+			if (DragDouble("Q Factor", (double*)&f.qFactor, f.qFactor * dragSpeed)) b_dirty = true;
+
+			break;
+		case NOTCH:
+			if (DragDouble("Cutoff Frequency", (double*)&f.cutoffFrequency, f.cutoffFrequency * dragSpeed)) b_dirty = true;
+			if (DragDouble("Q Factor", (double*)&f.qFactor, f.qFactor * dragSpeed)) b_dirty = true;
+			if (DragDouble("Gain [dB]", (double*)&f.gain, f.gain * dragSpeed)) b_dirty = true;
+
+			break;
+		case ALLPASS:
+
+			break;
+		case RESONANCE_ANTI_RESONANCE:
+			if (DragDouble("Cutoff Frequency", (double*)&f.cutoffFrequency, f.cutoffFrequency * dragSpeed)) b_dirty = true;
+			if (DragDouble("Q Factor", (double*)&f.qFactor, f.qFactor * dragSpeed)) b_dirty = true;
+			if (DragDouble("Anti-Cutoff Frequency", (double*)&f.antiCutoffFrequency, f.antiCutoffFrequency * dragSpeed)) b_dirty = true;
+			if (DragDouble("Anti-Q Factor", (double*)&f.antiQFactor, f.antiQFactor * dragSpeed)) b_dirty = true;
+
+			break;
+		case COMPLEX:
 			ImGui::Checkbox("Use Zero", &f.use_zero);
 			ImGui::SameLine();
 			ImGui::Checkbox("Use Pole", &f.use_pole);
-		}
-		for (size_t i = 0; i < params.size; i++)
-		{
-			if (DragDouble(params.labels[i], (double*)params.values[i], *params.values[i] * dragSpeed)) b_dirty = true;
-		}
+
+			if (DragDouble("Zero (Real)", (double*)&f.zero_r, f.zero_r * dragSpeed)) b_dirty = true;
+			if (DragDouble("Zero (Imag)", (double*)&f.zero_i, f.zero_i * dragSpeed)) b_dirty = true;
+			if (DragDouble("Pole (Real)", (double*)&f.pole_r, f.pole_r * dragSpeed)) b_dirty = true;
+			if (DragDouble("Pole (Imag)", (double*)&f.pole_i, f.pole_i * dragSpeed)) b_dirty = true;
+
+			break;
+		case COEFFICIENTS:
+			if (DragDouble("b0", (double*)&f.b0, f.b0 * dragSpeed)) b_dirty = true;
+			if (DragDouble("b1", (double*)&f.b1, f.b1 * dragSpeed)) b_dirty = true;
+			if (DragDouble("b2", (double*)&f.b2, f.b2 * dragSpeed)) b_dirty = true;
+			if (DragDouble("a0", (double*)&f.a0, f.a0 * dragSpeed)) b_dirty = true;
+			if (DragDouble("a1", (double*)&f.a1, f.a1 * dragSpeed)) b_dirty = true;
+			if (DragDouble("a2", (double*)&f.a2, f.a2 * dragSpeed)) b_dirty = true;
+
+			break;
+		};
 
 		if (b_dirty) {
 			selectedFilter = &f;

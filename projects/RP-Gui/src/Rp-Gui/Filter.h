@@ -42,7 +42,6 @@ static const char* FilterTypeStrings[] = {
 	"Coefficients"
 };
 
-struct Parameters;
 class Filter {
 public:
 	const char* typeStr() const { return FilterTypeStrings[type]; };
@@ -52,9 +51,6 @@ public:
 	inline const BiQuadCoefficients& getBiquadCoefficients() const { return coeffs; };
 	inline const BiQuadCoefficients& getInvertedCoefficients() const { return { coeffs.a[0], coeffs.a[1], coeffs.a[2], coeffs.b[0], coeffs.b[1], coeffs.b[2] }; };
 
-	Parameters getParameters();
-	static constexpr int maxParameters() { return 6; };
-
 	static Filter deserialize(const YAML::Node& filter);
 	void serialize(YAML::Emitter& out) const;
 
@@ -63,10 +59,10 @@ public:
 	real64 gain = 0.0f; // in decibels
 	real64 antiCutoffFrequency = 800.0f;
 	real64 antiQFactor = 10.0f;
-	real64 zero_r;
-	real64 zero_i;
-	real64 pole_r;
-	real64 pole_i;
+	real64 zero_r = 0;
+	real64 zero_i = 0;
+	real64 pole_r = 0;
+	real64 pole_i = 0;
 	real64 b0 = 1;
 	real64 b1 = 1;
 	real64 b2 = 1;
@@ -74,26 +70,10 @@ public:
 	real64 a1 = 1;
 	real64 a2 = 1;
 
-	bool use_zero, use_pole;
+	bool use_zero = true;
+	bool use_pole = true;
 
 	FilterType type = ALLPASS;
 
 	BiQuadCoefficients coeffs = { {0,0,1}, {0,0,1} };
-};
-
-struct Parameters {
-	const char* labels[Filter::maxParameters()];
-	real64* values[Filter::maxParameters()];
-
-	//Parameters(const char** l, real64** v, int n)
-	//	: size(n)
-	//{
-	//	for (size_t i = 0; i < n; i++)
-	//	{
-	//		labels[i] = l[i];
-	//		values[i] = v[i];
-	//	}
-	//}
-
-	int size;
 };
