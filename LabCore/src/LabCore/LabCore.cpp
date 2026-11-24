@@ -64,13 +64,12 @@ namespace PH::LabCore {
 
 		ci.quadshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/QuadShader.phshadersrc", "res/shaders/bin/QuadShader.phshaderbin", {nullptr, 0}, true, true);
 		ci.circleshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/CircleShader.phshadersrc", "res/shaders/bin/CircleShader.phshaderbin", { nullptr, 0 }, true, true);
-		ci.lineshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/LineShader.phshadersrc", "res/shaders/bin/LineShader.phshaderbin", { nullptr, 0 }, true, true);
+		ci.lineshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/LineShader.phshadersrc", "res/shaders/bin/LineShader.phshaderbin", { nullptr, 0 }, true, false);
+		ci.fontshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/FontShader.phshadersrc", "res/shaders/bin/FontShader.phshaderbin", { &Engine::Font::descriptorsetlayout, 1 }, true, false);
 
 		ci.internalfb = true;
 		appcontext->batchrenderer = Engine::BatchRenderer2D::create(ci);
 		
-
-
 		//deprecated renderer
 		Engine::Renderer2D::InitInfo rendererinit{};
 		rendererinit.currentpipeline = appcontext->defaultgraphicspipeline2D;
@@ -93,7 +92,7 @@ namespace PH::LabCore {
 		appcontext->assets.addAssetType(Engine::createTextureAssetDescription());
 
 		//statically adding a font to the asset library. application should always have a font available to draw text with, this is going to be used for the python shell and for the view instances
-		Engine::Font* font = Engine::Allocator::push(Engine::createFont("c:/windows/fonts/Arial.ttf", 24));
+		Engine::Font* font = Engine::Allocator::push(Engine::createFont("c:/windows/fonts/MicroSquare Regular.ttf", 24));
 		auto identifier = appcontext->assets.addPersistentAsset<Engine::Font>(font, 683249087875, "defaultfont");
 		
 

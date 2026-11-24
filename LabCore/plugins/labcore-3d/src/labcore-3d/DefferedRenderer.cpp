@@ -17,11 +17,12 @@ namespace PH::LabCore3D {
 
 		PH::Platform::GFX::DescriptorSetLayoutCreateinfo ci;
 
-		Platform::GFX::DescriptorBinding cv;
+		Platform::GFX::DescriptorBinding cv{};
 		cv.binding = 0;
 		cv.descriptorcount = 1;
 		cv.shaderstages = Platform::GFX::SHADER_STAGE_VERTEX_BIT | Platform::GFX::SHADER_STAGE_FRAGMENT_BIT;
 		cv.type = Platform::GFX::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		cv.updateafterbind = false;
 
 		ci.bindings = { &cv, 1 };
 

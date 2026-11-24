@@ -3,6 +3,7 @@
 #include <Engine/Display.h>
 #include <Engine/GPUBuffer.h>
 #include <glm/glm.hpp>
+#include <Engine/coreassets/Font.h>
 
 namespace PH::Engine {
 
@@ -70,24 +71,27 @@ namespace PH::Engine {
 
 		void begin();
 		void end();
-		
-		void pushView(glm::mat4 view);
-		void pushProjection(glm::mat4 proj);
 
 		//if framebuffer is specified, begingeometrypass uses that framebuffer otherwise it will use the internal fb.
 		void beginGeometryPass(bool32 clearcolor, bool32 cleardepth, Framebuffer* frambuffer = nullptr);
 
 		void drawQuad(const glm::vec3& position, const glm::mat2& rotscale, const glm::vec4& color, uint32 matindex, uint32 objectid);
+		void drawQuad(const Engine::Box2D& box, real32 depth, const glm::vec4& color, uint32 matindex, uint32 objectid);
+
 		void drawRectangle(const glm::vec3& position, real32 rotation, const glm::vec2& scale, const glm::vec4 color = glm::vec4(1.0f));
 		void drawRectangle(const glm::vec3& position, real32 rotation, const glm::vec2& scale, PH::Platform::GFX::Texture texture, const glm::vec4 color = glm::vec4(1.0f));
 		void drawCircle(const glm::vec3& position, real32 rotation, const glm::vec2& radius, const glm::vec4 color = glm::vec4(1.0f));
 		void drawLine(const glm::vec2& v1, const glm::vec2& v2, real32 depth, real32 thickness, const glm::vec4& color = glm::vec4(1.0f));
+		void drawLine(const glm::vec2& v1, const glm::vec2& v2, real32 depth, real32 thickness, const glm::mat2& worldtoScreen, const glm::vec4& color);
+		void drawFont(const glm::vec3& position, real32 rotation, const glm::vec2& scale, PH::Platform::GFX::Texture texture, const glm::vec4 color = glm::vec4(1.0f));
+		void drawGlyph(uint32 unicode, const glm::vec3& position, real32 scale, Engine::Font* font, const glm::vec4& color = glm::vec4(1.0f));
+		void drawText(const char* text, const glm::vec3& position, real32 scale, Engine::Font* font, const glm::vec4& color = glm::vec4(1.0f));
 
 		void pushPipeline(PH::Platform::GFX::GraphicsPipeline pipe);
 		uint32 pushTexture(PH::Platform::GFX::Texture texture);
 
 		void pushView(const glm::mat4& view);
-		void pushPojection(const glm::mat4& projection);
+		void pushProjection(const glm::mat4& projection);
 
 		//can be called manually when the user wants to flush the geometry to the fb, is called in endgeometrypass
 		void flush();
@@ -104,6 +108,7 @@ namespace PH::Engine {
 		PH::Platform::GFX::GraphicsPipeline circleshader;
 		PH::Platform::GFX::GraphicsPipeline lineshader;
 		PH::Platform::GFX::GraphicsPipeline fontshader;
+		PH::Platform::GFX::DescriptorSet fontdescriptor;
 
 		PH::Platform::GFX::GraphicsPipeline currentpipeline;
 

@@ -17,11 +17,12 @@ namespace PH::Engine {
 	Platform::GFX::DescriptorSetLayout BatchRenderer2D::globaldescriptorsetlayout = PH_GFX_NULL;
 	Platform::GFX::DescriptorSetLayout BatchRenderer2D::createGlobalDescriptorsetLayout() {
 
-		GFX::DescriptorBinding texturebinding;
+		GFX::DescriptorBinding texturebinding{};
 		texturebinding.binding = 0;
 		texturebinding.descriptorcount = MAX_TEXTURE_COUNT;
 		texturebinding.shaderstages = GFX::SHADER_STAGE_FRAGMENT_BIT;
 		texturebinding.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		texturebinding.updateafterbind = true;
 
 		GFX::DescriptorSetLayoutCreateinfo i{};
 		i.bindings = { &texturebinding, 1 };
@@ -100,6 +101,9 @@ namespace PH::Engine {
 		instance_begin = 0;
 		instance_end = 0;
 
+		textures.clear();
+		textures.pushBack(nulltexture);
+
 		camera.projection = invertY();
 		camera.view = glm::mat4(1.0f);
 	}
@@ -111,8 +115,6 @@ namespace PH::Engine {
 	//begins a new instance
 	void BatchRenderer2D::begin() {
 		instance_begin = instance_end;
-		textures.clear();
-		textures.pushBack(nulltexture);
 	}
 
 	void BatchRenderer2D::end() {
@@ -149,7 +151,7 @@ namespace PH::Engine {
 		begin();
 	}
 
-	void BatchRenderer2D::pushView(glm::mat4 view) {
+	void BatchRenderer2D::pushView(const glm::mat4& view) {
 		end();
 		flush();
 		begin();
@@ -157,7 +159,7 @@ namespace PH::Engine {
 		camera.view = view;
 	}
 
-	void BatchRenderer2D::pushProjection(glm::mat4 proj) {
+	void BatchRenderer2D::pushProjection(const glm::mat4& proj) {
 		end();
 		flush();
 		begin();
@@ -201,6 +203,7 @@ namespace PH::Engine {
 
 	void BatchRenderer2D::drawRectangle(const glm::vec3& position, real32 rotation, const glm::vec2& scale, GFX::Texture texture, const glm::vec4 color) {
 
+		pushPipeline(quadshader);
 		uint32 i = pushTexture(texture);
 
 		real32 cosp = cosf(rotation);
@@ -239,6 +242,28 @@ namespace PH::Engine {
 		drawQuad(glm::vec3(midpoint, depth), scalerot, color, 0, 0);
 	}
 
+	void BatchRenderer2D::drawLine(const glm::vec2& v1, const glm::vec2& v2, real32 depth, real32 thickness, const glm::mat2& worldtoscreen, const glm::vec4& color) {
+
+		pushPipeline(lineshader);
+		
+		glm::vec2 midpoint = (v1 + v2) / 2.0f;
+		glm::vec2 v1v2 = v2 - v1;
+		glm::vec2 tangent = glm::normalize(v1v2);
+		glm::vec2 bitangent = { -tangent.y, tangent.x };
+
+		glm::vec2 ws_bitangent = worldtoscreen * bitangent;
+		real32 s = glm::length(ws_bitangent);
+
+		real32 w = thickness / s;
+
+		glm::vec2 v_x = v1v2 + tangent * w * 2.0f;
+		glm::vec2 v_y = bitangent * w * 2.0f;
+
+		glm::mat2 scalerot = glm::mat2(v_x, v_y);
+
+		drawQuad(glm::vec3(midpoint, depth), scalerot, color, 0, 0);
+	}
+
 	void BatchRenderer2D::drawQuad(const glm::vec3& position, const glm::mat2& rotscale, const glm::vec4& color, uint32 matindex, uint32 objectid) {
 		ColoredQuadInstance inst{};
 		inst.color = color;
@@ -248,6 +273,70 @@ namespace PH::Engine {
 		inst.textureindex = matindex;
 
 		instancebuffer[instance_end++] = inst;
+	}
+
+	void BatchRenderer2D::drawQuad(const Engine::Box2D& box, real32 depth, const glm::vec4& color, uint32 matindex, uint32 objectid) {
+
+		glm::vec2 middle = (box.topright + box.bottomleft) / 2.0f;
+		real32 width = box.right - box.left;
+		real32 height = box.top - box.bottom;
+
+		ColoredQuadInstance inst{};
+		inst.color = color;
+		inst.position = glm::vec3(middle, depth);
+		inst.scalerot = glm::mat2{ {width, 0.0f}, {0.0f, height} };
+		inst.objectid = objectid;
+		inst.textureindex = matindex;
+
+		instancebuffer[instance_end++] = inst;
+	}
+
+	void BatchRenderer2D::drawFont(const glm::vec3& position, real32 rotation, const glm::vec2& scale, PH::Platform::GFX::Texture texture, const glm::vec4 color) {
+		pushPipeline(fontshader);
+		uint32 i = pushTexture(texture);
+
+		real32 cosp = cosf(rotation);
+		real32 sinp = sinf(rotation);
+
+		glm::mat2 scalerot = glm::mat2{ {scale.x, 0.0f}, {0.0f, scale.y} } * glm::mat2({ cosp, sinp }, { -sinp, cosp });
+
+		drawQuad(position, scalerot, color, i, 0);
+	}
+
+	void BatchRenderer2D::drawGlyph(uint32 unicode, const glm::vec3& position, real32 scale, Engine::Font* font, const glm::vec4& color) {
+		pushPipeline(fontshader);
+		if (font->descriptorset != fontdescriptor) {
+			end();
+			flush();
+			begin();
+		}
+
+		fontdescriptor = font->descriptorset;
+
+		uint32 i = pushTexture(font->atlas.texture);
+
+		Engine::Glyph glyph = font->glyphs[unicode - 32];
+
+		uint32 textureglyph = ((i << 16) & 0xFFFF0000) | (0xFFFF & glyph.index);
+
+		Box2D plane = font->glyphs[unicode - 32].planebounds;
+		plane.bottomleft *= scale;
+		plane.topright *= scale;
+
+		plane = plane + glm::vec2(position);
+
+		drawQuad(plane, position.z, color, textureglyph, 0);
+	}
+
+	void BatchRenderer2D::drawText(const char* text, const glm::vec3& position, real32 scale, Engine::Font* font, const glm::vec4& color) {
+		glm::vec3 pos = position;
+
+		const char* ptr = text;
+		while (*ptr != '\0') {
+			drawGlyph(*ptr, pos, scale, font, color);
+			pos.x += (font->glyphs[*ptr - 32].advance * scale);
+			ptr++;
+		}
 	}
 
 	void updateGlobalDescriptorset(GFX::DescriptorSet set, Base::Array<GFX::Texture> textures) {
@@ -285,7 +374,19 @@ namespace PH::Engine {
 		GFX::bindGraphicsPipeline(currentpipeline);
 
 		updateGlobalDescriptorset(globaldescriptorset, textures.getArray());
-		GFX::bindDescriptorSets(&globaldescriptorset, 0, 1);
+
+		//if we are font rendering
+		if (fontdescriptor != PH_GFX_NULL) {
+			GFX::DescriptorSet sets[2] = { globaldescriptorset, fontdescriptor };
+			GFX::bindDescriptorSets(sets, 0, 2);
+			fontdescriptor = PH_GFX_NULL;
+		}
+
+		//if were rendering normal
+		else {
+			GFX::bindDescriptorSets(&globaldescriptorset, 0, 1);
+		}
+
 
 		sizeptr indexcount = 6;
 		sizeptr firstindex = 0;
@@ -376,16 +477,26 @@ namespace PH::Engine {
 		pcr.shaderstages = GFX::SHADER_STAGE_VERTEX_BIT;
 		pcr.size = sizeof(BatchRenderer2D::Camera);
 
+		Engine::ArrayList<GFX::DescriptorSetLayout> descriptorsetlayouts = Engine::ArrayList<GFX::DescriptorSetLayout>::create(userlayouts.count + 1);
+		descriptorsetlayouts.pushBack(globaldescriptorsetlayout);
+
+		for (auto l : userlayouts) {
+			descriptorsetlayouts.pushBack(l);
+		}
+
+
 		GFX::GraphicsPipeline p = Engine::createGraphicsPipelineFromBinaries(
 			geometryrenderpass,
 			b,
-			{ &globaldescriptorsetlayout, 1 },
+			descriptorsetlayouts.getArray(),
 			{ (GFX::VertexInputAttributeDescription*)quadvertexinputattributes, ARRAY_LENGTH(quadvertexinputattributes) },
 			{ (GFX::VertexInputBindingDescription*)quadvertexbindingdescription, ARRAY_LENGTH(quadvertexbindingdescription) },
 			{ &pcr, 1},
 			depthtest,
 			blend
 		);
+
+		Engine::ArrayList<GFX::DescriptorSetLayout>::destroy(&descriptorsetlayouts);
 
 		return p;
 	}
@@ -464,7 +575,7 @@ namespace PH::Engine {
 
 	BatchRenderer2D BatchRenderer2D::create(const CreateInfo& create) {
 		
-		BatchRenderer2D r;
+		BatchRenderer2D r{};
 		r.currentpipeline = PH_GFX_NULL;
 		r.fontshader = create.fontshader;
 		r.lineshader = create.lineshader;
@@ -473,6 +584,7 @@ namespace PH::Engine {
 
 		r.quadindexbuffer = createIndexBuffer();
 		r.quadvertexbuffer = createVertexBuffer();
+		r.fontdescriptor = PH_GFX_NULL;
 
 		r.nulltexture = createNullTexture();
 		r.globaldescriptorset = createGlobalDescriptorSet(r.globaldescriptorsetlayout, r.nulltexture);

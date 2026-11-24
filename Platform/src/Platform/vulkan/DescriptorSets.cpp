@@ -18,13 +18,14 @@ namespace PH::Vulkan {
 
 			VkDescriptorSetLayoutCreateInfo layoutinfo{};
 			layoutinfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-			layoutinfo.bindingCount = createinfo.bindings.count;
 
 			auto bindings = PH::Base::ArrayList<VkDescriptorSetLayoutBinding, ArenaAllocator>::create(createinfo.bindings.count);
+			auto bindingflags = PH::Base::ArrayList<VkDescriptorBindingFlags, ArenaAllocator>::create(createinfo.bindings.count);
 
 			for (uint32 j = 0; j < createinfo.bindings.count; j++) {
 
 				const auto& descriptorbinding = createinfo.bindings[j];
+
 
 				VkDescriptorSetLayoutBinding vkbinding{};
 				vkbinding.binding = descriptorbinding.binding;
@@ -33,10 +34,28 @@ namespace PH::Vulkan {
 				vkbinding.stageFlags = convertShaderStageFlags(descriptorbinding.shaderstages);
 				vkbinding.pImmutableSamplers = nullptr;
 
+				//if the descriptor is update after bind add the flag
+				if (descriptorbinding.updateafterbind) {
+					bindingflags.pushBack(VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT);					
+				}
+				else {
+					bindingflags.pushBack(0);
+				}
+
+
 				bindings.pushBack(vkbinding);
 			}
 
+			layoutinfo.bindingCount = createinfo.bindings.count;
 			layoutinfo.pBindings = bindings.raw();
+			layoutinfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+
+			VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{};
+			flagsInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+			flagsInfo.bindingCount = createinfo.bindings.count;
+			flagsInfo.pBindingFlags = bindingflags.raw();
+
+			layoutinfo.pNext = &flagsInfo;
 
 			Vulkan::DescriptorSetLayout layout{};
 			if (vkCreateDescriptorSetLayout(context->device, &layoutinfo, nullptr, (VkDescriptorSetLayout*) & layout.layout) != VK_SUCCESS) {

@@ -67,7 +67,7 @@ namespace PH::Vulkan {
 		appinfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 		appinfo.pEngineName = "Physica engine";
 		appinfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-		appinfo.apiVersion = VK_API_VERSION_1_0;
+		appinfo.apiVersion = VK_API_VERSION_1_3;
 
 		VkInstanceCreateInfo createinfo{};
 		createinfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -356,17 +356,24 @@ namespace PH::Vulkan {
 			queuecreateinfos.pushBack(queuecreateinfo);
 		}
 
+		//enable update after bind for combined sampled images
+		VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
+		indexingFeatures.sType =
+			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+		indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+
+		//enable sampler anisotropy
 		VkPhysicalDeviceFeatures devicefeatures{};
 		devicefeatures.samplerAnisotropy = VK_TRUE;
 
+		//device create info
 		VkDeviceCreateInfo createinfo{};
 		createinfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
+		createinfo.pNext = &indexingFeatures;
 		createinfo.pQueueCreateInfos = queuecreateinfos.raw();
 		createinfo.queueCreateInfoCount = (uint32)queuecreateinfos.getCount();
-
 		createinfo.pEnabledFeatures = &devicefeatures;
-
+		
 		auto deviceextensions = ArrayList<const char*>::create(1);
 		deviceextensions.push(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 
@@ -659,7 +666,7 @@ namespace PH::Vulkan {
 		createinfo.poolSizeCount = 2;
 		createinfo.pPoolSizes = &poolsizes[0];
 		createinfo.maxSets = VULKAN_DESCRIPTOR_POOL_SIZE;
-		createinfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+		createinfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
 		VkDescriptorPool result;
 
@@ -832,6 +839,7 @@ namespace PH::Vulkan {
 		context->framebuffers.add({});
 		context->shaders.add({});
 		context->descriptorsetlayouts.add({});
+		context->descriptorsets.add({});
 
 		context->windowwidth = init.windowwidth;
 		context->windowheight = init.windowheight;
@@ -1033,6 +1041,8 @@ namespace PH::Vulkan {
 		void* pUserData) {
 
 		INFO << "validation layer: " << pCallbackData->pMessage << "\n\n\n";
+
+		PH_DEBUG_BREAK();
 
 		return VK_FALSE;
 	}

@@ -5,6 +5,8 @@ project "Base"
     targetdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("%{wks.location}/bin/" .. outputdir .. "/%{prj.name}/int")
 
+    staticruntime "Off"
+
 	ignoredefaultlibraries { "libraries" }
 
     files 

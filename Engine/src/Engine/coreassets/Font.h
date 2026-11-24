@@ -4,34 +4,25 @@
 
 #include <Engine/coreassets/Texture.h>
 #include <Engine/Rendering.h>
+#include <Engine/RenderPrimitives.h>
+#include <Engine/GPUBuffer.h>
 
 namespace PH::Engine {
 
 //random hardcoded UUID for the font asset description
 #define PH_ASSET_FONT 8122762271555803
 
+	typedef uint32 unicode;
 	
-	/*
 	struct Glyph {
-		int index;
-		unicode_t codepoint;
-		double geometryScale;
-		msdfgen::Shape shape;
-		msdfgen::Shape::Bounds bounds;
-		double advance;
-		struct {
-			struct {
-				int x, y, w, h;
-			} rect;
-			double range;
-			double scale;
-			glm::vec2 translate;
-		} box;
+		unicode codepoint;
+		Engine::Box2D atlasbounds;
+		Engine::Box2D planebounds;
+		float advance;
+		uint32 index;
 	};
 
-	*/
-
-	struct Font : public AssetBase {
+	struct PH_ENGINE_API Font : public AssetBase {
 
 		//asset needs this to compile templated function getAsset
 		static AssetDescriptionID getAssetDescriptionID() {
@@ -39,15 +30,13 @@ namespace PH::Engine {
 		}
 
 		Engine::Texture atlas;
-
 		Engine::String source;
+		Engine::ArrayList<Glyph> glyphs;
 
-		//Engine::ArrayList<Glyph> glyphs;
+		Engine::StaticGPUBuffer<Engine::Box2D> uvbuffer;
+		Platform::GFX::DescriptorSet descriptorset;
 
-
-		uint32 atlaswidth;
-		real32 atlasheight;
-
+		static Platform::GFX::DescriptorSetLayout createDescriptorSetLayout();
 		static Platform::GFX::DescriptorSetLayout descriptorsetlayout;
 	};
 

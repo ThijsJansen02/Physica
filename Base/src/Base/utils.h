@@ -1,4 +1,6 @@
 #pragma once
+#include <Base/Base.h>
+#include <math.h>
 
 namespace PH::Base {
 
@@ -40,4 +42,40 @@ namespace PH::Base {
 		T1 v1;
 		T2 v2;
 	};
+
+	inline int64 floorReal64(real64 v) {
+		return (uint64)floor(v);
+	}
+
+	inline real64 powReal64(real64 b, real32 exp) {
+		return pow(b, exp);
+	}
+
+	inline uint64 powUint64(uint64 b, uint64 exp) {
+		uint64 r = 1;
+		while (exp > 0) {
+			r *= b;
+			exp--;
+		}
+		return r;
+	}
+
+	inline real64 pow_b_Uint64_exp_Int64(uint64 b, int64 exp) {
+		real64 r = 1;
+
+		if (exp >= 0) {
+			while (exp > 0) {
+				r *= b;
+				exp--;
+			}
+			return r;
+		}
+		else {
+			while (exp < 0) {
+				r /= b;
+				exp++;
+			}
+			return r;
+		}
+	}
 }

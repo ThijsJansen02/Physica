@@ -122,7 +122,7 @@ namespace PH::Engine {
 		Engine::Display::defaultrenderpassdescription = createDisplayRenderpass();
 
 		//create a default descriptorset layout for fonts
-		Engine::Font::descriptorsetlayout = createFontDescriptorSetLayout();
+		Engine::Font::descriptorsetlayout = Engine::Font::createDescriptorSetLayout();
 
 		return true;
 	}

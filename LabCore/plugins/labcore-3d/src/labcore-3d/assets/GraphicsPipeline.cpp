@@ -280,8 +280,9 @@ namespace PH::LabCore3D {
 		Engine::ArrayList<GFX::DescriptorBinding> bindings = Engine::ArrayList<GFX::DescriptorBinding>::create(resources.count);
 		for (auto& res : resources) {
 			if (res.set == targetset) {
-				GFX::DescriptorBinding b;
+				GFX::DescriptorBinding b{};
 
+				b.updateafterbind = false;
 				b.type = res.type;
 				b.binding = res.binding;
 				b.shaderstages = GFX::SHADER_STAGE_FRAGMENT_BIT;
@@ -297,6 +298,8 @@ namespace PH::LabCore3D {
 
 		GFX::DescriptorSetLayout r;
 		GFX::createDescriptorSetLayouts(&inf, &r, 1);
+
+		//release resources
 		bindings.destroy(&bindings);
 		return r;
 	}

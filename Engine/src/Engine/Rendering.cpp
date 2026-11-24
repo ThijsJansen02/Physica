@@ -224,13 +224,13 @@ namespace PH::Engine {
 
 		Platform::GFX::DescriptorSetLayout createGlobalDescriptorSetLayout() {
 
-			GFX::DescriptorBinding texturebinding;
+			GFX::DescriptorBinding texturebinding{};
 			texturebinding.binding = TEXTURESAMPLER_BINDING;
 			texturebinding.descriptorcount = MAX_TEXTURES;
 			texturebinding.shaderstages = GFX::SHADER_STAGE_FRAGMENT_BIT;
 			texturebinding.type = GFX::DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			
-			GFX::DescriptorBinding transformbinding;
+			GFX::DescriptorBinding transformbinding{};
 			transformbinding.binding = SCENE_UBO_BINDING;
 			transformbinding.descriptorcount = 1;
 			transformbinding.shaderstages = GFX::SHADER_STAGE_VERTEX_BIT;

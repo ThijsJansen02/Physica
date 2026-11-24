@@ -46,6 +46,20 @@ namespace PH::LabCore {
 	};
 
 	struct LC_SCENE_API Scene : Engine::AssetBase {
+		struct SceneTransforms {
+			glm::mat4 view;
+			glm::mat4 projection;
+			bool32 orthographic;
+
+			//transforms a screenspace vector to a worldspace vector. does not preserve position, only length and rotation
+			glm::mat4 worldtoscreen;
+
+			//inverse of view matrix
+			glm::mat4 viewtoworld;
+		};
+
+		SceneTransforms transforms;
+
 
 		static Engine::AssetDescriptionID getAssetDescriptionID() {
 			return PH_ASSET_SCENE;
@@ -64,8 +78,8 @@ namespace PH::LabCore {
 	};
 
 	Engine::AssetDescription createSceneAssetDescription();
-	Scene createScene();
-	void initScene(Scene* scene);
+	LC_SCENE_API Scene createScene();
+	LC_SCENE_API void initScene(Scene* scene);
 
 	template<typename comp>
 	void addComponent(Scene* scene, entt::entity entity, const comp& component) {
@@ -88,7 +102,8 @@ namespace PH::LabCore {
 	}
 
 	inline entt::entity createEntity(Scene* scene) {
-		return scene->registry.create();
+		entt::entity ent = scene->registry.create();
+		return ent;
 	}
 
 }

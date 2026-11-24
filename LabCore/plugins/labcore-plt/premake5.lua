@@ -32,9 +32,9 @@ project "LabCore-plt"
 		"%{IncludeDir.cpythonPCheaders}",
 		"%{IncludeDir.labcore}",
 		"%{IncludeDir.vulkanSDK}",
-
+		"%{IncludeDir.labcore_scene}",
 		--"%{IncludeDir.imguizmo}",
-		"%{IncludeDir.stb}"
+		"%{IncludeDir.entt}"
 	}
 
 	defines 
@@ -51,6 +51,7 @@ project "LabCore-plt"
 	{
 		"yaml-cpp",
 		"LabCore",
+		"LabCore-scene",
 		"%{Library.platform}"
 	}
 

@@ -1,0 +1,117 @@
+>>>VERTEX_SHADER
+
+#version 450
+
+//vertexbuffer attributes
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inTexCoord;
+
+//instancebuffer attributes
+layout(location = 2) in vec4 inRotScaleMat;
+layout(location = 3) in vec3 instanceTranslation;
+layout(location = 4) in vec4 instanceColor;
+layout(location = 5) in uint inTextureIndex;
+
+//outgoing attributes
+layout(location = 0) out vec4 fragColor;
+layout(location = 1) out vec2 TexCoord;
+layout(location = 2) out uint TextureIndex;
+layout(location = 3) out uint objectid;
+
+layout( push_constant ) uniform Camera
+{
+	mat4 view;
+    mat4 proj;
+} camera;
+
+
+void main() {
+
+	mat2 rotscalematrix = mat2(inRotScaleMat);
+    gl_Position = camera.proj * camera.view * (vec4(rotscalematrix * inPosition.xy, inPosition.z, 1.0) + vec4(instanceTranslation, 0.0));
+
+    fragColor = instanceColor;
+	TexCoord = inTexCoord;
+	TextureIndex = inTextureIndex;
+}
+
+>>>FRAGMENT_SHADER
+
+#version 450
+
+layout(location = 0) in vec4 FragColor;
+layout(location = 1) in vec2 TexCoord;
+layout(location = 2) flat in uint TextureIndex;
+layout(location = 3) flat in uint Objectid;
+
+layout(location = 0) out vec4 outColor;
+
+layout(set = 0, binding = 0) uniform sampler2D texSampler[32];
+
+float median(float r, float g, float b)
+{
+    return max(min(r, g), min(max(r, g), b));
+}
+
+float screenPxRange(float pxrange, vec2 texturesize)
+{
+    vec2 unitRange = vec2(pxrange) / texturesize;
+
+    vec2 screenTexSize = inversesqrt(
+        dFdx(TexCoord) * dFdx(TexCoord) +
+        dFdy(TexCoord) * dFdy(TexCoord)
+    );
+
+    return max(0.5 * dot(unitRange, screenTexSize), 1.0);
+}
+
+struct UVCoords {
+    //bottom left
+    vec2 uv0;
+
+    //top right
+    vec2 uv1;
+};
+
+layout(set = 1, binding = 0) uniform UVCoordsBuffer {
+	UVCoords uvcoords[95];
+} uvcoordsbuffer;	
+
+void main() {	
+
+    uint value = TextureIndex;
+
+    // First (upper) 16 bits
+    uint textureindex = (value >> 16) & 0xFFFFu;
+
+    // Last (lower) 16 bits
+    uint glyphindex = value & 0xFFFFu;
+
+    UVCoords glyphuv = uvcoordsbuffer.uvcoords[glyphindex];
+
+    float pxrange = 8.0;
+
+    vec2 texturesize = vec2(glyphuv.uv1 - glyphuv.uv0) * vec2(textureSize(texSampler[textureindex], 0));
+    float screenpxrange = screenPxRange(pxrange, texturesize);
+
+
+    vec2 UV = mix(glyphuv.uv0, glyphuv.uv1, TexCoord);
+
+    vec4 texturesample = texture(texSampler[textureindex], UV).rgba;
+    vec3 msdf = texturesample.rgb;
+
+    float sd = 0.0;
+
+    if (screenpxrange < 2.0)
+        sd = texturesample.a;
+    else
+        sd = median(msdf.r, msdf.g, msdf.b);
+
+    float screenDistance = (sd - 0.5) * screenpxrange;
+
+    float opacity = clamp(screenDistance + 0.5, 0.0, 1.0);
+
+    outColor = vec4(FragColor.rgb, FragColor.a * opacity);
+}
+
+>>>END_OF_FILE

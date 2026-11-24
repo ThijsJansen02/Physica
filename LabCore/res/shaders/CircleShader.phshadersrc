@@ -64,7 +64,9 @@ void main() {
     float radius = 0.99f;
     float dist = length(uv - center) - radius;
 
-    float aa = fwidth(dist);
+    float smoothing = 0.5;
+
+    float aa = fwidth(dist) * smoothing;
     float mask = 1.0 - smoothstep(-aa, aa, dist);
 
     outColor = vec4(fs_in.fragcolor.xyz, mask);

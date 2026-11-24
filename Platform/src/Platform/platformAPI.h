@@ -398,6 +398,7 @@ namespace PH::Platform {
 			PH::Platform::GFX::DescriptorType type;
 			PH::uint32 descriptorcount;
 			PH::Platform::GFX::ShaderStageFlags shaderstages;
+			bool32 updateafterbind;
 		};
 
 		struct DescriptorSetLayoutCreateinfo {
