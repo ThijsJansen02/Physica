@@ -1,5 +1,6 @@
 #pragma once
 #include "Base/Base.h"
+#include "../Memory.h"
 
 namespace PH::Base {
 
@@ -386,12 +387,26 @@ namespace PH::Base {
 			return true;
 		}
 
+		//removes the element at location of ptr
 		bool32 remove(T* element) {
 			sizeptr index = element - begin().ptr;
 
 			PH_DEBUG_ASSERT(index >= 0)
 
 			return remove(index);
+		}
+
+		//removes all elements that equal element, returns true if an element is deleted
+		bool32 removeAllInstances(const T& element) {
+			bool32 r = false;
+
+			for (uint32 i = 0; i < getCount(); i++) { 
+				if ((*this)[i] == element) {
+					remove(&(*this)[i]);
+					r = true;
+				}
+			}
+			return r;
 		}
 
 		void release() {

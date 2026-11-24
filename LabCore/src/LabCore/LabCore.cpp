@@ -81,8 +81,8 @@ namespace PH::LabCore {
 
 	void initViews() {
 		//create the list of views and viewinstances
-		appcontext->views = Engine::ArrayList<ViewDescription>::create(1);
-		appcontext->viewinstances = Engine::ArrayList<ViewInstance>::create(1);
+		appcontext->views = Engine::ArrayList<ViewDescription*>::create(1);
+		appcontext->viewinstances = Engine::ArrayList<ViewInstance*>::create(1);
 	}
 
 	void initAssetLibrary() {
@@ -92,7 +92,7 @@ namespace PH::LabCore {
 		appcontext->assets.addAssetType(Engine::createTextureAssetDescription());
 
 		//statically adding a font to the asset library. application should always have a font available to draw text with, this is going to be used for the python shell and for the view instances
-		Engine::Font* font = Engine::Allocator::push(Engine::createFont("c:/windows/fonts/MicroSquare Regular.ttf", 24));
+		Engine::Font* font = Engine::Allocator::push(Engine::createFont("c:/windows/fonts/Arial.ttf", 24));
 		auto identifier = appcontext->assets.addPersistentAsset<Engine::Font>(font, 683249087875, "defaultfont");
 		
 
@@ -177,6 +177,7 @@ namespace PH::LabCore {
 
 		writeIni();
 		serializeProject(appcontext->projectpath.getC_Str());
+		destroyAllViewInstances(&appcontext->viewinstances);
 
 		//TODO add destruction off all the resources that were created in the application
 		PH::Engine::Allocator::dealloc(appcontext);
@@ -197,14 +198,14 @@ namespace PH::LabCore {
 		//open views sequence
 		out << YAML::Key << "openviews" << YAML::Value << YAML::BeginSeq;
 
-		for (auto& viewinstance : appcontext->viewinstances) {
+		for (auto* viewinstance : appcontext->viewinstances) {
 			out << YAML::Value << YAML::BeginMap;
 
-			out << YAML::Key << "viewname" << YAML::Value << viewinstance.viewdescription->name.getC_Str();
-			out << YAML::Key << "instanceid" << YAML::Value << viewinstance.instanceid;
+			out << YAML::Key << "viewname" << YAML::Value << viewinstance->viewdescription->name.getC_Str();
+			out << YAML::Key << "instanceid" << YAML::Value << viewinstance->instanceid;
 			out << YAML::Key << "viewdata" << YAML::Value;
-			if (viewinstance.viewdescription->serialize_) {
-				viewinstance.viewdescription->serialize_(viewinstance.instancedata, out);
+			if (viewinstance->viewdescription->serialize_) {
+				viewinstance->viewdescription->serialize_(viewinstance->instancedata, out);
 			}
 			else {
 				out << YAML::Null;
@@ -271,13 +272,13 @@ namespace PH::LabCore {
 			Engine::String viewname = view["viewname"].as<Engine::String>();
 			Engine::UUID instanceid = view["instanceid"].as<Engine::UUID>();
 
-			for (ViewDescription& viewdescription : appcontext->views) {
-				if (viewdescription.name.compare(viewname.getC_Str())) {
+			for (ViewDescription* viewdescription : appcontext->views) {
+				if (viewdescription->name.compare(viewname.getC_Str())) {
 
 					
-					ViewInstance instance = createViewInstance(&viewdescription, instanceid);
-					if (view["viewdata"] && instance.viewdescription->deserialize_) {
-						instance.viewdescription->deserialize_(instance.instancedata, view["viewdata"]);
+					ViewInstance* instance = Engine::Allocator::push(createViewInstance(viewdescription, instanceid));
+					if (view["viewdata"] && instance->viewdescription->deserialize_) {
+						instance->viewdescription->deserialize_(instance->instancedata, view["viewdata"]);
 					}
 					auto& inst = appcontext->viewinstances.pushBack(instance);
 
@@ -408,9 +409,9 @@ namespace PH::LabCore {
 
 			if (ImGui::BeginMenu("views"))
 			{
-				for (auto& View : appcontext->views) {
-					if (ImGui::MenuItem(View.name.getC_Str())) {
-						ViewInstance instance = createViewInstance(&View);
+				for (auto* View : appcontext->views) {
+					if (ImGui::MenuItem(View->name.getC_Str())) {
+						ViewInstance* instance = Engine::Allocator::push(createViewInstance(View));
 						appcontext->viewinstances.pushBack(instance);
 					}
 				}

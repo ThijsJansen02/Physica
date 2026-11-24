@@ -48,6 +48,8 @@ namespace PH::LabCore {
 	//instance of a view, this is created by the application when a view is added to the application, and it is destroyed when the view is removed from the application
 	struct ViewInstance {
 		ViewDescription* viewdescription;
+		Engine::String description;
+
 		void* instancedata;
 
 		//id is unique identifier for this view instance
@@ -70,13 +72,13 @@ namespace PH::LabCore {
 	void destroyViewInstance(ViewInstance* view);
 	
 	//updates all views in the application, this is called by the application in the update loop
-	void updateViews(Engine::ArrayList<ViewInstance>& views);
+	void updateViews(Engine::ArrayList<ViewInstance*>& views);
 
 	//draws all views in the application, this is called by the application in the update loop
-	void drawViews(Engine::ArrayList<ViewInstance>& views);
+	void drawViews(Engine::ArrayList<ViewInstance*>& views);
 
-	void destroyAllViewInstances(Engine::ArrayList<ViewInstance>* views);
+	void destroyAllViewInstances(Engine::ArrayList<ViewInstance*>* views);
 
 	//passes the event trough to the focussed view
-	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance>& views, const PH::Platform::Event& e);
+	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance*>& views, const PH::Platform::Event& e);
 }

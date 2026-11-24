@@ -5,7 +5,7 @@
 namespace PH::LabCore {
 
 	PH_LABCORE_API void addView(const ViewDescription& view) {
-		appcontext->views.pushBack(view);
+		appcontext->views.pushBack(Engine::Allocator::push<ViewDescription>(view));
 	}
 
 	PH_LABCORE_API glm::vec2 getViewSize() {

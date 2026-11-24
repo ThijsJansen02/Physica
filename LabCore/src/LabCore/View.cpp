@@ -9,12 +9,12 @@ namespace PH::LabCore {
 	ViewInstance* openview = nullptr;
 
 	//updates all views in the application, this is called by the application in the update loop
-	void updateViews(Engine::ArrayList<ViewInstance>& views) {
+	void updateViews(Engine::ArrayList<ViewInstance*>& views) {
 		for (auto& viewinstance : views) {
 
-			openview = &viewinstance;
+			openview = viewinstance;
 			if (openview->viewdescription->onUpdate_) {
-				openview->viewdescription->onUpdate_(viewinstance.instancedata);
+				openview->viewdescription->onUpdate_(viewinstance->instancedata);
 			}
 		}
 		//reset the open view to nullptr
@@ -47,12 +47,12 @@ namespace PH::LabCore {
 	}
 
 	//draws all views in the application, this is called by the application in the update loop
-	void drawViews(Engine::ArrayList<ViewInstance>& views) {
+	void drawViews(Engine::ArrayList<ViewInstance*>& views) {
 
 		ViewInstance* tobedeleted = nullptr;
-		for (auto& viewinstance : views) {
+		for (auto* viewinstance : views) {
 
-			openview = &viewinstance;
+			openview = viewinstance;
 			if (openview->viewdescription->draw_) {
 
 				real32 framesize = ImGui::GetWindowSize().y;
@@ -67,7 +67,7 @@ namespace PH::LabCore {
 					
 					openview->region = getImGuiWindowRegion();
 					openview->isfocussed = ImGui::IsWindowFocused();
-					openview->viewdescription->draw_(viewinstance.instancedata);
+					openview->viewdescription->draw_(viewinstance->instancedata);
 
 
 					glm::vec2 mousepos = Engine::Events::getMousePos();
@@ -75,7 +75,7 @@ namespace PH::LabCore {
 				}
 
 				if (isopen == false) {
-					tobedeleted = &viewinstance;
+					tobedeleted = viewinstance;
 				}
 
 				ImGui::End();
@@ -85,7 +85,8 @@ namespace PH::LabCore {
 		}
 		if (tobedeleted) {
 			destroyViewInstance(tobedeleted);
-			views.remove(tobedeleted);
+			Engine::Allocator::dealloc(tobedeleted);
+			views.removeAllInstances(tobedeleted);
 		}
 		openview = nullptr;
 	}
@@ -118,37 +119,38 @@ namespace PH::LabCore {
 	}
 
 	
-	bool32 isCursorOnView(const ViewInstance& view) {
+	bool32 isCursorOnView(ViewInstance* view) {
 		glm::vec2 mousepos = Engine::Events::getMousePos();
-		return Engine::isInBox2D(view.region, mousepos);
+		return Engine::isInBox2D(view->region, mousepos);
 	}
 
 	//passes the event trough to the focussed view
-	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance>& views, const PH::Platform::Event& e) {
+	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance*>& views, const PH::Platform::Event& e) {
 		for (auto& viewinstance : views) {
 
 			if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
 				if (isCursorOnView(viewinstance)) {
 					//viewinstance.isfocussed = true;
-					if (viewinstance.viewdescription->onEvent_) {
-						return viewinstance.viewdescription->onEvent_(viewinstance.instancedata, e);
+					if (viewinstance->viewdescription->onEvent_) {
+						return viewinstance->viewdescription->onEvent_(viewinstance->instancedata, e);
 					}
 
 				}
-				viewinstance.isfocussed = false;
+				viewinstance->isfocussed = false;
 			}
 
-			if (viewinstance.isfocussed) {
-				if (viewinstance.viewdescription->onEvent_) {
-					return viewinstance.viewdescription->onEvent_(viewinstance.instancedata, e);
+			if (viewinstance->isfocussed) {
+				if (viewinstance->viewdescription->onEvent_) {
+					return viewinstance->viewdescription->onEvent_(viewinstance->instancedata, e);
 				}
 			}
 		}
 	}
 
-	void destroyAllViewInstances(Engine::ArrayList<ViewInstance>* views) {
-		for (auto& view : *views) {
-			destroyViewInstance(&view);
+	void destroyAllViewInstances(Engine::ArrayList<ViewInstance*>* views) {
+		for (auto* view : *views) {
+			destroyViewInstance(view);
+			Engine::Allocator::dealloc(view);
 		}
 		views->clear();
 	}
