@@ -248,16 +248,16 @@ namespace PH::Engine {
 		
 		glm::vec2 midpoint = (v1 + v2) / 2.0f;
 		glm::vec2 v1v2 = v2 - v1;
-		glm::vec2 tangent = glm::normalize(v1v2);
-		glm::vec2 bitangent = { -tangent.y, tangent.x };
+		glm::vec2 v1v2_ss  = worldtoscreen * v1v2;
+		glm::vec2 bitangent_ss = glm::normalize(glm::vec2{ -v1v2_ss.y, v1v2_ss.x });
+		glm::vec2 tangent_ss = glm::normalize(v1v2_ss);
+		glm::vec2 v_y_ss = bitangent_ss * thickness * 2.0f;
+		glm::vec2 v_x_ss = v1v2_ss + (tangent_ss * thickness * 2.0f);
+		
+		glm::mat2 screentoworld = glm::inverse(worldtoscreen);
 
-		glm::vec2 ws_bitangent = worldtoscreen * bitangent;
-		real32 s = glm::length(ws_bitangent);
-
-		real32 w = thickness / s;
-
-		glm::vec2 v_x = v1v2 + tangent * w * 2.0f;
-		glm::vec2 v_y = bitangent * w * 2.0f;
+		glm::vec2 v_x = screentoworld * v_x_ss;
+		glm::vec2 v_y = screentoworld * v_y_ss;
 
 		glm::mat2 scalerot = glm::mat2(v_x, v_y);
 
@@ -335,6 +335,42 @@ namespace PH::Engine {
 		while (*ptr != '\0') {
 			drawGlyph(*ptr, pos, scale, font, color);
 			pos.x += (font->glyphs[*ptr - 32].advance * scale);
+			ptr++;
+		}
+	}
+
+	void BatchRenderer2D::drawGlyph(uint32 unicode, const glm::vec3& position, const glm::vec2& scale, Engine::Font* font, const glm::vec4& color) {
+		pushPipeline(fontshader);
+		if (font->descriptorset != fontdescriptor) {
+			end();
+			flush();
+			begin();
+		}
+
+		fontdescriptor = font->descriptorset;
+
+		uint32 i = pushTexture(font->atlas.texture);
+
+		Engine::Glyph glyph = font->glyphs[unicode - 32];
+
+		uint32 textureglyph = ((i << 16) & 0xFFFF0000) | (0xFFFF & glyph.index);
+
+		Box2D plane = font->glyphs[unicode - 32].planebounds;
+		plane.bottomleft *= scale;
+		plane.topright *= scale;
+
+		plane = plane + glm::vec2(position);
+
+		drawQuad(plane, position.z, color, textureglyph, 0);
+	}
+
+	void BatchRenderer2D::drawText(const char* text, const glm::vec3& position, const glm::vec2& scale, Engine::Font* font, const glm::vec4& color) {
+		glm::vec3 pos = position;
+
+		const char* ptr = text;
+		while (*ptr != '\0') {
+			drawGlyph(*ptr, pos, scale, font, color);
+			pos.x += (font->glyphs[*ptr - 32].advance * scale.x);
 			ptr++;
 		}
 	}

@@ -21,29 +21,19 @@ namespace PH::LabCore {
 		openview = nullptr;
 	}
 
-	Engine::Box2D getImGuiWindowRegion() {
+	Engine::Box2D getImGuiWindowContentRegion() {
+
 		ImVec2 contentMin = ImGui::GetWindowContentRegionMin();
 		ImVec2 contentMax = ImGui::GetWindowContentRegionMax();
 		ImVec2 windowPos = ImGui::GetWindowPos();
 
-		ImVec2 topLeft = ImVec2(
-			windowPos.x + contentMin.x,
-			windowPos.y + contentMin.y
-		);
+		auto* maindisplay = Engine::getParentDisplay();
+		
+		glm::vec2 windowpos_lb = { windowPos.x, maindisplay->viewport.y - (windowPos.y + contentMax.y) };
+		real32 crwidth = contentMax.x - contentMin.x;
+		real32 crheight = contentMax.y - contentMin.y;
 
-		ImVec2 bottomRight = ImVec2(
-			windowPos.x + contentMax.x,
-			windowPos.y + contentMax.y
-		);
-
-		ImVec2 bottomLeft = ImVec2(topLeft.x, bottomRight.y);
-		ImVec2 topRight = ImVec2(bottomRight.x, topLeft.y);
-
-		Engine::Box2D windowregion;
-		windowregion.bottomleft = (glm::vec2) * (float*)&bottomLeft;
-		windowregion.topright = (glm::vec2) * (float*)&topRight;
-
-		return windowregion;
+		return Engine::Box2D::create(windowpos_lb.x, windowpos_lb.x + crwidth, windowpos_lb.y + crheight, windowpos_lb.y);
 	}
 
 	//draws all views in the application, this is called by the application in the update loop
@@ -65,8 +55,9 @@ namespace PH::LabCore {
 				bool isopen = true;
 				if (ImGui::Begin(windownamebuffer, &isopen, openview->viewdescription->windowflags)) {
 					
-					openview->region = getImGuiWindowRegion();
+					openview->region = getImGuiWindowContentRegion();
 					openview->isfocussed = ImGui::IsWindowFocused();
+					openview->ishovered = ImGui::IsWindowHovered();
 					openview->viewdescription->draw_(viewinstance->instancedata);
 
 
@@ -126,7 +117,9 @@ namespace PH::LabCore {
 
 	//passes the event trough to the focussed view
 	bool32 interpretEventForViews(Engine::ArrayList<ViewInstance*>& views, const PH::Platform::Event& e) {
-		for (auto& viewinstance : views) {
+		for (auto* viewinstance : views) {
+
+			openview = viewinstance;
 
 			if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
 				if (isCursorOnView(viewinstance)) {
@@ -145,6 +138,7 @@ namespace PH::LabCore {
 				}
 			}
 		}
+		openview = nullptr;
 	}
 
 	void destroyAllViewInstances(Engine::ArrayList<ViewInstance*>* views) {

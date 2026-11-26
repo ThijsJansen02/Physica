@@ -89,7 +89,7 @@ void main() {
     vec2 p2 = vec2(distance / 2.0, 0.0);
 
     float dist = lineSDF(pos, p1, p2, thickness);
-    float smoothing = 0.5;
+    float smoothing = 1.0;
 
     float aa = fwidth(dist) * smoothing;
     float alpha = smoothstep(aa, -aa, dist);

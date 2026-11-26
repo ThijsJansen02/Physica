@@ -59,6 +59,7 @@ namespace PH::LabCore {
 		Engine::String name;
 
 		bool32 isfocussed;
+		bool32 ishovered;
 
 		Engine::Box2D region;
 	};

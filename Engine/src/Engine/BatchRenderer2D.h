@@ -85,7 +85,10 @@ namespace PH::Engine {
 		void drawLine(const glm::vec2& v1, const glm::vec2& v2, real32 depth, real32 thickness, const glm::mat2& worldtoScreen, const glm::vec4& color);
 		void drawFont(const glm::vec3& position, real32 rotation, const glm::vec2& scale, PH::Platform::GFX::Texture texture, const glm::vec4 color = glm::vec4(1.0f));
 		void drawGlyph(uint32 unicode, const glm::vec3& position, real32 scale, Engine::Font* font, const glm::vec4& color = glm::vec4(1.0f));
+		void drawGlyph(uint32 unicode, const glm::vec3& position, const glm::vec2& scale, Engine::Font* font, const glm::vec4& color = glm::vec4(1.0f));
+		
 		void drawText(const char* text, const glm::vec3& position, real32 scale, Engine::Font* font, const glm::vec4& color = glm::vec4(1.0f));
+		void drawText(const char* text, const glm::vec3& position, const glm::vec2& scale, Engine::Font* font, const glm::vec4& color = glm::vec4(1.0f));
 
 		void pushPipeline(PH::Platform::GFX::GraphicsPipeline pipe);
 		uint32 pushTexture(PH::Platform::GFX::Texture texture);

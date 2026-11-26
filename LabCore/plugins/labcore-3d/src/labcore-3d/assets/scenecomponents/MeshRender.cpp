@@ -64,7 +64,7 @@ namespace PH::LabCore3D {
 	}
 
 	//supposes that there is a deffered renderer!
-	bool32 drawMeshRender(Scene* scene) {
+	bool32 drawMeshRender(Scene* scene, Scene::RenderProperties* renderproperties) {
 
 		Engine::AssetLibrary* assets = LabCore::getAssetLibrary();
 		LabCore3D::DefferedRenderer* renderer = &LabCore3D::renderer;

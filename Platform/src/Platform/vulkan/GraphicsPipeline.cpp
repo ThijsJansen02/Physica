@@ -296,7 +296,7 @@ namespace PH::Vulkan {
 				depthstencil.depthTestEnable = VK_FALSE;
 				depthstencil.depthWriteEnable = VK_FALSE;
 			}
-			depthstencil.depthCompareOp = VK_COMPARE_OP_LESS;
+			depthstencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
 
 			depthstencil.depthBoundsTestEnable = VK_FALSE;
 			depthstencil.minDepthBounds = 0.0f; // Optional

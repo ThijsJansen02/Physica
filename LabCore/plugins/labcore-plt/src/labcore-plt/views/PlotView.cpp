@@ -1,5 +1,5 @@
-
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+
 #include "PlotView.h"
 #include <LabCore/LabCoreAPI.h>
 #include <Engine/imgui/extensions.h>
@@ -12,9 +12,20 @@ namespace PH::LabCorePLT {
 
 	typedef PlotView View;
 
+	//the global plotview settings, are to be set by the plotview at the beginning of drawing the plot
+	PlotView::Settings basesettings{};
+	static PlotView::Settings* currentplotviewsettings = &basesettings;
+
+	PlotView::Settings* getCurrentPlotViewSettings() {
+		return currentplotviewsettings;
+	}
+
 	void drawRenderTest(View* view);
 
 	static PH::bool32 drawView(View* view) {
+
+		currentplotviewsettings = &view->settings;
+		
 		ImVec2 displaysize = ImGui::GetContentRegionAvail();
 		view->display.viewport = { displaysize.x, displaysize.y };
 
@@ -26,15 +37,16 @@ namespace PH::LabCorePLT {
 		renderer->viewport.width = displaysize.x;
 		renderer->viewport.height = displaysize.y;
 		
-
-
 		view->camera.view = getPlotCameraViewMatrix(view->camera);
 		view->camera.proj = getPlotCameraProjectionMatrix(view->camera);
+		view->renderprops.camera.domain = view->camera.domain;
 
-		view->scene.transforms.orthographic = true;
-		view->scene.transforms.view = view->camera.view;
-		view->scene.transforms.projection = view->camera.proj;
-		view->scene.transforms.worldtoscreen = getWorldToScreenSpace(view->camera, view->display.viewport);
+		view->renderprops.camera.orthographic = true;
+		view->renderprops.camera.view = view->camera.view;
+		view->renderprops.camera.projection = view->camera.proj;
+		view->renderprops.camera.worldtoscreen = getWorldToScreenSpace(view->camera, view->display.viewport);
+
+		view->renderprops.viewportsize = view->display.viewport;
 
 		renderer->beginGeometryPass(true, true);
 		renderer->pushProjection(view->camera.proj);
@@ -42,7 +54,7 @@ namespace PH::LabCorePLT {
 
 		for (const auto& desc : view->scene.scenecomponentdescriptions) {
 			if (desc.drawComponents_) {
-				desc.drawComponents_(&view->scene);
+				desc.drawComponents_(&view->scene, &view->renderprops);
 			}
 		}
 
@@ -50,16 +62,32 @@ namespace PH::LabCorePLT {
 		renderer->output(&view->display);
 
 		//draw the actual rendered image to imgui
-		ImGui::Image(
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.0f, 0.0f});
+
+		ImGui::ImageButton("###1",
 			view->display.imguitexture,
 			displaysize,
 			{ 0.0f, 0.0f }, //bottom left uv
 			{ displaysize.x / view->display.framebuffersize.x, displaysize.y / view->display.framebuffersize.y } //top right UV
 		);
+		ImGui::PopStyleVar(2);
+
+		if (ImGui::BeginPopupContextItem()) // Uses item's ID and right mouse button by default
+		{
+			ImGui::SeparatorText("Plot settings");
+			ImGui::Checkbox("log x", (bool*) & view->settings.logx);
+			ImGui::Checkbox("log y", (bool*)&view->settings.logy);
+			ImGui::EndPopup();
+		}
+
 
 		if(ImGui::Begin("render stats")) {
 			ImGui::Text("FPS: %f", 1.0f / Engine::getTimeStep());
 			ImGui::Text("Delta Mouse: %f, %f", Engine::Events::getDeltaMousePos().x, Engine::Events::getDeltaMousePos().y);
+			ImVec2 wp = ImGui::GetWindowPos();
+			ImGui::Text("window pos: %f, %f", wp.x, wp.y);
+			ImGui::Text("%f", (glm::mat2(view->renderprops.camera.worldtoscreen) * glm::vec2(1, 0)).x);
 		}
 		ImGui::End();
 
@@ -69,10 +97,10 @@ namespace PH::LabCorePLT {
 	static PH::bool32 updateView(View* view) {
 		if (view->dragging) {
 			glm::vec2 deltass = Engine::Events::getDeltaMousePos();
-			glm::vec2 deltaws = glm::inverse(glm::mat2(view->scene.transforms.worldtoscreen)) * deltass;
+			glm::vec2 deltaws = glm::inverse(glm::mat2(view->renderprops.camera.worldtoscreen)) * deltass;
 
 			view->camera.domain = view->camera.domain + -1.0f * deltaws;
-			if (!Engine::Events::isMouseButtonPressed(PH_LMBUTTON)) {
+			if (!Engine::Events::isMouseButtonPressed(PH_LMBUTTON) || !LabCore::isViewFocussed()) {	
 				view->dragging = false;
 			}
 		}
@@ -86,6 +114,10 @@ namespace PH::LabCorePLT {
 		LabCore::initScene(&view->scene);
 
 		view->dragging = false;
+		view->settings.logx = false;
+		view->settings.logy = false;
+		view->settings.x_unit = "";
+		view->settings.y_unit = "";
 
 		entt::entity ent = LabCore::createEntity(&view->scene);
 		LabCore::addComponent<LabCorePLT::Grid2D>(&view->scene, ent, {});
@@ -93,7 +125,7 @@ namespace PH::LabCorePLT {
 		auto* lib = LabCore::getAssetLibrary();
 		lib->addPersistentAsset<Scene>(&view->scene, Engine::createRandomUUID(), "plot");
 
-		view->camera = createPlotCamera(Engine::Box2D::create(-10.0f, 10.0f, 10.0f, -10.0f), { 0.0f, 0.0f });
+		view->camera = createPlotCamera(Engine::Box2D::create(-2.0f, 2.0f, 2.0f, -2.0f), { 0.0f, 0.0f });
 		return true;
 	}
 
@@ -101,11 +133,56 @@ namespace PH::LabCorePLT {
 		return true;
 	}
 
+	real64 scrollspeed = 0.001;
+
+	//transforms the mouseposition to the viewspace
+	static glm::vec2 transFormMousePosToDomain(glm::vec2 mousepos, glm::vec2 viewport, Engine::Box2D domain) {
+		glm::vec2 r;
+		r.x = domain.left + (mousepos.x / viewport.x) * (domain.right - domain.left);
+		r.y = domain.bottom + (mousepos.y / viewport.y) * (domain.top - domain.bottom);
+
+		return r;
+	}
+
 	static PH::bool32 ViewOnEvent(View* view, const PH::Platform::Event& e) {
 		if (e.type == PH_EVENT_TYPE_MOUSEBUTTON_PRESSED) {
 			if (e.lparam == PH_LMBUTTON) {
 				view->dragging = true;
+				glm::vec2 mp = LabCore::getViewMousePos();
+				Engine::INFO << "mp: " << mp.x << ", " << mp.y << "\n";
 			}
+		}
+		
+		if (e.type == PH_EVENT_TYPE_MOUSE_SCROLLED && LabCore::isViewHovered()) {
+			int16 delta = (int16)(void*)e.lparam;
+
+			real32 zoom = 1.0f - (real32)delta * scrollspeed;
+
+			glm::vec2 mp_ss = LabCore::getViewMousePos();
+			glm::vec2 windowsize =LabCore::getViewSize();
+
+			glm::vec2 mp_ws = transFormMousePosToDomain(mp_ss, windowsize, view->camera.domain);
+
+			Engine::Box2D range = view->camera.domain;
+
+			//update mouseevents
+			if (PH::Engine::Events::isKeyPressed(PH_CONTROL)) {
+				range.right = (range.right - mp_ws.x) * zoom + mp_ws.x;
+				range.left = (range.left - mp_ws.x) * zoom + mp_ws.x;
+			}
+			else {
+				range.top = (range.top - mp_ws.y) * zoom + mp_ws.y;
+				range.bottom = (range.bottom - mp_ws.y) * zoom + mp_ws.y;
+			}
+
+			view->camera.domain = range;
+
+			/*
+			if (xlock) {
+				xlock->range.left = range.left;
+				xlock->range.right = range.right;
+			}
+			*/
 		}
 		
 		return true;

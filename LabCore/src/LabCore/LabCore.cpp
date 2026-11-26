@@ -64,8 +64,9 @@ namespace PH::LabCore {
 
 		ci.quadshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/QuadShader.phshadersrc", "res/shaders/bin/QuadShader.phshaderbin", {nullptr, 0}, true, true);
 		ci.circleshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/CircleShader.phshadersrc", "res/shaders/bin/CircleShader.phshaderbin", { nullptr, 0 }, true, true);
-		ci.lineshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/LineShader.phshadersrc", "res/shaders/bin/LineShader.phshaderbin", { nullptr, 0 }, true, false);
-		ci.fontshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/FontShader.phshadersrc", "res/shaders/bin/FontShader.phshaderbin", { &Engine::Font::descriptorsetlayout, 1 }, true, false);
+		ci.lineshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/LineShader.phshadersrc", "res/shaders/bin/LineShader.phshaderbin", { nullptr, 0 }, true, true);
+		ci.fontshader = Engine::BatchRenderer2D::createBatchPipeline("res/shaders/FontShader.phshadersrc", "res/shaders/bin/FontShader.phshaderbin", { &Engine::Font::descriptorsetlayout, 1 }, true, true);
+		//ci.lineshader = ci.quadshader;
 
 		ci.internalfb = true;
 		appcontext->batchrenderer = Engine::BatchRenderer2D::create(ci);

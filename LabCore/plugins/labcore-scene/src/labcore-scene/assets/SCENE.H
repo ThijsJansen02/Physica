@@ -6,13 +6,57 @@
 #endif
 #include <Engine/AssetDescription.h>
 #include <entt/entt.hpp>
-
+#include <Engine/RenderPrimitives.h>
 
 namespace PH::LabCore {
 
 #define PH_ASSET_SCENE 6544691651984941516
 
-	struct Scene;
+	struct SceneComponentDescription;
+
+
+	struct LC_SCENE_API Scene : Engine::AssetBase {
+
+		//properties of the drawing camera that the view that displays the scene should fill in
+		struct CameraProperties {
+			glm::mat4 view;
+			glm::mat4 projection;
+			bool32 orthographic;
+
+			union {
+				Engine::Box2D domain;
+				struct {
+					real32 focallength;
+				};
+			};
+
+			//transforms a worldspace vector to a screenspace vector. does not preserve position, only length and rotation
+			glm::mat4 worldtoscreen;
+
+			//inverse of view matrix
+			glm::mat4 viewtoworld;
+		};
+
+		struct RenderProperties {
+			glm::vec2 viewportsize;
+			CameraProperties camera;
+		};
+
+		static Engine::AssetDescriptionID getAssetDescriptionID() {
+			return PH_ASSET_SCENE;
+		}
+
+		static const char* getExtension() {
+			return ".lcscene";
+		}
+
+		static void addComponentDescription(const SceneComponentDescription& desc);
+
+		//the currently selected entity for this scene
+		entt::entity selected;
+		entt::registry registry;
+		static Engine::ArrayList<SceneComponentDescription> scenecomponentdescriptions;
+	};
 
 	typedef bool32(EntityHasComponentFN)(entt::entity entity, Scene* reg);
 	typedef bool32(DrawComponentUIFN)(entt::entity entity, Scene* reg);
@@ -22,7 +66,7 @@ namespace PH::LabCore {
 
 	//these functions should act on all the components
 	typedef bool32(UpdateComponentsFN)(Scene* reg);
-	typedef bool32(DrawComponentsFN)(Scene* reg);
+	typedef bool32(DrawComponentsFN)(Scene* reg, Scene::RenderProperties* renderproperties);
 
 	typedef bool32(serializeComponentFN)(YAML::Emitter& out, entt::entity entity, Scene* reg);
 	typedef bool32(deserializeComponentFN)(YAML::Node in, entt::entity entity, Scene* reg);
@@ -43,38 +87,6 @@ namespace PH::LabCore {
 		Engine::String name;
 
 		sizeptr localdatasize;
-	};
-
-	struct LC_SCENE_API Scene : Engine::AssetBase {
-		struct SceneTransforms {
-			glm::mat4 view;
-			glm::mat4 projection;
-			bool32 orthographic;
-
-			//transforms a screenspace vector to a worldspace vector. does not preserve position, only length and rotation
-			glm::mat4 worldtoscreen;
-
-			//inverse of view matrix
-			glm::mat4 viewtoworld;
-		};
-
-		SceneTransforms transforms;
-
-
-		static Engine::AssetDescriptionID getAssetDescriptionID() {
-			return PH_ASSET_SCENE;
-		}
-
-		static const char* getExtension() {
-			return ".lcscene";
-		}
-
-		static void addComponentDescription(const SceneComponentDescription& desc);
-
-		//the currently selected entity for this scene
-		entt::entity selected;
-		entt::registry registry;
-		static Engine::ArrayList<SceneComponentDescription> scenecomponentdescriptions;
 	};
 
 	Engine::AssetDescription createSceneAssetDescription();

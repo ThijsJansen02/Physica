@@ -41,6 +41,10 @@ namespace PH::LabCore {
 		return LabCore::openview->isfocussed;
 	}
 
+	bool32 isViewHovered() {
+		return LabCore::openview->ishovered;
+	}
+
 	Engine::AssetLibrary* getAssetLibrary() {
 		return &LabCore::appcontext->assets;
 	}
